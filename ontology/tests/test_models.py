@@ -119,6 +119,7 @@ def test_node_inheritance_resolved_from_ontology_subclassing():
         ("processing_call", "ProcessingCall"),
         ("state", "State"),
         ("transition", "Transition"),
+        ("trajectory_context", "TrajectoryContext"),
     ],
 )
 def test_expected_core_node_classes_exist(module, cls_name):

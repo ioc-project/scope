@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [1.0.3] - 2026-10-12
+
+### Added
+
+- `semantic-ontology.ttl`: `TrajectoryContext` semantic element holding the trajectory context a
+  `Transition` contributed to its session, one property per constituent (`evidence`,
+  `claims`, `intents`, `workUnits`, `provenanceLinks`,
+  `coordinationEvents`, `flags`, `finalAnswer`), and the `hasContext` link from
+  `Transition`, so the running context can be rebuilt from the trajectory.
+
 ## [1.0.2] - 2026-10-05
 
 ### Fixed

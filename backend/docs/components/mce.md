@@ -158,9 +158,48 @@ metrics:
 | `MCE_ENGINE_MAX_WORKERS` | Engine worker pool size |
 | `MCE_ENGINE_STRATEGY` | Execution strategy (`thread`, `process`, `hybrid`, `asyncio`) |
 | `MCE_WORKAROUNDS_FIRST` | Ordering flag for compatibility workarounds |
+| `MCE_JUDGE_SAMPLES` | Judge calls averaged per LLM-judged metric (default `1`) |
+| `MCE_JUDGE_TEMPERATURE` | Judge sampling temperature (default `0.0` for one sample, `0.7` for several) |
+| `MCE_JUDGE_LOGPROBS` | Ask the judge for token log-probabilities to score continuously (default on) |
 
 LLM-as-judge metrics (e.g. `AnswerRelevancy`) additionally need `OPENAI_API_KEY`,
 `LLM_MODEL_NAME`, and optionally `LLM_BASE_MODEL_URL_MCE`.
+
+### How LLM-judged metrics are scored
+
+Native LLM-judge metrics ask the model for an integer 1–5 against a written rubric and report
+`(score − 1) / 4`, in `[0, 1]`. The reported value is continuous, not one of five steps:
+
+- When the endpoint returns token log-probabilities (`MCE_JUDGE_LOGPROBS`), the value is the
+  expected score over the probabilities of the score digits, from a single call (G-Eval style).
+  Endpoints that reject the option are detected and it is dropped for them.
+- With `MCE_JUDGE_SAMPLES` above 1 the per-call scores are averaged. This multiplies the judge calls
+  and so the evaluation cost.
+
+A reply with no `Score:` value, or a missing input (an empty conversation, a tool call without
+output), makes the metric **fail**: the result carries an `error` and is not persisted. It is never
+stored as a score of 0.
+
+### Evaluation cost
+
+Every LLM call a metric makes is counted. The result's `metadata` carries `evaluation_model`,
+`evaluation_prompt_tokens`, `evaluation_completion_tokens`, `evaluation_total_tokens` and
+`evaluation_cost_usd`, summed over all the metric's calls (including the per-tool-call judge calls of
+`ToolUtilizationAccuracy`). Metrics that make no LLM call carry none of them in the result. The cost is an
+estimate from the token counts and the list price in `mce/engine/data/model_prices.json` (a model
+without a price is priced like `gpt-4o`). That table is a trimmed copy of LiteLLM's
+`model_prices_and_context_window.json`, refreshed from upstream in two ways: every `mce-worker` and `stateful-eval-worker` image build
+downloads the latest table into its build context (a LiteLLM outage falls back to the committed copy),
+and the *Update Model Prices* workflow, run on demand, opens a pull request to sync the committed copy.
+
+The API stores every metric result as the ontology's `MetricResult`: each write is validated against
+the model generated from the ontology (`oxp_ontology.models.nodes.MetricResult`) and a result that does
+not fit it (a non-numeric value or cost, say) is logged and not saved. All metrics carry the same fields
+(`id`, `name`, `result`, `reasoning`, `evaluationModel`, `evaluationPromptTokenCount`,
+`evaluationCompletionTokenCount`, `evaluationTotalTokenCount`, `evaluationCost`), so a metric that
+makes no LLM call has the model defaults: no model, zero tokens, zero cost.
+
+Record/replay caches keep the usage, so replayed runs report it too.
 
 ### Running it in the pipeline
 

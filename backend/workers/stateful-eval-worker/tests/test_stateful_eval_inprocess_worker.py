@@ -1,5 +1,7 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
+from types import SimpleNamespace
+
 import pytest
 from worker_base.queue_message import BaseQueueMessage
 
@@ -277,9 +279,67 @@ async def test_worker_persists_legacy_result_without_changing_payload(rabbit_url
                 "metric_id": None,
                 "source": "StatefulEval",
                 "reasoning": "Unresolved requirement.",
+                "evaluation_model": "gpt-4o",
             }
         ],
     )
+
+
+@pytest.mark.asyncio
+async def test_worker_persists_session_and_span_evaluation_cost(rabbit_url, session_message, mocker):
+    span_metric = SimpleNamespace(
+        span_id="span-1",
+        span_index=0,
+        metric_name="mdt.Groundedness",
+        score=0.75,
+        reasoning="ok",
+        evaluation_model="gpt-4o",
+        evaluation_prompt_tokens=50,
+        evaluation_completion_tokens=5,
+        evaluation_total_tokens=55,
+        evaluation_cost_usd=0.000175,
+    )
+    unmeasured = SimpleNamespace(
+        span_id="span-2",
+        span_index=1,
+        metric_name="mdt.Relevancy",
+        score=0.0,
+        reasoning="Auto-failed: span contains error",
+        evaluation_model=None,
+        evaluation_prompt_tokens=None,
+        evaluation_completion_tokens=None,
+        evaluation_total_tokens=None,
+        evaluation_cost_usd=None,
+    )
+    result = make_session_result(
+        span_metric_results=[span_metric, unmeasured],
+        token_usage={"prompt_tokens": 1000, "completion_tokens": 200, "total_tokens": 1200},
+        estimated_cost_usd=0.0045,
+    )
+    processor = mocker.Mock()
+    processor.evaluate_spans.return_value = result
+    mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
+    worker = _make_worker(rabbit_url, llm_model_name="gpt-4o")
+    worker.push_metrics = True
+    client = worker._get_oxp_client()
+    client.write_span_metrics.return_value = {"written": 1, "errors": []}
+    client.write_session_metrics.return_value = {"written": 1, "errors": []}
+
+    await worker.handle_message(session_message)
+
+    span_calls = {call.args[1]: call.args[2][0] for call in client.write_span_metrics.call_args_list}
+    assert span_calls["span-1"]["evaluation_prompt_tokens"] == 50
+    assert span_calls["span-1"]["evaluation_completion_tokens"] == 5
+    assert span_calls["span-1"]["evaluation_total_tokens"] == 55
+    assert span_calls["span-1"]["evaluation_cost_usd"] == 0.000175
+    assert span_calls["span-1"]["evaluation_model"] == "gpt-4o"
+    assert not any(key.startswith("evaluation_") for key in span_calls["span-2"])
+    session_metric = client.write_session_metrics.call_args.args[1][0]
+    assert session_metric["evaluation_model"] == "gpt-4o"
+    assert session_metric["evaluation_prompt_tokens"] == 1000
+    assert session_metric["evaluation_completion_tokens"] == 200
+    assert session_metric["evaluation_total_tokens"] == 1200
+    assert session_metric["evaluation_cost_usd"] == 0.0045
 
 
 @pytest.mark.asyncio

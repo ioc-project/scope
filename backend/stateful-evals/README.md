@@ -101,6 +101,7 @@ its `CLICKHOUSE_*` settings.
 | --- | --- | --- |
 | `trajectory_metrics` | `None` | Metric codes to evaluate over the trajectory context, or `["all"]`. Diagnostic only; never changes `trajectory_score` |
 | `high_level_metric_suite` | `"legacy_v1"` | Metric suite used by the final audit: `legacy_v1`, `paper_v1`, or `paper_v2` |
+| `span_pass_threshold` | `0.5` | Span metrics (`mdt.*`) are judged on a 1-5 rubric and normalized to `(score-1)/4` (0, 0.25, 0.5, 0.75, 1). A span metric passes at or above this value and fails below it |
 | `use_fatal_mode` | `True` | Fatal/minor audit with a binary trajectory score |
 | `fatality_threshold` | `0.69` | Severity at or above which a failure is fatal |
 | `reasoning_effort` | `"low"` | Reasoning effort for final audits and trajectory metric judges |
@@ -142,7 +143,7 @@ can change individual span judgments.
 | --- | --- |
 | `trajectory_score`, `trajectory_reasoning` | Binary trajectory verdict and why |
 | `fatal_failures`, `minor_failures` | Failures found by the audit, with span index and evidence |
-| `span_metric_results` | Per-span judgments |
+| `span_metric_results` | Per-span judgments: normalized `score` (0-1), judge `raw_score` (1-5), and `evaluation_*` usage and cost, with the span's judge usage split evenly across its metrics |
 | `trajectory_metrics` | Results of the metrics named in `trajectory_metrics` (`status` is `pass`, `fail`, `not_applicable`, or `unknown`) |
 | `token_usage`, `cost_estimate` | Model usage for the run |
 | `error` | Set when the run failed; check it first |

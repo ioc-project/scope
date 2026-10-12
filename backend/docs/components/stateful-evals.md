@@ -43,6 +43,7 @@ Each trajectory gets fresh state — runs never share context or token counts.
 |---|---|---|
 | `trajectory_metrics` | `None` | Metric codes to compute (or `["all"]`); diagnostic only, never changes `trajectory_score` |
 | `high_level_metric_suite` | `"legacy_v1"` | Metric suite used by the final audit (`legacy_v1`, `paper_v1`, `paper_v2`) |
+| `span_pass_threshold` | `0.5` | Span metrics (`mdt.*`) are judged on a 1-5 rubric and normalized to `(score-1)/4` (0, 0.25, 0.5, 0.75, 1). A span metric passes at or above this value and fails below it |
 | `use_fatal_mode` | `True` | Fatal/minor audit with a binary trajectory score |
 | `fatality_threshold` | `0.69` | Severity at or above which a failure is fatal |
 | `batch_size` | `50` | Sessions evaluated concurrently by `EvaluationEngine` |
@@ -51,7 +52,7 @@ See `stateful_evals_be/models/requests.py` for the full set.
 
 ### Key results (`SessionResult`)
 
-`trajectory_score`/`trajectory_reasoning` (binary verdict and why), `fatal_failures`/`minor_failures`, `span_metric_results`, `trajectory_metrics`, `token_usage`/`cost_estimate`, and `error` (set when the run failed).
+`trajectory_score`/`trajectory_reasoning` (binary verdict and why), `fatal_failures`/`minor_failures`, `span_metric_results` (normalized `score`, the judge's `raw_score` 1-5, and `evaluation_model`/`evaluation_*_tokens`/`evaluation_cost_usd`: the span's judge usage split evenly across the metrics judged for it, so the per-metric values sum to the span's usage), `trajectory_metrics`, `token_usage`/`cost_estimate`, and `error` (set when the run failed).
 
 ## Usage
 

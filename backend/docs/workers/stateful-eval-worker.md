@@ -48,8 +48,16 @@ The worker only reads ClickHouse; it writes to Neo4j via `LocalClient.write_span
 
 | Metric | Attached to | Value |
 |---|---|---|
-| `mdt.Groundedness`, `mdt.IntentRecognition`, `mdt.Relevancy` | `(:Session {sessionId})-[:hasSpan]->(:Span {spanId})`, created if missing | `0` or `1` per judged `llm` or `tool` span; `tool` spans get no Groundedness |
+| `mdt.Groundedness`, `mdt.IntentRecognition`, `mdt.Relevancy` | `(:Session {sessionId})-[:hasSpan]->(:Span {spanId})`, created if missing | `0`, `0.25`, `0.5`, `0.75` or `1` per judged `llm` or `tool` span (1-5 rubric normalized to `(score-1)/4`; passes at or above `span_pass_threshold`, default `0.5`); `tool` spans get no Groundedness |
 | `trajectory_score` | An existing `Session` node with that `sessionId`; nothing is written if there is none | `0` or `1`; `reasoning` is `trajectory_reasoning` |
+
+Each metric also carries the evaluation cost when measured, as `evaluation_model`,
+`evaluation_prompt_tokens`, `evaluation_completion_tokens`, `evaluation_total_tokens` and
+`evaluation_cost_usd`, passed to the API client in the metric payload and stored in `MetricResult.metadata`. For a span
+metric these are the span's judge usage split evenly across the metrics judged for that span (token remainders go to
+the first metrics, so the shares sum to the call's usage). For `trajectory_score` they are the whole session's usage
+across all phases and its estimated cost. A key is omitted when it was not measured, and auto-failed `ERROR` spans
+carry none.
 
 Each metric is a `Metric` node linked by `hasMetric`, with `provider` `stateful_evals`, `source`
 `StatefulEval`, `metricId` equal to the name, and `reasoning`. It's matched on `metricName` and

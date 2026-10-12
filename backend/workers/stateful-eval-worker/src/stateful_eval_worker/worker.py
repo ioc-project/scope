@@ -11,6 +11,15 @@ from worker_base.queue_message import BaseQueueMessage
 logger = logging.getLogger(__name__)
 
 
+_SPAN_EVALUATION_FIELDS = (
+    "evaluation_model",
+    "evaluation_prompt_tokens",
+    "evaluation_completion_tokens",
+    "evaluation_total_tokens",
+    "evaluation_cost_usd",
+)
+
+
 class StatefulEvalWorker(BaseWorker):
     """Worker that runs temporal metric evaluation directly in-process.
 
@@ -149,6 +158,17 @@ class StatefulEvalWorker(BaseWorker):
         ]
         return True
 
+    def _session_evaluation_fields(self, result) -> dict:
+        """Total evaluation usage (all phases) and estimated cost of the session."""
+        fields: dict = {"evaluation_model": self.llm_model_name}
+        usage = result.token_usage
+        if usage.total_tokens or usage.prompt_tokens or usage.completion_tokens:
+            fields["evaluation_prompt_tokens"] = usage.prompt_tokens
+            fields["evaluation_completion_tokens"] = usage.completion_tokens
+            fields["evaluation_total_tokens"] = usage.total_tokens
+            fields["evaluation_cost_usd"] = result.cost_estimate.estimated_cost_usd
+        return fields
+
     def _push_metrics_to_kg(self, result) -> None:
         """Write span and session-level metrics directly to the KG via the oxp-api lib."""
         client = self._get_oxp_client()
@@ -160,6 +180,8 @@ class StatefulEvalWorker(BaseWorker):
                 grouped.setdefault(key, []).append(smr)
 
             for span_id, smrs in grouped.items():
+                # Evaluation usage/cost keys are only sent when measured; the oxp-api
+                # client forwards them into MetricResult.metadata.
                 metrics_payload = [
                     {
                         "name": smr.metric_name,
@@ -168,6 +190,11 @@ class StatefulEvalWorker(BaseWorker):
                         "metric_id": None,
                         "source": "StatefulEval",
                         "reasoning": smr.reasoning,
+                        **{
+                            field: getattr(smr, field)
+                            for field in _SPAN_EVALUATION_FIELDS
+                            if getattr(smr, field, None) is not None
+                        },
                     }
                     for smr in smrs
                 ]
@@ -189,6 +216,7 @@ class StatefulEvalWorker(BaseWorker):
                         "metric_id": None,
                         "source": "StatefulEval",
                         "reasoning": result.trajectory_reasoning,
+                        **self._session_evaluation_fields(result),
                     }
                 ],
             )

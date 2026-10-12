@@ -34,6 +34,7 @@ from oxp.models.otel_traces import (
     TimelineData,
 )
 from oxp.query_builders import metrics as metrics_queries
+from oxp.query_builders.metrics import EVALUATION_KEYS
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -312,6 +313,7 @@ class MetricsClient:
                 metadata={
                     "metric_id": m.get("metric_id"),
                     "source": m.get("source"),
+                    **{k: m[k] for k in EVALUATION_KEYS if m.get(k) is not None},
                 },
             )
             for m in metrics
@@ -530,6 +532,7 @@ class MetricsClient:
                 metadata={
                     "metric_id": m.get("metric_id"),
                     "source": m.get("source"),
+                    **{k: m[k] for k in EVALUATION_KEYS if m.get(k) is not None},
                 },
             )
             for m in metrics

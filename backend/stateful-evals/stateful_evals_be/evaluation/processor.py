@@ -27,7 +27,10 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from metrics_computation_engine.llm_judge.llm import LLMClient
 from metrics_computation_engine.models.requests import LLMJudgeConfig
-from stateful_evals_be.evaluation.cost_estimator import estimate_token_cost
+from stateful_evals_be.evaluation.cost_estimator import (
+    estimate_token_cost,
+    estimate_usage_cost_usd,
+)
 from stateful_evals_be.evaluation.inter_step_review import run_inter_step_review
 from stateful_evals_be.evaluation.span_judge import SpanJudge
 from stateful_evals_be.evaluation.span_normalization import SpanNormalizer
@@ -545,6 +548,7 @@ class TemporalMetricsProcessor:
     def _resolve_intent_states(
         intent_events: List[Dict[str, Any]],
         total_spans: int,
+        pass_threshold: float,
     ) -> List["IntentState"]:
         from stateful_evals_be.models.requests import IntentEvent, IntentState
 
@@ -593,11 +597,11 @@ class TemporalMetricsProcessor:
 
             best_score = max(float(e.get("score", 0)) for e in events)
 
-            if best_score >= 1.0:
+            if best_score >= pass_threshold:
                 state = "fulfilled"
             elif len(events) == 1 and first_span < total_spans * 0.4:
                 state = "dormant"
-            elif best_score == 0.0 and first_span >= total_spans * 0.8:
+            elif best_score < pass_threshold and first_span >= total_spans * 0.8:
                 state = "dormant"
             else:
                 state = "drifting"
@@ -626,14 +630,47 @@ class TemporalMetricsProcessor:
     _RESOLVED_INTENT_STATES = {"fulfilled", "dormant"}
 
     @staticmethod
-    def _count_unsatisfied_intents(intent_states: List[Any]) -> int:
+    def _metric_usage_share(
+        span_usage: Dict[str, int],
+        index: int,
+        count: int,
+        model_name: str,
+    ) -> Dict[str, Any]:
+        """Evaluation usage fields for the ``index``-th of ``count`` span metrics.
+
+        A span's judge usage (all attempts, including evidence expansion) is
+        split evenly across the metrics judged for it. Token counts are
+        integers whose remainder goes to the first metrics, so the per-metric
+        values sum exactly to the span's usage; cost is priced from each share.
+        """
+
+        def share(total: int) -> int:
+            base, remainder = divmod(int(total), count)
+            return base + (1 if index < remainder else 0)
+
+        prompt = share(span_usage["prompt_tokens"])
+        completion = share(span_usage["completion_tokens"])
+        return {
+            "evaluation_model": model_name,
+            "evaluation_prompt_tokens": prompt,
+            "evaluation_completion_tokens": completion,
+            "evaluation_total_tokens": share(span_usage["total_tokens"]),
+            "evaluation_cost_usd": estimate_usage_cost_usd(
+                prompt, completion, model_name
+            ),
+        }
+
+    @staticmethod
+    def _count_unsatisfied_intents(
+        intent_states: List[Any], pass_threshold: float
+    ) -> int:
         return sum(
             1
             for state in intent_states
             if getattr(state, "state", "")
             not in TemporalMetricsProcessor._RESOLVED_INTENT_STATES
             and int(getattr(state, "occurrences", 0) or 0) >= 2
-            and float(getattr(state, "final_score", 0)) == 0.0
+            and float(getattr(state, "final_score", 0)) < pass_threshold
         )
 
     @staticmethod
@@ -1585,6 +1622,8 @@ class TemporalMetricsProcessor:
             app_name = raw_spans[0].get("ServiceName", "") if raw_spans else ""
 
             use_fatal_mode = self.options.use_fatal_mode
+            span_pass_threshold = self.options.span_pass_threshold
+            eval_model = str(self.llm_config.LLM_MODEL_NAME)
             skip_next_llm = False
 
             for n, raw_span in enumerate(raw_spans):
@@ -1701,6 +1740,11 @@ class TemporalMetricsProcessor:
                 compact_span = self._compact_span_delta(span_dict)
                 mce_spans_evaluated += 1
                 mce_call_attempts += 1
+                span_usage = {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                }
                 try:
                     mce_response = self.compute_span_state_delta(
                         span_dict,
@@ -1711,7 +1755,7 @@ class TemporalMetricsProcessor:
                     # Recheck provisional failures against all available prior
                     # artifacts once, so retrieval omissions do not become failures.
                     needs_expansion = mce_response.get("needs_more_context") or any(
-                        result.get("value") == 0
+                        float(result.get("value", 0.0)) < span_pass_threshold
                         for result in mce_response.get("results", [])
                     )
                     if (
@@ -1725,6 +1769,15 @@ class TemporalMetricsProcessor:
                             first_usage.get("completion_tokens", 0)
                         )
                         mce_total_tokens += int(first_usage.get("total_tokens", 0))
+                        span_usage["total_tokens"] += int(
+                            first_usage.get("total_tokens", 0)
+                        )
+                        span_usage["prompt_tokens"] += int(
+                            first_usage.get("prompt_tokens", 0)
+                        )
+                        span_usage["completion_tokens"] += int(
+                            first_usage.get("completion_tokens", 0)
+                        )
                         context_state = traj_ctx.retrieve_for_span(
                             span_dict,
                             span_index=n,
@@ -1748,6 +1801,13 @@ class TemporalMetricsProcessor:
                     mce_prompt_tokens += int(mce_usage.get("prompt_tokens", 0))
                     mce_completion_tokens += int(mce_usage.get("completion_tokens", 0))
                     mce_total_tokens += int(mce_usage.get("total_tokens", 0))
+                    span_usage["total_tokens"] += int(mce_usage.get("total_tokens", 0))
+                    span_usage["prompt_tokens"] += int(
+                        mce_usage.get("prompt_tokens", 0)
+                    )
+                    span_usage["completion_tokens"] += int(
+                        mce_usage.get("completion_tokens", 0)
+                    )
                     if focused and mce_response.get("needs_more_context"):
                         mce_response["results"] = []
                         mce_response["failed_metrics"] = [
@@ -1784,7 +1844,8 @@ class TemporalMetricsProcessor:
                     ensure_ascii=True,
                     default=str,
                 )
-                for result in mce_response.get("results", []):
+                span_results = mce_response.get("results", [])
+                for result_index, result in enumerate(span_results):
                     result_metric = result.get("metric_name", "")
                     value = result.get("value", 0.0)
                     reasoning = result.get("reasoning", "")
@@ -1819,7 +1880,14 @@ class TemporalMetricsProcessor:
                             entity_name=entity_name,
                             metric_name=result_metric,
                             score=score_value,
+                            raw_score=result.get("raw_score"),
                             reasoning=reasoning,
+                            **self._metric_usage_share(
+                                span_usage,
+                                result_index,
+                                len(span_results),
+                                eval_model,
+                            ),
                         )
                     )
 
@@ -1832,7 +1900,7 @@ class TemporalMetricsProcessor:
                         f"reasoning={reasoning[:120]}{'...' if len(str(reasoning)) > 120 else ''}"
                     )
 
-                    if use_fatal_mode and score_value == 0:
+                    if use_fatal_mode and score_value < span_pass_threshold:
                         if not self._is_intent_metric(result_metric):
                             failures.append(
                                 MetricFailure(
@@ -1912,8 +1980,12 @@ class TemporalMetricsProcessor:
                     )
                     failures.append(loop_failure)
 
-            intent_states = self._resolve_intent_states(intent_events, total_spans)
-            unsatisfied_intents = self._count_unsatisfied_intents(intent_states)
+            intent_states = self._resolve_intent_states(
+                intent_events, total_spans, span_pass_threshold
+            )
+            unsatisfied_intents = self._count_unsatisfied_intents(
+                intent_states, span_pass_threshold
+            )
 
             fatal_failures: List[FailureDetail] = []
             minor_failures: List[FailureDetail] = []
@@ -1993,7 +2065,7 @@ class TemporalMetricsProcessor:
                     for s in intent_states
                     if getattr(s, "state", "") in ("failed", "drifting")
                     and int(getattr(s, "occurrences", 0) or 0) >= 2
-                    and float(getattr(s, "final_score", 0)) == 0.0
+                    and float(getattr(s, "final_score", 0)) < span_pass_threshold
                 ]
                 unresolved_names = [getattr(s, "name", "?") for s in unresolved]
                 logger.info(

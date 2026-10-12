@@ -9,8 +9,11 @@ a ``hops`` parameter.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
+
+from oxp_ontology.models.nodes import MetricResult as MetricResultModel
 
 
 def _to_iso(value: str) -> str:
@@ -169,6 +172,54 @@ def span_metrics_query(
     return query, params
 
 
+# ── ontology MetricResult ─────────────────────────────────────────────────────
+
+# MetricResult.metadata key (set by the MCE and the stateful-eval worker) ->
+# field of the ontology's MetricResult for the LLM cost of computing a metric.
+_EVALUATION_FIELDS: dict[str, str] = {
+    "evaluation_model": "evaluationModel",
+    "evaluation_prompt_tokens": "evaluationPromptTokenCount",
+    "evaluation_completion_tokens": "evaluationCompletionTokenCount",
+    "evaluation_total_tokens": "evaluationTotalTokenCount",
+    "evaluation_cost_usd": "evaluationCost",
+}
+
+EVALUATION_KEYS = tuple(_EVALUATION_FIELDS)
+
+
+def metric_result_properties(
+    metric_name: str,
+    resource_id: str,
+    value: Any,
+    reasoning: str = "",
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Properties of the ontology ``MetricResult`` for one metric observation.
+
+    The observation is validated against the model generated from the ontology
+    (``oxp_ontology.models.nodes.MetricResult``), so every stored metric has
+    the same fields: ``id``, ``name``, ``result``, ``reasoning`` and the
+    ``evaluation*`` cost fields. A metric that made no LLM call carries the
+    model defaults (empty model, zero tokens, zero cost). Raises
+    ``pydantic.ValidationError`` if the observation does not fit the model,
+    for example a non-numeric ``value`` or cost.
+    """
+    metadata = metadata or {}
+    evaluation = {
+        field: metadata[key]
+        for key, field in _EVALUATION_FIELDS.items()
+        if metadata.get(key) is not None
+    }
+    digest = hashlib.sha1(f"{metric_name}\x1f{resource_id}".encode("utf-8")).hexdigest()
+    return MetricResultModel(
+        id=f"metricresult:{digest[:12]}",
+        name=metric_name,
+        result=value,
+        reasoning=reasoning or "",
+        **evaluation,
+    ).model_dump()
+
+
 # ── write queries ─────────────────────────────────────────────────────────────
 
 
@@ -180,8 +231,12 @@ def write_session_metric_query(
     metric_id: str = "",
     source: str = "",
     reasoning: str = "",
+    ontology: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Build a MERGE query to attach a metric to a session node."""
+    """Build a MERGE query to attach a metric to a session node.
+
+    ``ontology`` are the properties of the ontology ``MetricResult``, see :func:`metric_result_properties`.
+    """
     now = datetime.now(timezone.utc).isoformat()
     query = """
     MERGE (session:Session {sessionId: $session_id})
@@ -193,6 +248,7 @@ def write_session_metric_query(
         m.source       = $source,
         m.reasoning    = $reasoning,
         m.timestamp    = datetime($timestamp)
+    SET m += $ontology
     RETURN session.sessionId AS sessionId, m.metricName AS metricName
     """
     return query, {
@@ -205,6 +261,7 @@ def write_session_metric_query(
         "source": source,
         "reasoning": reasoning,
         "timestamp": now,
+        "ontology": ontology or {},
     }
 
 
@@ -217,6 +274,7 @@ def write_span_metric_query(
     metric_id: str = "",
     source: str = "",
     reasoning: str = "",
+    ontology: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Build a MERGE query to attach a metric to a span node."""
     now = datetime.now(timezone.utc).isoformat()
@@ -231,6 +289,7 @@ def write_span_metric_query(
         m.source       = $source,
         m.reasoning    = $reasoning,
         m.timestamp    = datetime($timestamp)
+    SET m += $ontology
     RETURN span.spanId AS spanId, m.metricName AS metricName
     """
     return query, {
@@ -244,6 +303,7 @@ def write_span_metric_query(
         "source": source,
         "reasoning": reasoning,
         "timestamp": now,
+        "ontology": ontology or {},
     }
 
 
@@ -459,6 +519,7 @@ def write_generic_metric_query(
     metric_id: str = "",
     source: str = "",
     reasoning: str = "",
+    ontology: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Build a MERGE query to attach a metric to a Session OR Span node.
 
@@ -481,6 +542,7 @@ def write_generic_metric_query(
         m.source       = $source,
         m.reasoning    = $reasoning,
         m.timestamp    = datetime($timestamp)
+    SET m += $ontology
     RETURN elementId(node) as nodeId, m.metricName AS metricName
     """
     return query, {
@@ -493,6 +555,7 @@ def write_generic_metric_query(
         "source": source,
         "reasoning": reasoning,
         "timestamp": now,
+        "ontology": ontology or {},
     }
 
 

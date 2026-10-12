@@ -107,6 +107,16 @@ class TemporalMetricOptions(BaseModel):
             "diagnostic and never change trajectory_score or trajectory_reasoning."
         ),
     )
+    span_pass_threshold: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Span-level metrics (mdt.*) are scored on a 1-5 rubric normalized to "
+            "0.0-1.0 ((score-1)/4). A span metric passes when its normalized "
+            "value is >= this threshold and fails when it is below it."
+        ),
+    )
     use_fatal_mode: bool = Field(
         default=True,
         description="Use trajectory-level fatal/minor audit and binary scoring.",
@@ -336,8 +346,16 @@ class SpanMetricResult(BaseModel):
     span_type: str = ""
     entity_name: str = ""
     metric_name: str
-    score: float
+    score: float  # normalized rubric value in [0, 1]: (raw_score - 1) / 4
+    raw_score: Optional[int] = None  # judge's 1-5 rubric score; None if auto-failed
     reasoning: str = ""
+    # Judge usage for this span, split evenly across the metrics judged for it so
+    # that the per-metric values sum to the span's total. Unset when unmeasured.
+    evaluation_model: Optional[str] = None
+    evaluation_prompt_tokens: Optional[int] = None
+    evaluation_completion_tokens: Optional[int] = None
+    evaluation_total_tokens: Optional[int] = None
+    evaluation_cost_usd: Optional[float] = None
 
 
 class SessionResult(BaseModel):
@@ -393,7 +411,7 @@ class EvalSummary(BaseModel):
 
 @dataclass
 class MetricFailure:
-    """Represents a metric that scored less than 1."""
+    """Represents a span metric whose value fell below ``span_pass_threshold``."""
 
     metric_name: str
     score: float

@@ -10,19 +10,35 @@ from typing import Any, Dict, List, Optional
 from stateful_evals_be.evaluation.span_normalization import SpanNormalizer
 from stateful_evals_be.models.requests import TemporalMetricOptions
 
+RUBRIC_MIN_SCORE = 1
+RUBRIC_MAX_SCORE = 5
+
 _SPAN_STATE_DELTA_SYSTEM_PROMPT = """\
 You evaluate one transition in an accumulated agent trajectory. Judge every
 requested primitive from the same compact current-span delta and prior state.
 
-Groundedness: pass when material output claims are supported by provided facts,
-policy, or clearly marked uncertainty; fail fabricated or contradicted claims.
-IntentRecognition: pass when the transition correctly recognizes and advances
-the active user/delegated intent; fail missed, distorted, or abandoned intent.
-Relevancy: pass when the transition is relevant and logically compatible with
-the active intent and prior claims; fail material contradiction or non-progress.
+Score each primitive as an integer from 1 to 5 using these anchors.
+
+Groundedness (are material output claims supported by provided facts, policy,
+or clearly marked uncertainty?):
+1 = fabricated or directly contradicted claims; 2 = a material claim is
+unsupported or partly contradicted; 3 = mixed, some claims unsupported or
+overstated; 4 = supported with only minor overstatement; 5 = fully supported
+or clearly marked as uncertain.
+IntentRecognition (does the transition recognize and advance the active
+user/delegated intent?):
+1 = intent missed, distorted, or abandoned; 2 = mostly misdirected, little
+progress; 3 = partially recognized, drifting or only tangential progress;
+4 = correct intent with minor gaps; 5 = correctly recognizes and advances it.
+Relevancy (is the transition relevant and logically compatible with the active
+intent and prior claims?):
+1 = material contradiction or no progress at all; 2 = largely irrelevant or in
+tension with prior claims; 3 = partly relevant, some inconsistency or
+non-progress; 4 = relevant with minor inconsistency; 5 = fully relevant and
+consistent.
 
 Return strict JSON only with a `metrics` array. Each item must contain the exact
-requested `metric_name`, binary numeric `score`, and one concise `reasoning`.
+requested `metric_name`, integer `score` from 1 to 5, and one concise `reasoning`.
 """
 
 _LEGACY_RESPONSE_INSTRUCTIONS = """\
@@ -188,7 +204,7 @@ class SpanJudge:
                 "metrics": [
                     {
                         "metric_name": "exact requested metric name",
-                        "score": "integer 0 or 1",
+                        "score": "integer 1-5 per the rubric anchors",
                         "reasoning": "concise context-grounded explanation",
                     }
                 ],
@@ -253,22 +269,15 @@ class SpanJudge:
                 )
                 if item is None:
                     continue
-                raw_score = item.get("score", item.get("value"))
-                if isinstance(raw_score, str):
-                    normalized_score = raw_score.strip().casefold()
-                    if normalized_score in {"pass", "passed", "true"}:
-                        raw_score = 1
-                    elif normalized_score in {"fail", "failed", "false"}:
-                        raw_score = 0
-                try:
-                    score = float(raw_score)
-                except (TypeError, ValueError):
-                    continue
-                if score not in {0.0, 1.0}:
+                raw_score = self.parse_rubric_score(
+                    item.get("score", item.get("value"))
+                )
+                if raw_score is None:
                     continue
                 results_by_name[metric_name] = {
                     "metric_name": metric_name,
-                    "value": score,
+                    "raw_score": raw_score,
+                    "value": (raw_score - 1) / (RUBRIC_MAX_SCORE - RUBRIC_MIN_SCORE),
                     "reasoning": str(item.get("reasoning") or ""),
                     "success": True,
                 }
@@ -365,7 +374,7 @@ class SpanJudge:
                     "metrics": [
                         {
                             "metric_name": metric_name,
-                            "score": "integer 0 or 1",
+                            "score": "integer 1-5 per the rubric anchors",
                             "reasoning": "one concise sentence",
                         }
                     ]
@@ -393,7 +402,7 @@ class SpanJudge:
                     "role": "user",
                     "content": (
                         f"Return exactly one result for {metric_name}. "
-                        "Use a binary numeric score of 0 or 1."
+                        "Use an integer score from 1 to 5."
                     ),
                 },
             ]
@@ -437,6 +446,29 @@ class SpanJudge:
             "needs_more_context": needs_more_context,
             "usage": usage_totals,
         }
+
+    @staticmethod
+    def parse_rubric_score(raw: Any) -> int | None:
+        """Parse an integer 1-5 rubric score, clamping out-of-range values.
+
+        Accepts ints, floats and numeric strings; the legacy ``pass``/``fail``
+        verdicts map to 5/1. Returns ``None`` when no score can be read.
+        """
+        if isinstance(raw, bool):
+            raw = 5 if raw else 1
+        elif isinstance(raw, str):
+            text = raw.strip().casefold()
+            if text in {"pass", "passed", "true"}:
+                raw = 5
+            elif text in {"fail", "failed", "false"}:
+                raw = 1
+        try:
+            score = float(raw)
+        except (TypeError, ValueError):
+            return None
+        if score != score:  # NaN
+            return None
+        return max(RUBRIC_MIN_SCORE, min(RUBRIC_MAX_SCORE, round(score)))
 
     @staticmethod
     def parse_response(raw_text: str) -> Dict[str, Any]:

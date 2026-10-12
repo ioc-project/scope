@@ -28,6 +28,8 @@ from datetime import datetime
 from numbers import Real
 from typing import Any, Literal
 
+from pydantic import ValidationError
+
 from oxp.connectors.base import Connector
 from oxp.interfaces import MetricsProvider
 from oxp.interfaces.models import MetricResult
@@ -75,6 +77,28 @@ def _metric_property_value(value: Any) -> str:
     if isinstance(value, str):
         return value
     return json.dumps(value, ensure_ascii=False)
+
+
+def _ontology_properties(
+    metric: MetricResult, resource_id: str
+) -> dict[str, Any] | None:
+    """The metric as the ontology's ``MetricResult``; ``None`` (logged) if it does not fit."""
+    try:
+        return metrics_qb.metric_result_properties(
+            metric_name=metric.metric_id,
+            resource_id=resource_id,
+            value=metric.value,
+            reasoning=_metric_property_value(metric.reasoning),
+            metadata=metric.metadata,
+        )
+    except ValidationError as exc:
+        logger.error(
+            "Not saving %s for %s: it does not match the ontology MetricResult: %s",
+            metric.metric_id,
+            resource_id,
+            exc,
+        )
+        return None
 
 
 class OXPMetricsProvider(MetricsProvider):
@@ -182,14 +206,19 @@ class OXPMetricsProvider(MetricsProvider):
         for m in items:
             if m.error or m.value is None:
                 continue
+            properties = _ontology_properties(m, m.resource_id)
+            if properties is None:
+                ok = False
+                continue
             query, params = metrics_qb.write_generic_metric_query(
                 resource_id=m.resource_id,
                 metric_name=m.metric_id,
-                metric_value=m.value if isinstance(m.value, (int, float)) else None,
+                metric_value=properties["result"],
                 provider=m.provider,
                 metric_id=m.metadata.get("metric_id") or m.metric_id,
                 source=m.metadata.get("source"),
-                reasoning=_metric_property_value(m.reasoning),
+                reasoning=properties["reasoning"],
+                ontology=properties,
             )
             try:
                 self._db.execute_command(query, params)
@@ -212,15 +241,20 @@ class OXPMetricsProvider(MetricsProvider):
         for m in items:
             if m.error or m.value is None:
                 continue
+            properties = _ontology_properties(m, span_id)
+            if properties is None:
+                ok = False
+                continue
             query, params = metrics_qb.write_span_metric_query(
                 session_id=session_id,
                 span_id=span_id,
                 metric_name=m.metric_id,
-                metric_value=m.value if isinstance(m.value, (int, float)) else None,
+                metric_value=properties["result"],
                 provider=m.provider,
                 metric_id=m.metadata.get("metric_id") or m.metric_id,
                 source=m.metadata.get("source"),
-                reasoning=_metric_property_value(m.reasoning),
+                reasoning=properties["reasoning"],
+                ontology=properties,
             )
             try:
                 self._db.execute_command(query, params)

@@ -105,6 +105,24 @@ def estimate_token_cost(
     )
 
 
+def estimate_usage_cost_usd(
+    prompt_tokens: int,
+    completion_tokens: int,
+    model_name: str,
+) -> float:
+    """USD cost of a token count, falling back to the default pricing model."""
+
+    price = resolve_model_price(model_name) or resolve_model_price(
+        _DEFAULT_PRICING_MODEL
+    )
+    if price is None:
+        return 0.0
+    return _round_cost(
+        prompt_tokens * price.input_cost_per_token
+        + completion_tokens * price.output_cost_per_token
+    )
+
+
 def resolve_model_price(model_name: str) -> Optional[ModelPrice]:
     lookup = _price_lookup()
     key = _normalize_name(model_name)

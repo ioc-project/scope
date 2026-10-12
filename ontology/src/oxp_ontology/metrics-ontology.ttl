@@ -26,7 +26,7 @@
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://outshift-open.github.io/oxp-ontology/mas#" ;
     owl:priorVersion <https://outshift-open.github.io/oxp-ontology/metrics/1.0.0-rc0> ;
-    owl:versionInfo "1.0.3" ;
+    owl:versionInfo "1.0.4" ;
     owl:imports <https://outshift-open.github.io/oxp-ontology/mas> ;
     rdfs:comment "Metrics ontology for MAS telemetry. Defines the Metric/MetricResult definition-observation split and integrates with mas-ontology.ttl via hasMetric property." ;
     rdfs:seeAlso <https://outshift-open.github.io/oxp-ontology/mas> ,
@@ -110,3 +110,48 @@ mas:reasoning rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     rdfs:domain mas:MetricResult ;
     rdfs:range xsd:string ;
     rdfs:comment "Logical reasoning/justification behind the metric evaluation." .
+
+mas:evaluationModel rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:evaluationModel ;
+    sh:targetClass mas:MetricResult ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:MetricResult ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Identifier of the LLM that judged this observation (the evaluation model), when the metric is computed with an LLM. Absent for deterministic metrics." .
+
+mas:evaluationPromptTokenCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:evaluationPromptTokenCount ;
+    sh:targetClass mas:MetricResult ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:MetricResult ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Prompt (input) tokens consumed by the LLM calls that computed this observation, summed over every call the metric made. Absent when the metric makes no LLM call." .
+
+mas:evaluationCompletionTokenCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:evaluationCompletionTokenCount ;
+    sh:targetClass mas:MetricResult ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:MetricResult ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Completion (output) tokens produced by the LLM calls that computed this observation, summed over every call the metric made." .
+
+mas:evaluationTotalTokenCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:evaluationTotalTokenCount ;
+    sh:targetClass mas:MetricResult ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:MetricResult ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "Total tokens (prompt plus completion) consumed computing this observation." .
+
+mas:evaluationCost rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:evaluationCost ;
+    sh:targetClass mas:MetricResult ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:MetricResult ;
+    rdfs:range xsd:double ;
+    rdfs:comment "Estimated monetary cost in US dollars of the LLM calls that computed this observation, derived from the token counts and the evaluation model's list price at computation time. An estimate, not a billed amount." .

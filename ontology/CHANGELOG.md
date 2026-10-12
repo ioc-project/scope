@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [1.0.4] - 2026-10-12
+
+### Added
+
+- `metrics-ontology.ttl`: optional evaluation-cost properties on `MetricResult`, for metrics computed with an
+  LLM: `evaluationModel`, `evaluationPromptTokenCount`, `evaluationCompletionTokenCount`,
+  `evaluationTotalTokenCount` and `evaluationCost` (an estimate from token counts and list price).
+
 ## [1.0.3] - 2026-10-12
 
 ### Added

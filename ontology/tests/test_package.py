@@ -162,7 +162,7 @@ class TestOntologyValidity:
 
     def test_metric_result_declares_optional_evaluation_cost_properties(self):
         """LLM-judged metrics can record the judge model, its token usage and an estimated USD cost."""
-        from rdflib import RDF, RDFS, XSD, Graph, Namespace
+        from rdflib import RDFS, XSD, Graph, Namespace
         from rdflib.namespace import SH
 
         g = Graph()

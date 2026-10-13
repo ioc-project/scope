@@ -11,7 +11,6 @@ builder returns a ``(query_str, params_dict)`` tuple for
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
 from typing import Any
 
 
@@ -45,42 +44,6 @@ def trajectory_steps_query(session_id: str) -> tuple[str, dict[str, Any]]:
     ORDER BY c.startTime
     """
     return query, {"session_id": session_id}
-
-
-def write_transition_metric_query(
-    session_id: str,
-    transition_id: str,
-    metric_name: str,
-    metric_value: float | None,
-    provider: str = "API",
-    metric_id: str = "",
-    source: str = "",
-    reasoning: str = "",
-) -> tuple[str, dict[str, Any]]:
-    """MERGE a metric onto an existing ``Transition`` (nothing if it is missing)."""
-    query = """
-    MATCH (t:Transition {id: $transition_id, sessionId: $session_id})
-    MERGE (t)-[:hasMetric]->(m:Metric {metricName: $metric_name, resourceId: $transition_id})
-    SET m.metricResult = $metric_value,
-        m.value        = $metric_value,
-        m.provider     = $provider,
-        m.metricId     = $metric_id,
-        m.source       = $source,
-        m.reasoning    = $reasoning,
-        m.timestamp    = datetime($timestamp)
-    RETURN m.metricName AS metricName
-    """
-    return query, {
-        "session_id": session_id,
-        "transition_id": transition_id,
-        "metric_name": metric_name,
-        "metric_value": metric_value,
-        "provider": provider,
-        "metric_id": metric_id,
-        "source": source,
-        "reasoning": reasoning,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 def trajectory_context_id(transition_id: str) -> str:

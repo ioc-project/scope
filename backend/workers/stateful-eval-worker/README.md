@@ -25,7 +25,7 @@ flowchart LR
 ```
 
 The OXP API's `quality` category reads `TrajectoryScore` as a source of `MDT` (`trajectoryQuality`) in [`config.py`](../../api/oxp/core/config.py); no default
-category lists the `mdt.*` step metrics.
+category lists the step metrics (`Groundedness`, `IntentRecognition`, `Relevancy`) under the `StatefulEvals` provider.
 
 ## How it works
 
@@ -65,14 +65,14 @@ The worker reads and writes Neo4j only, through the shared connector
 
 | Written | Attached to | Value |
 | --- | --- | --- |
-| `mdt.Groundedness`, `mdt.IntentRecognition`, `mdt.Relevancy` | `(:Transition {id, sessionId})-[:hasMetric]->(:Metric)`; the transition must exist | `0` or `1` per judged LLM or tool step; tool steps get no Groundedness |
+| `Groundedness`, `IntentRecognition`, `Relevancy` | `(:MetricResult)-[:measures]->(:LLMCall\|:ToolCall)`, matched by the call's id; written only if the call exists | `0`, `0.25`, `0.5`, `0.75` or `1` per judged LLM or tool step (1-5 rubric normalized to `(score-1)/4`); tool steps get no Groundedness |
 | `TrajectoryContext` node | `(:Transition)-[:hasContext]->(:TrajectoryContext {id, evidence, claims, ...})`, one per step (`PUSH_TRANSITION_CONTEXT`) | one JSON property per constituent: what the step added to the trajectory context (see below) |
-| `TrajectoryScore` | An existing `Session` node with that `sessionId`; nothing is written if there is none | `0` or `1`; `reasoning` is `trajectory_reasoning` |
+| `TrajectoryScore` | `(:MetricResult)-[:measures]->(:Session {sessionId})`; nothing is written if there is no such session | `0` or `1`; `reasoning` is `trajectory_reasoning` |
 
-Each metric is a `Metric` node linked by `hasMetric`, with `provider`
-`stateful_evals`, `source` `StatefulEval`, `metricId` equal to the name, and
-`reasoning`. It is matched on `metricName` and `resourceId` (the transition id),
-so a re-run overwrites it. `Span` nodes are no longer written.
+Each value is a `MetricResult` node (`result`, `reasoning`, `timestamp`) linked by `ofMetricType` to a
+`Metric` definition (one per name and provider, here `metricProvider` `StatefulEvals`) and by `measures` to what it
+measures. A result is keyed by definition and measured resource, so a re-run overwrites it. `Span` nodes are not
+written.
 
 ### `TrajectoryContext`
 

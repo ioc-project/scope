@@ -11,6 +11,15 @@ from worker_base.queue_message import BaseQueueMessage
 logger = logging.getLogger(__name__)
 
 
+_SPAN_EVALUATION_FIELDS = (
+    "evaluation_model",
+    "evaluation_prompt_tokens",
+    "evaluation_completion_tokens",
+    "evaluation_total_tokens",
+    "evaluation_cost_usd",
+)
+
+
 class StatefulEvalWorker(BaseWorker):
     """Worker that runs temporal metric evaluation directly in-process.
 
@@ -135,6 +144,17 @@ class StatefulEvalWorker(BaseWorker):
         ]
         return True
 
+    def _session_evaluation_fields(self, result) -> dict:
+        """Total evaluation usage (all phases) and estimated cost of the session."""
+        fields: dict = {"evaluation_model": self.llm_model_name}
+        usage = result.token_usage
+        if usage.total_tokens or usage.prompt_tokens or usage.completion_tokens:
+            fields["evaluation_prompt_tokens"] = usage.prompt_tokens
+            fields["evaluation_completion_tokens"] = usage.completion_tokens
+            fields["evaluation_total_tokens"] = usage.total_tokens
+            fields["evaluation_cost_usd"] = result.cost_estimate.estimated_cost_usd
+        return fields
+
     def _push_metrics_to_kg(self, kg, result) -> None:
         """Write step metrics, trajectory context and the session score to the KG."""
         from oxp.client.dal import write_transition_context
@@ -143,33 +163,40 @@ class StatefulEvalWorker(BaseWorker):
 
         provider = OXPMetricsProvider(db=kg)
 
+        # A step's span id is the id of its call node, which the metrics measure.
         grouped: dict = {}
         for smr in result.span_metric_results:
-            if not smr.transition_id:
-                logger.warning("Skipping %s: no transition id on span %s", smr.metric_name, smr.span_id)
+            if not smr.span_id:
+                logger.warning("Skipping %s: no call id on its span result", smr.metric_name)
                 continue
-            grouped.setdefault(smr.transition_id, []).append(smr)
+            grouped.setdefault(smr.span_id, []).append(smr)
 
-        for transition_id, smrs in grouped.items():
-            ok = provider.save_transition_metrics(
+        for call_id, smrs in grouped.items():
+            # Evaluation usage/cost keys are only sent when measured; they become the
+            # evaluation fields of the MetricResult.
+            ok = provider.save_call_metrics(
                 result.session_id,
-                transition_id,
+                call_id,
                 [
                     MetricResult(
                         metric_id=smr.metric_name,
-                        resource_id=transition_id,
-                        provider="stateful_evals",
+                        resource_id=call_id,
+                        provider="StatefulEvals",
                         value=smr.score,
                         reasoning=smr.reasoning,
-                        metadata={"metric_id": None, "source": "StatefulEval"},
+                        metadata={
+                            field: getattr(smr, field)
+                            for field in _SPAN_EVALUATION_FIELDS
+                            if getattr(smr, field, None) is not None
+                        },
                     )
                     for smr in smrs
                 ],
             )
             if ok:
-                logger.info("Wrote %d metrics for transition %s", len(smrs), transition_id)
+                logger.info("Wrote %d metrics for call %s", len(smrs), call_id)
             else:
-                logger.error("Could not write all metrics for transition %s", transition_id)
+                logger.error("Could not write all metrics for call %s", call_id)
 
         if self.push_context:
             for transition_id, context in (getattr(result, "transition_contexts", None) or {}).items():
@@ -182,10 +209,10 @@ class StatefulEvalWorker(BaseWorker):
                     MetricResult(
                         metric_id="TrajectoryScore",
                         resource_id=result.session_id,
-                        provider="stateful_evals",
+                        provider="StatefulEvals",
                         value=result.trajectory_score,
                         reasoning=result.trajectory_reasoning,
-                        metadata={"metric_id": None, "source": "StatefulEval"},
+                        metadata=self._session_evaluation_fields(result),
                     )
                 ]
             )

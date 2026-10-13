@@ -263,7 +263,7 @@ async def test_worker_persists_metrics_context_and_session_score(
     smr = SimpleNamespace(
         transition_id="transition:abc",
         span_id="llmcall:1",
-        metric_name="mdt.Relevancy",
+        metric_name="Relevancy",
         score=1.0,
         reasoning="ok",
     )
@@ -276,7 +276,7 @@ async def test_worker_persists_metrics_context_and_session_score(
     processor = mocker.Mock()
     processor.evaluate_trajectory.return_value = result
     mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
-    save_transition = mocker.patch("oxp.providers.OXPMetricsProvider.save_transition_metrics", return_value=True)
+    save_call = mocker.patch("oxp.providers.OXPMetricsProvider.save_call_metrics", return_value=True)
     save_session = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
     write_context = mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
     worker = _make_worker(rabbit_url)
@@ -284,20 +284,21 @@ async def test_worker_persists_metrics_context_and_session_score(
 
     await worker.handle_message(session_message)
 
-    save_transition.assert_called_once()
-    session_id, transition_id, metrics = save_transition.call_args.args
-    assert (session_id, transition_id) == (session_message.session_id, "transition:abc")
+    save_call.assert_called_once()
+    session_id, call_id, metrics = save_call.call_args.args
+    assert (session_id, call_id) == (session_message.session_id, "llmcall:1")
     assert [(m.metric_id, m.resource_id, m.provider, m.value, m.reasoning) for m in metrics] == [
-        ("mdt.Relevancy", "transition:abc", "stateful_evals", 1.0, "ok")
+        ("Relevancy", "llmcall:1", "StatefulEvals", 1.0, "ok")
     ]
-    assert metrics[0].metadata == {"metric_id": None, "source": "StatefulEval"}
+    assert metrics[0].metadata == {}
     write_context.assert_called_once_with(
         no_external_services, session_message.session_id, "transition:abc", {"claims": [{"index": 0}]}
     )
     (session_metrics,) = save_session.call_args.args
-    assert [(m.metric_id, m.resource_id, m.value, m.reasoning) for m in session_metrics] == [
-        ("TrajectoryScore", session_message.session_id, 0, "Unresolved requirement.")
+    assert [(m.metric_id, m.resource_id, m.provider, m.value, m.reasoning) for m in session_metrics] == [
+        ("TrajectoryScore", session_message.session_id, "StatefulEvals", 0, "Unresolved requirement.")
     ]
+    assert session_metrics[0].metadata == {"evaluation_model": "gpt-4o"}
 
 
 @pytest.mark.asyncio
@@ -330,6 +331,69 @@ async def test_worker_does_not_write_when_push_metrics_is_off(rabbit_url, sessio
     await worker.handle_message(session_message)
 
     push.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_worker_persists_session_and_span_evaluation_cost(
+    rabbit_url, session_message, mocker, no_external_services
+):
+    span_metric = SimpleNamespace(
+        span_id="span-1",
+        span_index=0,
+        metric_name="Groundedness",
+        score=0.75,
+        reasoning="ok",
+        evaluation_model="gpt-4o",
+        evaluation_prompt_tokens=50,
+        evaluation_completion_tokens=5,
+        evaluation_total_tokens=55,
+        evaluation_cost_usd=0.000175,
+    )
+    unmeasured = SimpleNamespace(
+        span_id="span-2",
+        span_index=1,
+        metric_name="Relevancy",
+        score=0.0,
+        reasoning="Auto-failed: span contains error",
+        evaluation_model=None,
+        evaluation_prompt_tokens=None,
+        evaluation_completion_tokens=None,
+        evaluation_total_tokens=None,
+        evaluation_cost_usd=None,
+    )
+    result = make_session_result(
+        span_metric_results=[span_metric, unmeasured],
+        token_usage={"prompt_tokens": 1000, "completion_tokens": 200, "total_tokens": 1200},
+        estimated_cost_usd=0.0045,
+    )
+    processor = mocker.Mock()
+    processor.evaluate_trajectory.return_value = result
+    mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
+    worker = _make_worker(rabbit_url, llm_model_name="gpt-4o")
+    worker.push_metrics = True
+    save_call = mocker.patch("oxp.providers.OXPMetricsProvider.save_call_metrics", return_value=True)
+    save_session = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
+    mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
+
+    await worker.handle_message(session_message)
+
+    span_metadata = {call.args[1]: call.args[2][0].metadata for call in save_call.call_args_list}
+    assert span_metadata["span-1"] == {
+        "evaluation_model": "gpt-4o",
+        "evaluation_prompt_tokens": 50,
+        "evaluation_completion_tokens": 5,
+        "evaluation_total_tokens": 55,
+        "evaluation_cost_usd": 0.000175,
+    }
+    assert span_metadata["span-2"] == {}
+    (session_metrics,) = save_session.call_args.args
+    assert session_metrics[0].metadata == {
+        "evaluation_model": "gpt-4o",
+        "evaluation_prompt_tokens": 1000,
+        "evaluation_completion_tokens": 200,
+        "evaluation_total_tokens": 1200,
+        "evaluation_cost_usd": 0.0045,
+    }
 
 
 @pytest.mark.asyncio

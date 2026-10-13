@@ -53,13 +53,22 @@ The worker reads and writes Neo4j only, through the shared connector
 
 | Written | Attached to | Value |
 |---|---|---|
-| `mdt.Groundedness`, `mdt.IntentRecognition`, `mdt.Relevancy` | `(:Transition {id, sessionId})-[:hasMetric]->(:Metric)`; the transition must exist | `0` or `1` per judged LLM or tool step; tool steps get no Groundedness |
+| `Groundedness`, `IntentRecognition`, `Relevancy` | `(:MetricResult)-[:measures]->(:LLMCall\|:ToolCall)`, matched by the call's id; written only if that call exists | `0`, `0.25`, `0.5`, `0.75` or `1` per judged `llm` or `tool` step (1-5 rubric normalized to `(score-1)/4`; passes at or above `span_pass_threshold`, default `0.5`); `tool` steps get no Groundedness |
 | `TrajectoryContext` node | `(:Transition)-[:hasContext]->(:TrajectoryContext {id, evidence, claims, ...})`, one per step (`PUSH_TRANSITION_CONTEXT`) | one JSON property per constituent: what the step added to the trajectory context (see below) |
-| `TrajectoryScore` | An existing `Session` node with that `sessionId`; nothing is written if there is none | `0` or `1`; `reasoning` is `trajectory_reasoning` |
+| `TrajectoryScore` | `(:MetricResult)-[:measures]->(:Session {sessionId})`; nothing is written if there is no such session | `0` or `1`; `reasoning` is `trajectory_reasoning` |
 
-Each metric is a `Metric` node linked by `hasMetric`, with `provider` `stateful_evals`, `source`
-`StatefulEval`, `metricId` equal to the name, and `reasoning`. It's matched on `metricName` and
-`resourceId` (the transition id), so a re-run overwrites it. `Span` nodes are no longer written.
+Each metric also carries the evaluation cost when measured, as `evaluation_model`,
+`evaluation_prompt_tokens`, `evaluation_completion_tokens`, `evaluation_total_tokens` and
+`evaluation_cost_usd`, passed in the `MetricResult` metadata and stored as the evaluation fields of the node. For a step
+metric these are the step's judge usage split evenly across the metrics judged for it (token remainders go to
+the first metrics, so the shares sum to the call's usage). For `TrajectoryScore` they are the whole session's usage
+across all phases and its estimated cost. A field is omitted when it was not measured, and auto-failed `ERROR` steps
+carry none.
+
+Each value is a `MetricResult` node (`result`, `reasoning`, `timestamp`) linked by `ofMetricType` to a `Metric`
+definition (one per name and provider, here `metricProvider` `StatefulEvals`) and by `measures` to its target: the
+LLM or tool call for step metrics, the `Session` for `TrajectoryScore`. A result is keyed by
+definition and measured resource, so a re-run overwrites it. `Span` nodes are not written.
 The OXP API's `quality` category reads `TrajectoryScore` as a source of `MDT`
 (`trajectoryQuality`) in [`api/oxp/core/config.py`](../../api/oxp/core/config.py).
 
@@ -120,6 +129,9 @@ Flags override environment variables, except `MAX_INFLIGHT_MESSAGES`, which over
 | `PUSH_METRICS` | _(env only)_ | `true` | `false`/`0`/`no` skips all Neo4j writes (the trajectory is still read) |
 | `PUSH_TRANSITION_CONTEXT` | _(env only)_ | `true` | `false`/`0`/`no` skips writing `TrajectoryContext` nodes |
 | `NEO4J_HOST` / `NEO4J_PORT` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE` | _(env only)_ | `localhost` / `7687` / `neo4j` / empty / `neo4j` | Knowledge graph, read and written; `NEO4J_AUTH=user/password` also sets credentials |
+| `MODEL_PRICES_REFRESH` | _(env only)_ | `true` | `false`/`0`/`no` stops the run-time refresh of the LLM price table from LiteLLM and uses the table packaged in the image |
+| `MODEL_PRICES_URL` | _(env only)_ | LiteLLM's published file | Where to fetch the price table from |
+| `MODEL_PRICES_TTL_SECONDS` | _(env only)_ | `86400` | How long a fetched price table is used before the next fetch; a failed fetch is retried after an hour and the table already loaded keeps being used |
 
 The connector is `oxp.dependencies.get_neo4j_connector()`, the one `BaseWorker` creates at startup
 and every other worker uses, so this worker does not close it. It reads `NEO4J_URI` first, else

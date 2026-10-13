@@ -411,6 +411,40 @@ def _ingest_node(db: Connector, label: str, properties: Dict[str, Any]) -> None:
         raise DatabaseError(f"Failed to ingest {label} node: {exc}") from exc
 
 
+def _metric_definition_ids(db: Connector, metric_name: str) -> List[str]:
+    """Ids of every ``Metric`` definition named ``metric_name`` (one per provider).
+
+    Falls back to ``[metric_name]`` when none exists yet, so the report is
+    still verified against the ontology's mandatory ``aboutMetric`` edge.
+    """
+    rows = db.execute(
+        query="MATCH (d:Metric {name: $name}) RETURN DISTINCT d.id AS id",
+        params={"name": metric_name},
+    )
+    ids = [str(r["id"]) for r in rows or [] if r.get("id")]
+    return ids or [metric_name]
+
+
+def _link_report_to_metric_definitions(
+    db: Connector, report_label: str, report_id: str, metric_name: str
+) -> None:
+    """Link a report to every ``Metric`` definition named ``metric_name``.
+
+    Group reports are computed over a metric name across sessions, so
+    ``aboutMetric`` targets the definition(s) (one per provider), not results.
+    """
+    _create_rel(
+        db,
+        report_label,
+        ["id"],
+        [report_id],
+        "Metric",
+        ["name"],
+        [metric_name],
+        "aboutMetric",
+    )
+
+
 def _create_rel(
     db: Connector,
     from_label: str,
@@ -1063,11 +1097,13 @@ def ingest_consistency_report(
     """
     metadata = getattr(source, "metadata", None) or {}
     metric_name = metadata.get("metric", "")
-    session_ids = getattr(source, "session_ids", None) or []
 
     verify_edges: List[Any] = [ofSemanticGroup(source_id=report.id, target_id=group_id)]
     if report.dataType == "metric" and metric_name:
-        verify_edges.append(aboutMetric(source_id=report.id, target_id=metric_name))
+        for definition_id in _metric_definition_ids(db, metric_name):
+            verify_edges.append(
+                aboutMetric(source_id=report.id, target_id=definition_id)
+            )
 
     verification = verify_kg_object(report, edges=verify_edges)
     if not verification.conforms:
@@ -1112,17 +1148,7 @@ def ingest_consistency_report(
         "ofSemanticGroup",
     )
     if report.dataType == "metric" and metric_name:
-        for session_id in session_ids:
-            _create_rel(
-                db,
-                label,
-                ["id"],
-                [props["id"]],
-                "Metric",
-                ["metricName", "sessionId"],
-                [metric_name, session_id],
-                "aboutMetric",
-            )
+        _link_report_to_metric_definitions(db, label, props["id"], metric_name)
     return True
 
 
@@ -1170,7 +1196,10 @@ def ingest_anomaly_report(
 
     verify_edges: List[Any] = [ofSemanticGroup(source_id=report.id, target_id=group_id)]
     if report.dataType == "metric" and metric_name:
-        verify_edges.append(aboutMetric(source_id=report.id, target_id=metric_name))
+        for definition_id in _metric_definition_ids(db, metric_name):
+            verify_edges.append(
+                aboutMetric(source_id=report.id, target_id=definition_id)
+            )
 
     verification = verify_kg_object(report, edges=verify_edges)
     if not verification.conforms:
@@ -1217,19 +1246,9 @@ def ingest_anomaly_report(
         "ofSemanticGroup",
     )
     if metric_name:
-        for session_id in sorted({*inlier_sessions, *outlier_sessions}):
-            _create_rel(
-                db,
-                label,
-                ["id"],
-                [props["id"]],
-                "Metric",
-                ["metricName", "sessionId"],
-                [metric_name, session_id],
-                "aboutMetric",
-            )
+        _link_report_to_metric_definitions(db, label, props["id"], metric_name)
 
-    # link each outlier session and metric → anomaly report
+    # link each outlier session → anomaly report
     report_id: str = props["id"]
 
     for session_id in outlier_sessions:
@@ -1243,17 +1262,6 @@ def ingest_anomaly_report(
             [report_id],
             "hasAnomalyReport",
         )
-        if metric_name:
-            _create_rel(
-                db,
-                "Metric",
-                ["metricName", "sessionId"],
-                [metric_name, session_id],
-                label,
-                ["id"],
-                [report_id],
-                "hasAnomalyReport",
-            )
     return True
 
 
@@ -1293,11 +1301,13 @@ def ingest_normal_behaviour_report(
     """
     metadata = getattr(source, "metadata", None) or {}
     metric_name = metadata.get("metric", "")
-    session_ids = getattr(source, "session_ids", None) or []
 
     verify_edges: List[Any] = [ofSemanticGroup(source_id=report.id, target_id=group_id)]
     if report.dataType == "metric" and metric_name:
-        verify_edges.append(aboutMetric(source_id=report.id, target_id=metric_name))
+        for definition_id in _metric_definition_ids(db, metric_name):
+            verify_edges.append(
+                aboutMetric(source_id=report.id, target_id=definition_id)
+            )
 
     verification = verify_kg_object(report, edges=verify_edges)
     if not verification.conforms:
@@ -1343,17 +1353,7 @@ def ingest_normal_behaviour_report(
         "ofSemanticGroup",
     )
     if report.dataType == "metric" and metric_name:
-        for session_id in session_ids:
-            _create_rel(
-                db,
-                label,
-                ["id"],
-                [props["id"]],
-                "Metric",
-                ["metricName", "sessionId"],
-                [metric_name, session_id],
-                "aboutMetric",
-            )
+        _link_report_to_metric_definitions(db, label, props["id"], metric_name)
     return True
 
 
@@ -1376,8 +1376,6 @@ def get_all_metrics_for_a_group_of_sessions(
         metric_result = record["metricResult"]
         if isinstance(metric_result, (int, float)):
             metric_value = metric_result
-        elif isinstance(metric_result, str):
-            metric_value = float(json.loads(metric_result)["value"])
         else:
             raise ValueError(
                 f"Unknown metric result type for session_id : {session_id}"
@@ -1780,7 +1778,7 @@ def get_analysis_data_for_semantic_group(
             continue
         metrics_raw: List[Dict[str, Any]] = row.get("metrics") or []
         formatted_metrics = {
-            m.get("metricName"): m.get("metricResult", m.get("value"))
+            m.get("metricName"): m.get("metricResult")
             for m in metrics_raw
             if m.get("metricName")
         }

@@ -59,6 +59,8 @@ def make_session_result(
     unsatisfied_intents=0,
     span_metric_results=None,
     fatal_failures=None,
+    token_usage=None,
+    estimated_cost_usd=0.0,
 ):
     return SimpleNamespace(
         session_id=session_id,
@@ -68,4 +70,6 @@ def make_session_result(
         unsatisfied_intents=unsatisfied_intents,
         span_metric_results=span_metric_results or [],
         fatal_failures=fatal_failures or [],
+        token_usage=SimpleNamespace(**(token_usage or {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})),
+        cost_estimate=SimpleNamespace(estimated_cost_usd=estimated_cost_usd),
     )

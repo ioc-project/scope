@@ -225,52 +225,49 @@ class _CommandConnector:
         self.commands.append((query, params))
 
 
-def test_provider_saves_transition_metrics():
+def test_provider_saves_call_metrics():
     db = _CommandConnector()
     metric = MetricResult(
-        metric_id="mdt.Relevancy",
-        resource_id="transition:t2",
-        provider="stateful_evals",
+        metric_id="Relevancy",
+        resource_id="toolcall:c2",
+        provider="StatefulEvals",
         value=1.0,
         reasoning="ok",
-        metadata={"metric_id": None, "source": "StatefulEval"},
     )
 
     assert (
-        OXPMetricsProvider(db=db).save_transition_metrics(
-            "s1", "transition:t2", [metric]
-        )
+        OXPMetricsProvider(db=db).save_call_metrics("s1", "toolcall:c2", [metric])
         is True
     )
 
     ((query, params),) = db.commands
-    assert "(t:Transition {id: $transition_id, sessionId: $session_id})" in query
-    assert "Span" not in query
-    assert params["transition_id"] == "transition:t2" and params["session_id"] == "s1"
-    assert params["metric_name"] == "mdt.Relevancy" and params["metric_value"] == 1.0
-    assert params["provider"] == "stateful_evals" and params["source"] == "StatefulEval"
-    assert params["metric_id"] == "mdt.Relevancy" and params["reasoning"] == "ok"
+    assert "{id: $resource_id}" in query
+    assert "spanId" not in query and "Span)" not in query
+    assert "(r)-[:ofMetricType]->(d)" in query and "(r)-[:measures]->(t)" in query
+    assert params["resource_id"] == "toolcall:c2" and params["session_id"] == "s1"
+    assert params["definition"]["name"] == "Relevancy"
+    assert params["definition"]["metricProvider"] == "StatefulEvals"
+    assert params["result"]["result"] == 1.0 and params["result"]["reasoning"] == "ok"
 
 
-def test_provider_skips_errored_or_valueless_transition_metrics():
+def test_provider_skips_errored_or_valueless_call_metrics():
     db = _CommandConnector()
     metrics = [
-        MetricResult(metric_id="a", resource_id="t", provider="p", value=None),
+        MetricResult(metric_id="a", resource_id="c", provider="p", value=None),
         MetricResult(
-            metric_id="b", resource_id="t", provider="p", value=1.0, error="boom"
+            metric_id="b", resource_id="c", provider="p", value=1.0, error="boom"
         ),
     ]
-    assert OXPMetricsProvider(db=db).save_transition_metrics("s", "t", metrics) is True
+    assert OXPMetricsProvider(db=db).save_call_metrics("s", "c", metrics) is True
     assert db.commands == []
 
 
-def test_provider_reports_transition_write_failures():
+def test_provider_reports_call_write_failures():
     class Failing(_CommandConnector):
         def execute_command(self, query, params):
             raise RuntimeError("neo4j down")
 
-    metric = MetricResult(metric_id="a", resource_id="t", provider="p", value=1.0)
+    metric = MetricResult(metric_id="a", resource_id="c", provider="p", value=1.0)
     assert (
-        OXPMetricsProvider(db=Failing()).save_transition_metrics("s", "t", [metric])
-        is False
+        OXPMetricsProvider(db=Failing()).save_call_metrics("s", "c", [metric]) is False
     )

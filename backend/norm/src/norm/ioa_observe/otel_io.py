@@ -5,7 +5,7 @@
 No transformation into an intermediate span shape: ``normalize()`` and the
 ``ioa_observe`` handlers consume these dicts directly (``SpanId``,
 ``ParentSpanId``, ``SpanName``, ``SpanAttributes``, ``Timestamp``,
-``Duration``, ...) via ``ioa_observe.fields.attrs()``/``get_session_id()``/etc.
+``Duration``, ...) via ``ioa_observe.fields.get_span_attrs()``/``get_span_session_id()``/etc.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .fields import attrs, get_session_id
+from .fields import get_span_attrs, get_span_session_id
 
 
 def load_otel_export(path: str | Path) -> list[dict[str, Any]]:
@@ -30,7 +30,7 @@ def load_otel_export(path: str | Path) -> list[dict[str, Any]]:
 def infer_run_id(spans: list[dict[str, Any]], default: str = "unknown-run") -> str:
     """Return the (stripped) session id spans were recorded under."""
     for span in spans:
-        session_id = get_session_id(span, attrs(span))
+        session_id = get_span_session_id(span, get_span_attrs(span))
         if session_id:
             return session_id
     return default

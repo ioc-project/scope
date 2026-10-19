@@ -21,6 +21,55 @@ from .fields import _hash_id
 from .registry import Registry
 
 
+def add_initial_state(
+    registry: Registry, owner_id: str, session_id: str, span_id: str, input_text: str
+) -> State:
+    """Create owner_id's initial State (hasInitialState + hasState)."""
+    state = registry.add(
+        State(
+            id=_hash_id("state", span_id, "initial", input_text),
+            sessionId=session_id,
+            content=input_text or "(no content recorded)",
+        )
+    )
+    registry.add_edge(hasInitialState(source_id=owner_id, target_id=state.id))
+    registry.add_edge(hasState(source_id=owner_id, target_id=state.id))
+    return state
+
+
+def add_final_state_transition(
+    registry: Registry,
+    owner_id: str,
+    session_id: str,
+    span_id: str,
+    initial_state_id: str,
+    input_text: str,
+    output_text: str,
+) -> None:
+    """Create owner_id's final State (hasFinalState + hasState) and the Transition
+    initial -> final, with correspondsToTransition/representsExecution to owner_id."""
+    final_state = registry.add(
+        State(
+            id=_hash_id("state", span_id, "final", output_text),
+            sessionId=session_id,
+            content=output_text or "(no content recorded)",
+        )
+    )
+    registry.add_edge(hasFinalState(source_id=owner_id, target_id=final_state.id))
+    registry.add_edge(hasState(source_id=owner_id, target_id=final_state.id))
+
+    transition = registry.add(
+        Transition(
+            id=_hash_id("transition", span_id, input_text, output_text),
+            sessionId=session_id,
+        )
+    )
+    registry.add_edge(inputTo(source_id=initial_state_id, target_id=transition.id))
+    registry.add_edge(leadsTo(source_id=transition.id, target_id=final_state.id))
+    registry.add_edge(correspondsToTransition(source_id=owner_id, target_id=transition.id))
+    registry.add_edge(representsExecution(source_id=transition.id, target_id=owner_id))
+
+
 def add_state_pair_transition(
     registry: Registry,
     owner_id: str,
@@ -34,40 +83,10 @@ def add_state_pair_transition(
     (State->Transition->State) and the correspondsToTransition/
     representsExecution pair back to owner_id -- every ExecutionElement needs
     one."""
-    initial_state = registry.add(
-        State(
-            id=_hash_id("state", span_id, "initial", input_text),
-            sessionId=session_id,
-            content=input_text or "(no content recorded)",
-        )
+    initial_state = add_initial_state(registry, owner_id, session_id, span_id, input_text)
+    add_final_state_transition(
+        registry, owner_id, session_id, span_id, initial_state.id, input_text, output_text
     )
-    final_state = registry.add(
-        State(
-            id=_hash_id("state", span_id, "final", output_text),
-            sessionId=session_id,
-            content=output_text or "(no content recorded)",
-        )
-    )
-    registry.add_edge(hasInitialState(source_id=owner_id, target_id=initial_state.id))
-    registry.add_edge(hasState(source_id=owner_id, target_id=initial_state.id))
-    registry.add_edge(hasFinalState(source_id=owner_id, target_id=final_state.id))
-    registry.add_edge(hasState(source_id=owner_id, target_id=final_state.id))
-
-    transition = registry.add(
-        Transition(
-            id=_hash_id("transition", span_id, input_text, output_text),
-            sessionId=session_id,
-        )
-    )
-    registry.add_edge(inputTo(source_id=initial_state.id, target_id=transition.id))
-    registry.add_edge(leadsTo(source_id=transition.id, target_id=final_state.id))
-    registry.add_edge(
-        correspondsToTransition(
-            source_id=owner_id,
-            target_id=transition.id,
-        )
-    )
-    registry.add_edge(representsExecution(source_id=transition.id, target_id=owner_id))
 
 
 def bridge_states_if_mismatched(

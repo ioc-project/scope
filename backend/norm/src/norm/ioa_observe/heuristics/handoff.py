@@ -37,7 +37,7 @@ from typing import Any
 from oxp_ontology.models.edges import hasAgentCall, hasFinalState, hasInitialState
 from oxp_ontology.models.nodes import AgentCall, MASCall
 
-from ..fields import _hash_id, attrs, get_agent_id
+from ..fields import _hash_id, get_span_agent_id, get_span_attrs
 from ..registry import Registry
 from ..trajectory import bridge_states_if_mismatched
 
@@ -87,12 +87,12 @@ def link_agent_handoffs(spans: list[dict[str, Any]], registry: Registry) -> set[
         span_name = str(span.get("SpanName") or "")
         if not span_name.endswith(".agent"):
             continue
-        span_attrs = attrs(span)
+        span_attrs = get_span_attrs(span)
         source_span_ids = _source_span_ids(span_attrs)
         if not source_span_ids:
             continue
 
-        agent_id = get_agent_id(span, span_attrs)
+        agent_id = get_span_agent_id(span, span_attrs)
         span_id = str(span.get("SpanId") or "")
         target_call = registry.get(AgentCall, _hash_id("agentcall", agent_id, span_id))
         if target_call is None:

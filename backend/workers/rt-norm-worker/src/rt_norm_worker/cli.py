@@ -16,8 +16,15 @@ from rt_norm_worker import worker
     show_default=True,
     help="OTel traces JSON file to read",
 )
+@click.option(
+    "--kind",
+    type=click.Choice(["span", "event"]),
+    default="span",
+    show_default=True,
+    help="What each line of the input is: an OTel span (span) or an OTel log record (event)",
+)
 @click.option("--dry-run", is_flag=True, default=False, help="Use a throwaway in-memory graph instead of Neo4j")
-def main(input_path: str, dry_run: bool):
+def main(input_path: str, kind: str, dry_run: bool):
     """Read the OTel traces file and normalize the spans one by one into Neo4j."""
     if dry_run:
         graph = InMemoryGraph()
@@ -27,7 +34,7 @@ def main(input_path: str, dry_run: bool):
         from rt_norm_worker.store import Neo4jStore
 
         graph = Neo4jStore(get_neo4j_connector())
-    worker.run(graph, input_path)
+    worker.run(graph, input_path, kind)
 
 
 if __name__ == "__main__":

@@ -30,10 +30,10 @@ See [normalization.md](normalization.md) for the full dispatch table.
 ## Adding a span handler
 
 1. Add `handlers/my_shape.py` with `handle_my_shape(span, span_attrs, registry)`.
-2. Read every value straight off `span_attrs` (already `attrs(span)`) or the
+2. Read every value straight off `span_attrs` (already `get_span_attrs(span)`) or the
    raw `span` dict (`SpanId`/`ParentSpanId`/`Timestamp`/`Duration`) — see
-   `fields.py` for the shared derivations (`get_session_id`, `get_agent_id`,
-   `get_start_time`, `get_duration_ms`, ...).
+   `fields.py` for the shared derivations (`get_span_session_id`, `get_span_agent_id`,
+   `get_span_start_time`, `get_span_duration_ms`, ...).
 3. Build ontology nodes/edges via `registry.add`/`add_if_not_exists`/
    `upsert`/`add_edge` — never construct a node with a field the ontology
    doesn't declare (`extra="forbid"` will raise `pydantic.ValidationError`

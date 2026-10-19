@@ -11,12 +11,12 @@ from oxp_ontology.models.nodes import AgentCall, Tool, ToolCall
 
 from ..fields import (
     _hash_id,
-    get_agent_id,
-    get_duration_ms,
-    get_end_time,
-    get_session_id,
-    get_start_time,
-    get_success,
+    get_span_agent_id,
+    get_span_duration_ms,
+    get_span_end_time,
+    get_span_session_id,
+    get_span_start_time,
+    get_span_success,
 )
 from ..registry import Registry
 from ..trajectory import add_state_pair_transition
@@ -27,8 +27,8 @@ def handle_tool(
     span_attrs: dict[str, Any],
     registry: Registry,
 ) -> None:
-    session_id = get_session_id(span, span_attrs)
-    agent_id = get_agent_id(span, span_attrs)
+    session_id = get_span_session_id(span, span_attrs)
+    agent_id = get_span_agent_id(span, span_attrs)
     span_id = str(span.get("SpanId") or "")
     parent_span_id = str(span.get("ParentSpanId") or "")
     entity_name = str(span_attrs.get("ioa_observe.entity.name") or "")
@@ -45,9 +45,9 @@ def handle_tool(
     )
     registry.add_edge(usesTool(source_id=agent_id, target_id=tool.id))
 
-    start_time = get_start_time(span, span_attrs)
-    end_time = get_end_time(start_time, span)
-    duration_ms = get_duration_ms(span)
+    start_time = get_span_start_time(span, span_attrs)
+    end_time = get_span_end_time(start_time, span)
+    duration_ms = get_span_duration_ms(span)
 
     call_id = _hash_id("toolcall", entity_name, span_id)
     tool_call = registry.add(
@@ -60,7 +60,7 @@ def handle_tool(
             duration=duration_ms,
             spanId=span_id,
             parentSpanId=parent_span_id,
-            success=get_success(span, span_attrs),
+            success=get_span_success(span, span_attrs),
         )
     )
     registry.add_edge(executesTool(source_id=tool_call.id, target_id=tool.id))

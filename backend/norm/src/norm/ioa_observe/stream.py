@@ -29,7 +29,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import ValidationError
 from oxp_ontology.models import edges as edge_models
@@ -45,10 +45,14 @@ from oxp_ontology.models.edges import (
 from oxp_ontology.models.nodes import AgentCall, MASCall, ProcessingCall, Session, Transition
 
 from .build import apply_heuristics, dispatch_span, serialize_registry
-from .fields import attrs, get_session_id
+from .events import dispatch_event
+from .fields import get_event_attrs, get_event_session_id, get_span_attrs, get_span_session_id
 from .heuristics.handoff import _source_span_ids
 from .registry import Registry
 from ..verifier import PROPERTY_DOMAIN_RANGE
+
+Kind = Literal["span", "event"]
+KINDS = ("span", "event")
 
 HANDOFF_SOURCES_PROP = "handoffSourceSpanIds"
 
@@ -191,13 +195,72 @@ def _snapshot(registry: Registry, signals: dict[str, list[str]]) -> dict[tuple[s
     return items
 
 
+def _diff(before: dict[tuple[str, ...], dict[str, Any]], after: dict[tuple[str, ...], dict[str, Any]]) -> StreamDelta:
+    delta = StreamDelta()
+    for key, item in after.items():
+        if before.get(key) != item:
+            (delta.nodes if key[0] == "node" else delta.edges).append(item)
+    for key, item in before.items():
+        if key not in after:
+            (delta.removed_nodes if key[0] == "node" else delta.removed_edges).append(item)
+    return delta
+
+
 class StreamNormalizer:
     def __init__(self, reader: GraphReader) -> None:
         self._reader = reader
 
-    def process(self, span: dict[str, Any]) -> StreamDelta:
-        span_attrs = attrs(span)
-        session_id = get_session_id(span, span_attrs)
+    def process(self, record: dict[str, Any], kind: Kind = "span") -> StreamDelta:
+        """Normalize one item against the stored graph and return what changed.
+
+        ``kind`` says what ``record`` is: ``"span"`` (an OTel span, the default) or
+        ``"event"`` (an OTel log record). Events are routed by ``event.name`` (see events.py); their
+        handlers are stubs for now, so they change nothing.
+        """
+        if kind == "event":
+            return self._process_event(record)
+        elif kind == "span":
+            return self._process_trace(record)
+        else:
+            raise ValueError(f"Unknown kind {kind!r}, expected one of {KINDS}")
+
+    def _process_event(self, event: dict[str, Any]) -> StreamDelta:
+        event_attrs = get_event_attrs(event)
+        session_id = get_event_session_id(event, event_attrs)
+
+        # Dry run on an empty registry to learn which nodes this event touches.
+        scratch = Registry()
+        if not dispatch_event(event, event_attrs, scratch):
+            return StreamDelta()
+        touched = {node.id for node in scratch.nodes.values()}
+        for _etype, source_id, target_id in scratch.edges:
+            touched.update((source_id, target_id))
+
+        # The dry run can't see what depends on stored state (e.g. an edge to an agent found
+        # through an existing AgentCall), so if the real run touches more, load those too
+        # and run again -- otherwise their stored copies would be missed and re-sent.
+        for _ in range(2):
+            stored_nodes, stored_edges = self._reader.load(session_id, sorted(touched))
+            registry, signals = _rehydrate(stored_nodes, stored_edges)
+            before = _snapshot(registry, signals)
+            dispatch_event(event, event_attrs, registry)
+            after = _snapshot(registry, signals)
+            produced: set[str] = set()
+            for key, item in after.items():
+                if before.get(key) != item:
+                    produced.update(
+                        (str(item["from_id"]), str(item["to_id"]))
+                        if key[0] == "edge"
+                        else (str(item["id"]),)
+                    )
+            if produced <= touched:
+                break
+            touched |= produced
+        return _diff(before, after)
+
+    def _process_trace(self, span: dict[str, Any]) -> StreamDelta:
+        span_attrs = get_span_attrs(span)
+        session_id = get_span_session_id(span, span_attrs)
 
         # Dry run on an empty registry to learn which nodes this span touches.
         scratch = Registry()
@@ -228,21 +291,14 @@ class StreamNormalizer:
         apply_heuristics(_handoff_spans(registry, signals), registry)
         after = _snapshot(registry, signals)
 
-        delta = StreamDelta()
-        for key, item in after.items():
-            if before.get(key) != item:
-                (delta.nodes if key[0] == "node" else delta.edges).append(item)
-        for key, item in before.items():
-            if key not in after:
-                (delta.removed_nodes if key[0] == "node" else delta.removed_edges).append(item)
-        return delta
+        return _diff(before, after)
 
 
 class InMemoryGraph:
     """A ``GraphReader`` plus writer over plain dicts; for tests and dry runs."""
 
-    # Set on creation and never changed afterwards, same as the Neo4j store.
-    IMMUTABLE_PROPS = frozenset({"startTime", "endTime"})
+    # Set on creation and never changed afterwards, same as the Neo4j store (endTime may advance).
+    IMMUTABLE_PROPS = frozenset({"startTime"})
 
     def __init__(self) -> None:
         self.nodes: dict[tuple[str, str], dict[str, Any]] = {}

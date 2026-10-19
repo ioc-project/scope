@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Node types merged on `name` (unique constraint) instead of `id`; mirrors oxp.client.dal.
 NAME_KEYED_NODE_TYPES = frozenset({"LLM"})
-# Set when a node is first created and never changed afterwards.
-IMMUTABLE_PROPS = frozenset({"startTime", "endTime"})
+# Set when a node is first created and never changed afterwards (endTime is not: it advances
+# as a container, e.g. an AgentCall or Session, completes).
+IMMUTABLE_PROPS = frozenset({"startTime"})
 _NON_PROPS = frozenset({"node_type"})
 _EDGE_NON_PROPS = frozenset({"edge_type", "from_id", "from_type", "to_id", "to_type"})
 

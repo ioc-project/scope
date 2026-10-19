@@ -18,13 +18,13 @@ from oxp_ontology.models.nodes import MAS, Agent, AgentCall, MASCall, Session
 
 from ..fields import (
     _hash_id,
-    get_agent_id,
-    get_application_id,
-    get_duration_ms,
-    get_end_time,
-    get_session_id,
-    get_start_time,
-    get_success,
+    get_span_agent_id,
+    get_span_application_id,
+    get_span_duration_ms,
+    get_span_end_time,
+    get_span_session_id,
+    get_span_start_time,
+    get_span_success,
 )
 from ..registry import Registry
 from ..trajectory import add_state_pair_transition
@@ -90,11 +90,11 @@ def handle_agent(
     span_attrs: dict[str, Any],
     registry: Registry,
 ) -> None:
-    agent_id = get_agent_id(span, span_attrs)
+    agent_id = get_span_agent_id(span, span_attrs)
     if not agent_id:
         return
-    application_id = get_application_id(span, span_attrs)
-    session_id = get_session_id(span, span_attrs)
+    application_id = get_span_application_id(span, span_attrs)
+    session_id = get_span_session_id(span, span_attrs)
     span_id = str(span.get("SpanId") or "")
 
     name = str(span_attrs.get("ioa_observe.entity.name") or agent_id)
@@ -105,9 +105,9 @@ def handle_agent(
     if created and application_id:
         registry.add_edge(belongsToMAS(source_id=agent.id, target_id=application_id))
 
-    start_time = get_start_time(span, span_attrs)
-    end_time = get_end_time(start_time, span)
-    duration_ms = get_duration_ms(span)
+    start_time = get_span_start_time(span, span_attrs)
+    end_time = get_span_end_time(start_time, span)
+    duration_ms = get_span_duration_ms(span)
 
     call_id = _hash_id("agentcall", agent_id, span_id)
     agent_call = registry.add(
@@ -120,7 +120,7 @@ def handle_agent(
             duration=duration_ms,
             spanId=span_id,
             parentSpanId=str(span.get("ParentSpanId") or ""),
-            success=get_success(span, span_attrs),
+            success=get_span_success(span, span_attrs),
         )
     )
     registry.add_edge(executesAgent(source_id=agent_call.id, target_id=agent.id))

@@ -19,7 +19,7 @@ from oxp_ontology.models.base import KGBase
 from oxp_ontology.models.edges import belongsToMAS
 from oxp_ontology.models.nodes import MAS, Agent, StructuralElement
 
-from ..fields import get_application_id
+from ..fields import get_span_application_id
 from ..registry import Registry
 
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def handle_graph(
     span_attrs: dict[str, Any],
     registry: Registry,
 ) -> None:
-    application_id = get_application_id(span, span_attrs)
+    application_id = get_span_application_id(span, span_attrs)
     if not application_id:
         return
     name = str(span_attrs.get("ioa_observe.entity.name") or application_id)

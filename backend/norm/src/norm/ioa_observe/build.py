@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .fields import attrs
+from .fields import get_span_attrs
 from .handlers import (
     handle_agent,
     handle_chat,
@@ -40,7 +40,7 @@ _HANDLERS: dict[str, Any] = {
 def dispatch_span(span: dict[str, Any], registry: Registry) -> None:
     """Run the one per-span handler matching ``span``'s ``SpanName`` (if any)."""
     span_name = str(span.get("SpanName") or "")
-    span_attrs = attrs(span)
+    span_attrs = get_span_attrs(span)
 
     handler = _HANDLERS.get(span_name)
     if handler is not None:

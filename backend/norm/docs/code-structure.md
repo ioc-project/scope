@@ -8,7 +8,7 @@ core.
 | Module | Role |
 |--------|------|
 | `otel_io.py` | `load_otel_export` (ClickHouse JSONL) and `infer_run_id` — both operate on raw span dicts directly, no intermediate shape |
-| `fields.py` | Span field derivation (`attrs`, `get_session_id`, `get_agent_id`, `get_start_time`, `get_duration_ms`, ...) — every value is read straight off a span's own `SpanAttributes` |
+| `fields.py` | Span field derivation (`get_span_attrs`, `get_span_session_id`, `get_span_agent_id`, `get_span_start_time`, `get_span_duration_ms`, ...) — every value is read straight off a span's own `SpanAttributes` |
 | `registry.py` | Generic `(type, id)`-keyed node/edge store (`add`, `upsert`, `add_if_not_exists`, `add_edge`, `find`, `edge_target`, `edge_source`, `edges_from`, `all_of`) — no domain knowledge of its own |
 | `trajectory.py` | `add_state_pair_transition` (fresh State pair + Transition for one ExecutionElement), `bridge_states_if_mismatched` (synthesize a `ProcessingCall` bridge between two States only if their content differs), `adopt_boundary_states` (share an existing State directly, for pure containers) |
 | `build.py` | `build_kg(spans)` — dispatches each span to a handler by `SpanName`, then runs the post-processing heuristics |

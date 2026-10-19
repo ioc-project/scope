@@ -2,7 +2,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 from .compare import KGCompareResult, compare_kg, read_kg_json, write_kg_json
 from .ioa_observe import build_kg
-from .ioa_observe.stream import GraphReader, InMemoryGraph, StreamDelta, StreamNormalizer
+from .ioa_observe.stream import GraphReader, InMemoryGraph, Kind, StreamDelta, StreamNormalizer
 from .ioa_observe.otel_io import infer_run_id, load_otel_export
 from .normalizer import Normalizer, OnNormalizedCallback, configure, dump_jsonld, normalize
 from .verifier import (
@@ -24,6 +24,7 @@ __all__ = [
     "OnNormalizedCallback",
     "GraphReader",
     "InMemoryGraph",
+    "Kind",
     "StreamDelta",
     "StreamNormalizer",
     "build_kg",

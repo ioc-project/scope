@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "analysis-worker",
     "anomaly-detection-worker",
+    "cognitive-challenge-worker",
     "consistency-worker",
     "dem",
     "embedding-worker",
@@ -626,6 +627,48 @@ sdist = { url = "https://files.pythonhosted.org/packages/27/fb/576f067976d320f5f
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl", hash = "sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a", size = 22228 },
 ]
+
+[[package]]
+name = "cognitive-challenge-worker"
+version = "1.0.0"
+source = { editable = "workers/cognitive-challenge-worker" }
+dependencies = [
+    { name = "aio-pika" },
+    { name = "click" },
+    { name = "openai" },
+    { name = "oxp-api" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "worker-base" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aio-pika", specifier = ">=8.0.0" },
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "openai", specifier = ">=1.0.0" },
+    { name = "oxp-api", editable = "api" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
+    { name = "worker-base", editable = "worker-base" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "colorama"

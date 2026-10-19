@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cognitive challenge worker.** `cognitive-challenge-worker` detects the cognitive challenges of the challenges
+  taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveChallengeReport` (challenge code,
+  `low`/`medium`/`high` confidence, reasoning) attached to the session by `reportsOn` and to the call where it
+  happened by `atCall`. Opt-in: list the challenges to look for in `cognitive_challenge_config.yaml`
+  (`workers.cognitive-challenge.config` in the Helm chart). It is fed from the embedding worker's output, next to
+  the stateful-eval worker. The Cypher is in `oxp.query_builders.challenge_graph`, the writer in
+  `oxp.client.challenges`. Requires an `oxp-ontology` release with `CognitiveChallengeReport`.
 - **L9 protocol reports.** `oxp.providers.OXPL9ReportProvider` writes, through the ontology models, an
   `L9Report` per session (`protocolsEnabled` / `protocolsActivated`: which L9 protocols were available and
   which were used) and an `L9ProtocolExecutionReport` per session and protocol (the agents and skills that had

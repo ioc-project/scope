@@ -23,6 +23,7 @@ group "backend" {
     "normal-behaviour-worker",
     "intelligence-worker",
     "stateful-eval-worker",
+    "cognitive-challenge-worker",
   ]
 }
 
@@ -126,4 +127,11 @@ target "stateful-eval-worker" {
   args = {
     MODEL_PRICES_REFRESHED_AT = timestamp()
   }
+}
+
+target "cognitive-challenge-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  dockerfile = "workers/cognitive-challenge-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64"]
 }

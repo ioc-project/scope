@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [1.0.7]
+
+### Added
+
+- `analysis-ontology.ttl`: `CognitiveChallengeReport`, one detection of a cognitive challenge from the challenges
+  taxonomy in a session: `challengeCode`, `challengeConfidence` (`low` | `medium` | `high`) and `challengeReasoning`.
+  It is linked to its `Session` by `reportsOn` and, when the challenge happened in one call, to that call by the new
+  `atCall`. `reportsOn` and `reportedAt` now also apply to it.
+
 ## [1.0.6] - 2026-10-18
 
 ### Added

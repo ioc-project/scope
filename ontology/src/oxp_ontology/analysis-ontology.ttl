@@ -45,7 +45,7 @@
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://outshift-open.github.io/oxp-ontology/mas#" ;
     owl:priorVersion <https://outshift-open.github.io/oxp-ontology/analysis/1.0.0-rc0> ;
-    owl:versionInfo "1.0.6" ;
+    owl:versionInfo "1.0.7" ;
     owl:imports <https://outshift-open.github.io/oxp-ontology/mas> ;
     rdfs:comment "Analysis ontology — group-scoped consistency/anomaly/normal-behaviour reports. All classes are computed post-hoc artefacts attached to execution KG nodes. v1.0.0: initial draft."@en .
 
@@ -300,12 +300,12 @@ mas:L9ProtocolExecutionReport rdf:type owl:Class ;
 
 mas:reportsOn rdf:type owl:ObjectProperty, sh:PropertyShape ;
     sh:path mas:reportsOn ;
-    sh:targetClass mas:L9Report, mas:L9ProtocolExecutionReport ;
+    sh:targetClass mas:L9Report, mas:L9ProtocolExecutionReport, mas:CognitiveChallengeReport ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
-    rdfs:domain [ owl:unionOf ( mas:L9Report mas:L9ProtocolExecutionReport ) ] ;
+    rdfs:domain [ owl:unionOf ( mas:L9Report mas:L9ProtocolExecutionReport mas:CognitiveChallengeReport ) ] ;
     rdfs:range mas:Session ;
-    rdfs:comment "The Session this L9 report describes. A report cannot exist without one." .
+    rdfs:comment "The Session this session-level report (L9 or cognitive challenge) describes. A report cannot exist without one." .
 
 mas:protocol rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:protocol ;
@@ -376,9 +376,61 @@ mas:metricCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
 
 mas:reportedAt rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:reportedAt ;
-    sh:targetClass mas:L9Report, mas:L9ProtocolExecutionReport ;
+    sh:targetClass mas:L9Report, mas:L9ProtocolExecutionReport, mas:CognitiveChallengeReport ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
-    rdfs:domain [ owl:unionOf ( mas:L9Report mas:L9ProtocolExecutionReport ) ] ;
+    rdfs:domain [ owl:unionOf ( mas:L9Report mas:L9ProtocolExecutionReport mas:CognitiveChallengeReport ) ] ;
     rdfs:range xsd:dateTime ;
     rdfs:comment "When this report was last written." .
+
+#################################################################
+#    COGNITIVE CHALLENGE REPORT
+#
+#    One detection of a cognitive challenge (see the challenges
+#    taxonomy) in a session: which challenge, how sure the
+#    detector is, why, and the call where it happened, if it
+#    applies to one. Like the L9 reports it describes a session,
+#    so it is linked to it by mas:reportsOn.
+#################################################################
+
+mas:CognitiveChallengeReport rdf:type owl:Class ;
+    rdfs:subClassOf mas:Element ;
+    mas:layer "analysis" ;
+    rdfs:comment "A cognitive challenge (from the challenges taxonomy, e.g. IR-1 or CC-3) detected in a session: the challenge code, the detector's confidence, and a brief reasoning. Attached to the Session, and to the call where the challenge happened when it applies to one." ;
+    skos:example "code 'IC-2', confidence 'medium', reasoning 'The plan kept booking the train after the user cancelled the trip.'" .
+
+mas:code rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:code ;
+    sh:targetClass mas:CognitiveChallengeReport ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:CognitiveChallengeReport ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Code of the detected challenge in the challenges taxonomy, e.g. 'IR-1', 'DC-4', 'CC-3'." .
+
+mas:confidence rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:confidence ;
+    sh:targetClass mas:CognitiveChallengeReport ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:CognitiveChallengeReport ;
+    rdfs:range xsd:string ;
+    rdfs:comment "How sure the detector is that the challenge happened: 'low' | 'medium' | 'high'." .
+
+mas:reasoning rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:reasoning ;
+    sh:targetClass mas:CognitiveChallengeReport ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:CognitiveChallengeReport ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Brief explanation of why this is a detection: what in the trace matches the challenge." .
+
+mas:atCall rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:atCall ;
+    sh:targetClass mas:CognitiveChallengeReport ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:CognitiveChallengeReport ;
+    rdfs:range mas:ExecutionElement ;
+    rdfs:comment "The call (LLM, tool or agent call) where the challenge happened. Absent for challenges that only show at the level of the whole session." .

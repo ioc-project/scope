@@ -90,8 +90,8 @@ mas:measures rdf:type owl:ObjectProperty, sh:PropertyShape ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
     rdfs:domain mas:MetricResult ;
-    rdfs:range [ owl:unionOf ( mas:ExecutionElement mas:L9ProtocolExecutionReport ) ] ;
-    rdfs:comment "Metric result measures an execution element, or an L9 protocol execution report (the protocol's evaluation metrics)." .
+    rdfs:range [ owl:unionOf ( mas:ExecutionElement mas:CognitionProtocolExecutionReport ) ] ;
+    rdfs:comment "Metric result measures an execution element, or a Cognition protocol execution report (the protocol's evaluation metrics)." .
 
 mas:result rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:result ;

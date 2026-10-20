@@ -3,23 +3,23 @@
 import json
 from types import SimpleNamespace
 
-import oxp.client.challenges  # noqa: F401  (so mocker can patch it)
+import oxp.client.failures  # noqa: F401  (so mocker can patch it)
 import oxp.client.dal  # noqa: F401
 import pytest
 from conftest import TRAJECTORY
 from worker_base.queue_message import BaseQueueMessage
 
-from cognitive_challenge_worker.detector import Completion, DetectionAnswer
-from cognitive_challenge_worker.worker import CognitiveChallengeWorker
+from cognitive_failure_worker.detector import Completion, DetectionAnswer
+from cognitive_failure_worker.worker import CognitiveFailureWorker
 
 
 def _worker(rabbit_url, tmp_path=None, config=None, **kwargs):
     path = None
     if config is not None:
-        path = tmp_path / "cognitive_challenge_config.yaml"
+        path = tmp_path / "cognitive_failure_config.yaml"
         path.write_text(config, encoding="utf-8")
         path = str(path)
-    return CognitiveChallengeWorker(
+    return CognitiveFailureWorker(
         rabbit_url=rabbit_url,
         input_queue="test_input",
         llm_api_key="key",
@@ -38,7 +38,7 @@ def message():
 @pytest.fixture
 def kg(mocker):
     kg = mocker.Mock(spec=["execute", "execute_command", "ensure_connected"])
-    mocker.patch.object(CognitiveChallengeWorker, "_get_kg", return_value=kg)
+    mocker.patch.object(CognitiveFailureWorker, "_get_kg", return_value=kg)
     return kg
 
 
@@ -50,42 +50,42 @@ def _answer(*items):
 
 
 def test_without_a_config_file_nothing_is_detected(rabbit_url):
-    assert _worker(rabbit_url).challenges == []
+    assert _worker(rabbit_url).failures == []
 
 
-@pytest.mark.parametrize("text", ["", "challenges:\n", "challenges: []\n", "challenges:\n  # - IR-1\n"])
+@pytest.mark.parametrize("text", ["", "failures:\n", "failures: []\n", "failures:\n  # - IR-1\n"])
 def test_an_empty_config_detects_nothing(rabbit_url, tmp_path, text):
-    assert _worker(rabbit_url, tmp_path, text).challenges == []
+    assert _worker(rabbit_url, tmp_path, text).failures == []
 
 
-def test_the_configured_challenges_are_loaded(rabbit_url, tmp_path):
-    worker = _worker(rabbit_url, tmp_path, "challenges:\n  - ic-2\n  - CC-3\n")
+def test_the_configured_failures_are_loaded(rabbit_url, tmp_path):
+    worker = _worker(rabbit_url, tmp_path, "failures:\n  - ic-2\n  - CC-3\n")
 
-    assert [c["code"] for c in worker.challenges] == ["IC-2", "CC-3"]
+    assert [c["code"] for c in worker.failures] == ["IC-2", "CC-3"]
 
 
-def test_an_unknown_challenge_stops_the_worker_at_startup(rabbit_url, tmp_path):
+def test_an_unknown_failure_stops_the_worker_at_startup(rabbit_url, tmp_path):
     with pytest.raises(ValueError, match="IC-99"):
-        _worker(rabbit_url, tmp_path, "challenges:\n  - IC-2\n  - IC-99\n")
+        _worker(rabbit_url, tmp_path, "failures:\n  - IC-2\n  - IC-99\n")
 
 
 def test_an_unknown_setting_stops_the_worker_at_startup(rabbit_url, tmp_path):
-    with pytest.raises(ValueError, match="challenge"):
-        _worker(rabbit_url, tmp_path, "challenge:\n  - IC-2\n")
+    with pytest.raises(ValueError, match="failure"):
+        _worker(rabbit_url, tmp_path, "failure:\n  - IC-2\n")
 
 
 def test_a_missing_config_file_stops_the_worker_at_startup(rabbit_url, tmp_path):
     with pytest.raises(FileNotFoundError):
-        CognitiveChallengeWorker(rabbit_url=rabbit_url, input_queue="q", config_path=str(tmp_path / "nope.yaml"))
+        CognitiveFailureWorker(rabbit_url=rabbit_url, input_queue="q", config_path=str(tmp_path / "nope.yaml"))
 
 
 def test_the_shipped_example_config_loads(rabbit_url):
     from pathlib import Path
 
-    example = Path(__file__).resolve().parents[3] / "cognitive_challenge_config.yaml"
-    worker = CognitiveChallengeWorker(rabbit_url=rabbit_url, input_queue="q", config_path=str(example))
+    example = Path(__file__).resolve().parents[3] / "cognitive_failure_config.yaml"
+    worker = CognitiveFailureWorker(rabbit_url=rabbit_url, input_queue="q", config_path=str(example))
 
-    assert {c["code"] for c in worker.challenges} == {
+    assert {c["code"] for c in worker.failures} == {
         "IR-1",
         "IC-1",
         "IC-2",
@@ -107,8 +107,8 @@ async def test_detections_are_written_and_the_message_is_forwarded(
     rabbit_url, tmp_path, kg, message, mocker
 ):
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.challenges.write_cognitive_challenge_reports", return_value=1)
-    worker = _worker(rabbit_url, tmp_path, "challenges: [IC-2]\n")
+    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports", return_value=1)
+    worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(
         worker,
         "_complete",
@@ -129,8 +129,8 @@ async def test_detections_are_written_and_the_message_is_forwarded(
 @pytest.mark.asyncio
 async def test_a_session_with_nothing_detected_writes_an_empty_list(rabbit_url, tmp_path, kg, message, mocker):
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.challenges.write_cognitive_challenge_reports", return_value=0)
-    worker = _worker(rabbit_url, tmp_path, "challenges: [IC-2]\n")
+    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports", return_value=0)
+    worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(worker, "_complete", return_value=_answer())
 
     await worker.handle_message(message)
@@ -143,8 +143,8 @@ async def test_an_unusable_answer_writes_nothing_but_still_forwards(
     rabbit_url, tmp_path, kg, message, mocker
 ):
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.challenges.write_cognitive_challenge_reports")
-    worker = _worker(rabbit_url, tmp_path, "challenges: [IC-2]\n")
+    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
+    worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(worker, "_complete", return_value=Completion("I cannot help with that"))
 
     assert await worker.handle_message(message) is True
@@ -156,8 +156,8 @@ async def test_an_unusable_answer_writes_nothing_but_still_forwards(
 @pytest.mark.asyncio
 async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, message, mocker):
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value={"session_id": "session-1", "steps": []})
-    write = mocker.patch("oxp.client.challenges.write_cognitive_challenge_reports")
-    worker = _worker(rabbit_url, tmp_path, "challenges: [IC-2]\n")
+    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
+    worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     complete = mocker.patch.object(worker, "_complete")
 
     await worker.handle_message(message)
@@ -167,7 +167,7 @@ async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, mess
 
 
 @pytest.mark.asyncio
-async def test_with_no_challenge_configured_the_graph_and_the_model_are_not_touched(rabbit_url, kg, message, mocker):
+async def test_with_no_failure_configured_the_graph_and_the_model_are_not_touched(rabbit_url, kg, message, mocker):
     get_trajectory = mocker.patch("oxp.client.dal.get_session_trajectory")
     worker = _worker(rabbit_url)
     complete = mocker.patch.object(worker, "_complete")

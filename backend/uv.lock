@@ -11,7 +11,7 @@ resolution-markers = [
 members = [
     "analysis-worker",
     "anomaly-detection-worker",
-    "cognitive-challenge-worker",
+    "cognitive-failure-worker",
     "consistency-worker",
     "dem",
     "embedding-worker",
@@ -629,9 +629,9 @@ wheels = [
 ]
 
 [[package]]
-name = "cognitive-challenge-worker"
+name = "cognitive-failure-worker"
 version = "1.0.0"
-source = { editable = "workers/cognitive-challenge-worker" }
+source = { editable = "workers/cognitive-failure-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },

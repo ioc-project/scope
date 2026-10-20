@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cognitive challenge worker.** `cognitive-challenge-worker` detects the cognitive challenges of the challenges
-  taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveChallengeReport` (challenge code,
+- **Cognitive failure worker.** `cognitive-failure-worker` detects the cognitive failures of the challenges
+  taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveFailureReport` (failure code,
   `low`/`medium`/`high` confidence, reasoning) attached to the session by `reportsOn` and to the call where it
-  happened by `atCall`. Opt-in: list the challenges to look for in `cognitive_challenge_config.yaml`
-  (`workers.cognitive-challenge.config` in the Helm chart). It is fed from the embedding worker's output, next to
-  the stateful-eval worker. The Cypher is in `oxp.query_builders.challenge_graph`, the writer in
-  `oxp.client.challenges`. Requires an `oxp-ontology` release with `CognitiveChallengeReport`.
+  happened by `atCall`. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
+  (`workers.cognitive-failure.config` in the Helm chart). It is fed from the embedding worker's output, next to
+  the stateful-eval worker. The Cypher is in `oxp.query_builders.failure_graph`, the writer in
+  `oxp.client.failures`. Requires an `oxp-ontology` release with `CognitiveFailureReport`.
 - **Cognition protocol reports.** `oxp.providers.OXPCognitionProtocolReportProvider` writes, through the ontology models, an
   `CognitionProtocolReport` per session (`protocolsEnabled` / `protocolsActivated`: which Cognition protocols were available and
   which were used) and a `CognitionProtocolExecutionReport` per session and protocol (the agents and skills that had

@@ -42,4 +42,4 @@ else
   echo "No input file found in arguments: $@"
 fi
 
-exec /opt/.venv/bin/cognitive-challenge-worker-cli "$@"
+exec /opt/.venv/bin/cognitive-failure-worker-cli "$@"

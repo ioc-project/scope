@@ -21,8 +21,8 @@ from worker_base.utils import (  # noqa: E402
     resolve_rabbitmq_url,
 )
 
-from cognitive_challenge_worker import queues  # noqa: E402
-from cognitive_challenge_worker.worker import CognitiveChallengeWorker  # noqa: E402
+from cognitive_failure_worker import queues  # noqa: E402
+from cognitive_failure_worker.worker import CognitiveFailureWorker  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +39,8 @@ def _build_worker(
     llm_base_model_url: Optional[str],
     config_path: Optional[str],
     debug: bool,
-) -> CognitiveChallengeWorker:
-    return CognitiveChallengeWorker(
+) -> CognitiveFailureWorker:
+    return CognitiveFailureWorker(
         rabbit_url=rabbit_url,
         input_queue=input_queue,
         output_queue=output_queue,
@@ -66,20 +66,20 @@ def _build_worker(
     "--input-queue",
     type=str,
     default=None,
-    help=f"Input queue name (default: {queues.NEW_SESSION_TO_COGNITIVE_CHALLENGE_Q} or COGNITIVE_CHALLENGE_INPUT_QUEUE env var)",
+    help=f"Input queue name (default: {queues.NEW_SESSION_TO_COGNITIVE_FAILURE_Q} or COGNITIVE_FAILURE_INPUT_QUEUE env var)",
 )
 @click.option(
     "--output-queue",
     type=str,
     multiple=True,
     default=None,
-    help="Output queue(s) (default: none, or COGNITIVE_CHALLENGE_OUTPUT_QUEUE env var)",
+    help="Output queue(s) (default: none, or COGNITIVE_FAILURE_OUTPUT_QUEUE env var)",
 )
 @click.option(
     "--feedback-queue",
     type=str,
     default=None,
-    help="Feedback queue (optional, COGNITIVE_CHALLENGE_FEEDBACK_QUEUE env var)",
+    help="Feedback queue (optional, COGNITIVE_FAILURE_FEEDBACK_QUEUE env var)",
 )
 @click.option(
     "--max-sessions",
@@ -116,7 +116,7 @@ def _build_worker(
     "config_file",
     type=str,
     default=None,
-    help="Path to cognitive_challenge_config.yaml (default: COGNITIVE_CHALLENGE_CONFIG_PATH env var)",
+    help="Path to cognitive_failure_config.yaml (default: COGNITIVE_FAILURE_CONFIG_PATH env var)",
 )
 @click.option(
     "--debug",
@@ -166,11 +166,11 @@ def main(
     output: Optional[str],
     test: bool,
 ):
-    """Run the Cognitive Challenge Worker.
+    """Run the Cognitive Failure Worker.
 
     Reads each session's trajectory from the knowledge graph, asks the judge model which of the
-    configured cognitive challenges (see the challenges taxonomy) it shows, and writes a
-    CognitiveChallengeReport for each detection, attached to the session and to the call where it
+    configured cognitive failures (see the challenges taxonomy) it shows, and writes a
+    CognitiveFailureReport for each detection, attached to the session and to the call where it
     happened.
     """
     configure_worker_logging(debug=debug)
@@ -181,25 +181,25 @@ def main(
 
     _rabbitmq_url = resolve_rabbitmq_url(rabbitmq_url)
     _input_queue = input_queue or os.getenv(
-        "COGNITIVE_CHALLENGE_INPUT_QUEUE",
-        queues.NEW_SESSION_TO_COGNITIVE_CHALLENGE_Q,
+        "COGNITIVE_FAILURE_INPUT_QUEUE",
+        queues.NEW_SESSION_TO_COGNITIVE_FAILURE_Q,
     )
 
     if output_queue:
         _output_queue = list(output_queue)
     else:
-        output_queue_env = os.getenv("COGNITIVE_CHALLENGE_OUTPUT_QUEUE")
+        output_queue_env = os.getenv("COGNITIVE_FAILURE_OUTPUT_QUEUE")
         _output_queue = output_queue_env.split(",") if output_queue_env else []
 
-    _feedback_queue = feedback_queue or os.getenv("COGNITIVE_CHALLENGE_FEEDBACK_QUEUE")
+    _feedback_queue = feedback_queue or os.getenv("COGNITIVE_FAILURE_FEEDBACK_QUEUE")
     _llm_api_key = llm_api_key or os.getenv("OPENAI_API_KEY", "")
     _llm_model_name = llm_model_name or os.getenv("LLM_MODEL_NAME", "gpt-4o")
     _llm_base_model_url = llm_base_model_url or os.getenv("LLM_BASE_MODEL_URL_MCE", "https://api.openai.com/v1")
-    _config_path = config_file or os.getenv("COGNITIVE_CHALLENGE_CONFIG_PATH")
-    _max_inflight = resolve_max_inflight_messages(max_inflight_messages, error_subject="cognitive-challenge-worker")
+    _config_path = config_file or os.getenv("COGNITIVE_FAILURE_CONFIG_PATH")
+    _max_inflight = resolve_max_inflight_messages(max_inflight_messages, error_subject="cognitive-failure-worker")
 
     logger.info("=" * 60)
-    logger.info("Cognitive Challenge Worker Configuration")
+    logger.info("Cognitive Failure Worker Configuration")
     logger.info("=" * 60)
     logger.info(f"RabbitMQ URL:        {_rabbitmq_url}")
     logger.info(f"Input Queue:         {_input_queue}")

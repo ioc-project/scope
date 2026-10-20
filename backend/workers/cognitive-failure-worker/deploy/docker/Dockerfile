@@ -21,11 +21,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PATH="/root/.local/bin:${PATH}"
 
 COPY pyproject.toml uv.lock /opt/
-COPY workers/cognitive-challenge-worker /opt/workers/cognitive-challenge-worker
+COPY workers/cognitive-failure-worker /opt/workers/cognitive-failure-worker
 COPY worker-base /opt/worker-base
 COPY api /opt/api
 
-RUN uv sync --package cognitive-challenge-worker --frozen --no-editable
+RUN uv sync --package cognitive-failure-worker --frozen --no-editable
 
 # ── Run stage ─────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS runner
@@ -36,7 +36,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /opt
 
 COPY --from=builder /opt/.venv /opt/.venv
-COPY workers/cognitive-challenge-worker/deploy/docker/entrypoint.sh /entrypoint.sh
+COPY workers/cognitive-failure-worker/deploy/docker/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 

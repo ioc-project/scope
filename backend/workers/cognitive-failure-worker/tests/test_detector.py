@@ -5,9 +5,9 @@ import json
 import pytest
 from conftest import TRAJECTORY, step
 
-from cognitive_challenge_worker import detector
-from cognitive_challenge_worker.challenges import select_challenges
-from cognitive_challenge_worker.detector import (
+from cognitive_failure_worker import detector
+from cognitive_failure_worker.failures import select_failures
+from cognitive_failure_worker.detector import (
     ANSWER_FORMAT,
     Completion,
     DetectionAnswer,
@@ -117,7 +117,7 @@ def test_no_step_means_the_session(call_id):
     assert parse_detections(_answer(_item(call_id=call_id)), CODES, IDS)[0].call_id is None
 
 
-def test_the_same_challenge_at_the_same_step_is_reported_once():
+def test_the_same_failure_at_the_same_step_is_reported_once():
     found = parse_detections(_answer(_item(reasoning="first"), _item(reasoning="second")), CODES, IDS)
 
     assert [d.reasoning for d in found] == ["first"]
@@ -143,7 +143,7 @@ def test_detect_sends_the_definitions_and_the_trace_and_returns_the_detections()
             _answer(_item("CC-3", "low", "unreconciled", "toolcall:2")), prompt_tokens=100, completion_tokens=20
         )
 
-    result = detect(TRAJECTORY, select_challenges(["IC-2", "CC-3"]), complete)
+    result = detect(TRAJECTORY, select_failures(["IC-2", "CC-3"]), complete)
 
     assert "### IC-2" in seen["user"] and "### CC-3" in seen["user"] and "### IR-1" not in seen["user"]
     assert "Detect when:" in seen["user"] and "[step toolcall:2]" in seen["user"]
@@ -155,15 +155,15 @@ def test_detect_sends_the_definitions_and_the_trace_and_returns_the_detections()
     assert (result.prompt_tokens, result.completion_tokens, result.truncated) == (100, 20, False)
 
 
-def test_detect_only_accepts_the_challenges_it_asked_for():
-    result = detect(TRAJECTORY, select_challenges(["IC-2"]), lambda s, u: Completion(_answer(_item("CC-3"))))
+def test_detect_only_accepts_the_failures_it_asked_for():
+    result = detect(TRAJECTORY, select_failures(["IC-2"]), lambda s, u: Completion(_answer(_item("CC-3"))))
 
     assert result.detections == []
 
 
 def test_detect_passes_on_an_unusable_answer():
     with pytest.raises(DetectorError):
-        detect(TRAJECTORY, select_challenges(["IC-2"]), lambda s, u: Completion("sorry, I cannot"))
+        detect(TRAJECTORY, select_failures(["IC-2"]), lambda s, u: Completion("sorry, I cannot"))
 
 
 # ---------------------------------------------------------------- the Pydantic model

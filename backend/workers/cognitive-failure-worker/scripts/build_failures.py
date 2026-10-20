@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Regenerate ``data/challenges.json`` from the challenges taxonomy.
+"""Regenerate ``data/failures.json`` from the challenges taxonomy.
 
-The worker ships only what it needs to recognise a challenge: code, name, locus, cognitive
+The worker ships only what it needs to recognise a failure: code, name, locus, cognitive
 function, summary, failure signature and detection heuristic. Run it again when the taxonomy
 changes::
 
-    build_challenges.py PATH/TO/challenges-taxonomy.md
+    build_failures.py PATH/TO/challenges-taxonomy.md
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import re
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parents[1] / "src" / "cognitive_challenge_worker" / "data" / "challenges.json"
+OUT = Path(__file__).resolve().parents[1] / "src" / "cognitive_failure_worker" / "data" / "failures.json"
 
 
 def _label(name: str) -> str:
@@ -45,13 +45,13 @@ def _items(block: str) -> list[str]:
 
 
 def parse(taxonomy: str) -> list[dict]:
-    challenges = []
+    failures = []
     for section in re.split(r"(?m)^### ", taxonomy)[1:]:
         heading = section.split("\n", 1)[0]
         code, _, name = heading.partition(" — ")
         if not re.fullmatch(r"[A-Z]{2}-\d+", code.strip()):
             continue
-        challenges.append(
+        failures.append(
             {
                 "code": code.strip(),
                 "name": name.strip(),
@@ -62,17 +62,17 @@ def parse(taxonomy: str) -> list[dict]:
                 "heuristic": re.sub(r"\s+", " ", _block(section, "Detection Heuristic", one_paragraph=True)),
             }
         )
-    return challenges
+    return failures
 
 
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
-    challenges = parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
-    missing = [c["code"] for c in challenges if not (c["summary"] and c["signature"] and c["heuristic"])]
-    OUT.write_text(json.dumps({"challenges": challenges}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{len(challenges)} challenges written to {OUT}")
+    failures = parse(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    missing = [c["code"] for c in failures if not (c["summary"] and c["signature"] and c["heuristic"])]
+    OUT.write_text(json.dumps({"failures": failures}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"{len(failures)} failures written to {OUT}")
     if missing:
         print(f"incomplete (no summary, signature or heuristic): {', '.join(missing)}")
     return 0

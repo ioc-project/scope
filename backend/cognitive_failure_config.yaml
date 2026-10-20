@@ -1,13 +1,13 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
 
-# Settings of the cognitive-challenge worker (--config-file, or COGNITIVE_CHALLENGE_CONFIG_PATH).
+# Settings of the cognitive-failure worker (--config-file, or COGNITIVE_FAILURE_CONFIG_PATH).
 #
-# Which cognitive challenges of the challenges taxonomy to look for. Only the ones listed run, and
+# Which cognitive failures of the challenges taxonomy to look for. Only the ones listed run, and
 # every one listed is part of the one judge call made per session; with none, nothing is detected.
-# A detection is written as a CognitiveChallengeReport on the session and, when it happened in one
+# A detection is written as a CognitiveFailureReport on the session and, when it happened in one
 # call, on that call.
-challenges:
+failures:
   # Individual
   - IR-1   # earlier instructions lost as the context fills
   - IC-1   # a commitment dropped under interference

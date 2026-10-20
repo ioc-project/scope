@@ -1,9 +1,9 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Detect cognitive challenges in one session's trajectory.
+"""Detect cognitive failures in one session's trajectory.
 
 The simple version: one model call per session. The model gets the trace, every step with
-its id, and the definition of each challenge to look for, and answers with the detections as
+its id, and the definition of each failure to look for, and answers with the detections as
 JSON. ``detect`` is the only entry point, so a stronger method can replace it without
 touching the worker.
 """
@@ -26,18 +26,18 @@ MAX_TRACE_CHARS = 120_000
 MIN_FIELD_CHARS = 300
 
 SYSTEM_PROMPT = """\
-You review traces of LLM-based multi-agent systems for cognitive challenges from a fixed taxonomy.
+You review traces of LLM-based multi-agent systems for cognitive failures from a fixed taxonomy.
 
-You get the trace, one numbered block per step with its id, and the definition of each challenge to \
-look for. Report a challenge only when the trace itself shows what its detection heuristic asks for, \
-and say where. Most traces show few challenges or none: an empty answer is normal and correct. Do not \
-report a challenge for style, for minor imperfections, or because it merely could have happened."""
+You get the trace, one numbered block per step with its id, and the definition of each failure to \
+look for. Report a failure only when the trace itself shows what its detection heuristic asks for, \
+and say where. Most traces show few failures or none: an empty answer is normal and correct. Do not \
+report a failure for style, for minor imperfections, or because it merely could have happened."""
 
 
 class DetectionItem(BaseModel):
     """One detection, as the model must report it. Its schema is what the model is asked to follow."""
 
-    code: str = Field(description="Code of the detected challenge, as given in its definition, e.g. IC-2.")
+    code: str = Field(description="Code of the detected failure, as given in its definition, e.g. IC-2.")
     confidence: Literal["low", "medium", "high"] = Field(
         description=(
             "high: the trace clearly meets every condition of the detection heuristic. "
@@ -45,7 +45,7 @@ class DetectionItem(BaseModel):
             "low: the evidence is plausible but weak or ambiguous."
         )
     )
-    reasoning: str = Field(min_length=1, description="One or two sentences: what in the trace matches the challenge.")
+    reasoning: str = Field(min_length=1, description="One or two sentences: what in the trace matches the failure.")
     call_id: str | None = Field(
         default=None,
         description="Id of the step where it happened, or null if it only shows across the whole session.",
@@ -76,7 +76,7 @@ class DetectionItem(BaseModel):
 class DetectionAnswer(BaseModel):
     """What the model answers: the detections, possibly none."""
 
-    detections: list[DetectionItem] = Field(description="The challenges the trace shows. Empty if none.")
+    detections: list[DetectionItem] = Field(description="The failures the trace shows. Empty if none.")
 
 
 class _Envelope(BaseModel):
@@ -86,7 +86,7 @@ class _Envelope(BaseModel):
 
 
 ANSWER_FORMAT = (
-    "Answer with JSON only, matching this JSON schema. Report each challenge at most once per step. "
+    "Answer with JSON only, matching this JSON schema. Report each failure at most once per step. "
     'No detection: {"detections": []}.\n\n' + json.dumps(DetectionAnswer.model_json_schema(), indent=2)
 )
 
@@ -153,9 +153,9 @@ def render_trace(trajectory: Mapping[str, Any]) -> tuple[str, set[str], bool]:
     return "\n\n".join(blocks), ids, truncated
 
 
-def render_challenges(challenges: Sequence[Mapping[str, Any]]) -> str:
+def render_failures(failures: Sequence[Mapping[str, Any]]) -> str:
     blocks = []
-    for c in challenges:
+    for c in failures:
         signs = "\n".join(f"- {s}" for s in c["signature"])
         blocks.append(
             f"### {c['code']} — {c['name']} ({c['locus']}, {c['function']})\n{c['summary']}\n"
@@ -168,7 +168,7 @@ def parse_detections(text: str, codes: set[str], step_ids: set[str]) -> list[Det
     """The valid detections of the model's answer. Raises ``DetectorError`` if it is not the expected JSON.
 
     A detection that does not fit ``DetectionItem`` (an unknown confidence, no reasoning, ...) or whose
-    challenge was not asked for is dropped. A ``call_id`` that is not a step of the trace becomes ``None``
+    failure was not asked for is dropped. A ``call_id`` that is not a step of the trace becomes ``None``
     (the detection stays, on the session).
     """
     match = re.search(r"\{.*\}", text or "", re.S)
@@ -185,7 +185,7 @@ def parse_detections(text: str, codes: set[str], step_ids: set[str]) -> list[Det
             logger.warning("Dropping invalid detection %r: %s", raw, exc.errors()[0]["msg"])
             continue
         if item.code not in codes:
-            logger.warning("Dropping detection of challenge %s, which was not asked for", item.code)
+            logger.warning("Dropping detection of failure %s, which was not asked for", item.code)
             continue
         call_id = item.call_id
         if call_id is not None and call_id not in step_ids:
@@ -197,17 +197,17 @@ def parse_detections(text: str, codes: set[str], step_ids: set[str]) -> list[Det
 
 def detect(
     trajectory: Mapping[str, Any],
-    challenges: Sequence[Mapping[str, Any]],
+    failures: Sequence[Mapping[str, Any]],
     complete: Complete,
 ) -> DetectionResult:
-    """The cognitive challenges of ``challenges`` that the trajectory shows.
+    """The cognitive failures of ``failures`` that the trajectory shows.
 
     Raises ``DetectorError`` if the model's answer cannot be used; the caller decides what that means.
     """
     trace, step_ids, truncated = render_trace(trajectory)
     if truncated:
         logger.info("Trace of session %s was cut to fit %d characters", trajectory.get("session_id"), MAX_TRACE_CHARS)
-    user = f"## Challenges\n\n{render_challenges(challenges)}\n\n## Trace\n\n{trace}\n\n## Answer\n\n{ANSWER_FORMAT}"
+    user = f"## Failures\n\n{render_failures(failures)}\n\n## Trace\n\n{trace}\n\n## Answer\n\n{ANSWER_FORMAT}"
     completion = complete(SYSTEM_PROMPT, user)
-    detections = parse_detections(completion.text, {c["code"] for c in challenges}, step_ids)
+    detections = parse_detections(completion.text, {c["code"] for c in failures}, step_ids)
     return DetectionResult(detections, completion.prompt_tokens, completion.completion_tokens, truncated)

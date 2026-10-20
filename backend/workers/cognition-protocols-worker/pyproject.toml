@@ -32,7 +32,7 @@ cognition-protocols-worker-cli = "cognition_protocols_worker.cli:main"
 # platform's MCE: both are workspace members. The protocol MCE metrics live with their protocols.
 [tool.uv.sources]
 ioc-accord-mce-metrics = { git = "ssh://git@github.com/cisco-eti/ioc-core-l9-extensions.git", subdirectory = "evals/accord_custom_evals/accord-mce-metrics", branch = "feat/adding-mce-metrics-plugin" }
-ioc-concord-mce-metrics = { git = "ssh://git@github.com/ioc-project/cognition-protocols.git", subdirectory = "protocols/concord/mce-metrics", branch = "feat/add-eval" }
+ioc-concord-mce-metrics = { git = "ssh://git@github.com/ioc-project/cognition-protocols.git", subdirectory = "protocols/concord/mce-metrics", branch = "main" }
 oxp-mce = { workspace = true }
 oxp-mce-client = { workspace = true }
 oxp-api = { workspace = true }

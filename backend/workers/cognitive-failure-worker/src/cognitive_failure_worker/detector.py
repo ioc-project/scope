@@ -1,38 +1,23 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Detect cognitive failures in one session's trajectory.
+"""What the agent reports and how its answer is checked.
 
-The simple version: one model call per session. The model gets the trace, every step with
-its id, and the definition of each failure to look for, and answers with the detections as
-JSON. ``detect`` is the only entry point, so a stronger method can replace it without
-touching the worker.
+``DetectionAnswer`` is the schema of the ``submit_detections`` tool; ``parse_detections`` validates
+what comes back against it and against the failures asked for and the steps of the trace. The
+investigation itself is in ``agent.py``.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 logger = logging.getLogger(__name__)
-
-# The trace is cut to about this many characters (roughly 30k tokens); each step gets an equal share.
-MAX_TRACE_CHARS = 120_000
-MIN_FIELD_CHARS = 300
-
-SYSTEM_PROMPT = """\
-You review traces of LLM-based multi-agent systems for cognitive failures from a fixed taxonomy.
-
-You get the trace, one numbered block per step with its id, and the definition of each failure to \
-look for. Report a failure only when the trace itself shows what its detection heuristic asks for, \
-and say where. Most traces show few failures or none: an empty answer is normal and correct. Do not \
-report a failure for style, for minor imperfections, or because it merely could have happened."""
-
 
 class DetectionItem(BaseModel):
     """One detection, as the model must report it. Its schema is what the model is asked to follow."""
@@ -85,12 +70,6 @@ class _Envelope(BaseModel):
     detections: list[Any]
 
 
-ANSWER_FORMAT = (
-    "Answer with JSON only, matching this JSON schema. Report each failure at most once per step. "
-    'No detection: {"detections": []}.\n\n' + json.dumps(DetectionAnswer.model_json_schema(), indent=2)
-)
-
-
 class DetectorError(RuntimeError):
     """The model's answer could not be used (not JSON, not the expected shape)."""
 
@@ -107,50 +86,11 @@ class Detection:
 
 
 @dataclass(frozen=True)
-class Completion:
-    text: str
-    prompt_tokens: int = 0
-    completion_tokens: int = 0
-
-
-# system prompt, user prompt -> the model's answer
-Complete = Callable[[str, str], Completion]
-
-
-@dataclass(frozen=True)
 class DetectionResult:
     detections: list[Detection]
     prompt_tokens: int = 0
     completion_tokens: int = 0
-    truncated: bool = False
-
-
-def _clip(text: str, limit: int) -> tuple[str, bool]:
-    text = (text or "").strip()
-    if len(text) <= limit:
-        return text, False
-    head, tail = int(limit * 0.6), int(limit * 0.4)
-    return f"{text[:head]} …[{len(text) - head - tail} characters cut]… {text[-tail:]}", True
-
-
-def render_trace(trajectory: Mapping[str, Any]) -> tuple[str, set[str], bool]:
-    """The trace as text: a block per step. Returns the text, the step ids, and whether text was cut."""
-    steps = trajectory.get("steps") or []
-    limit = max(MIN_FIELD_CHARS, MAX_TRACE_CHARS // max(1, 2 * len(steps)))
-    blocks, ids, truncated = [], set(), False
-    for step in steps:
-        call_id = str(step["call_id"])
-        ids.add(call_id)
-        label = f"{step['kind']} {step['name']}"
-        if step.get("agent_id"):
-            label += f" (agent: {step['agent_id']})"
-        if step.get("success") is False:
-            label += " [FAILED]"
-        text_in, cut_in = _clip(step.get("input_text") or "", limit)
-        text_out, cut_out = _clip(step.get("output_text") or "", limit)
-        truncated = truncated or cut_in or cut_out
-        blocks.append(f"[step {call_id}] {label}\nINPUT: {text_in}\nOUTPUT: {text_out}")
-    return "\n\n".join(blocks), ids, truncated
+    turns: int = 0
 
 
 def render_failures(failures: Sequence[Mapping[str, Any]]) -> str:
@@ -193,21 +133,3 @@ def parse_detections(text: str, codes: set[str], step_ids: set[str]) -> list[Det
             call_id = None
         detections.setdefault((item.code, call_id), Detection(item.code, item.confidence, item.reasoning, call_id))
     return list(detections.values())
-
-
-def detect(
-    trajectory: Mapping[str, Any],
-    failures: Sequence[Mapping[str, Any]],
-    complete: Complete,
-) -> DetectionResult:
-    """The cognitive failures of ``failures`` that the trajectory shows.
-
-    Raises ``DetectorError`` if the model's answer cannot be used; the caller decides what that means.
-    """
-    trace, step_ids, truncated = render_trace(trajectory)
-    if truncated:
-        logger.info("Trace of session %s was cut to fit %d characters", trajectory.get("session_id"), MAX_TRACE_CHARS)
-    user = f"## Failures\n\n{render_failures(failures)}\n\n## Trace\n\n{trace}\n\n## Answer\n\n{ANSWER_FORMAT}"
-    completion = complete(SYSTEM_PROMPT, user)
-    detections = parse_detections(completion.text, {c["code"] for c in failures}, step_ids)
-    return DetectionResult(detections, completion.prompt_tokens, completion.completion_tokens, truncated)

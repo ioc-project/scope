@@ -3,19 +3,11 @@
 import json
 
 import pytest
-from conftest import TRAJECTORY, step
-
-from cognitive_failure_worker import detector
-from cognitive_failure_worker.failures import select_failures
 from cognitive_failure_worker.detector import (
-    ANSWER_FORMAT,
-    Completion,
     DetectionAnswer,
     DetectionItem,
     DetectorError,
-    detect,
     parse_detections,
-    render_trace,
 )
 
 CODES = {"IC-2", "CC-3"}
@@ -28,39 +20,6 @@ def _answer(*items):
 
 def _item(code="IC-2", confidence="medium", reasoning="why", call_id="llmcall:1"):
     return {"code": code, "confidence": confidence, "reasoning": reasoning, "call_id": call_id}
-
-
-# ---------------------------------------------------------------- the trace
-
-
-def test_the_trace_names_every_step_with_its_id_agent_and_failure():
-    trajectory = {
-        "session_id": "s",
-        "steps": [step("llmcall:1"), step("toolcall:2", "tool", "search", agent="", success=False)],
-    }
-
-    text, ids, truncated = render_trace(trajectory)
-
-    assert ids == IDS and not truncated
-    assert "[step llmcall:1] llm gpt-4o (agent: planner)" in text
-    assert "[step toolcall:2] tool search [FAILED]" in text
-    assert "INPUT: in" in text and "OUTPUT: out" in text
-
-
-def test_long_text_is_cut_but_keeps_its_start_and_end(monkeypatch):
-    monkeypatch.setattr(detector, "MAX_TRACE_CHARS", 1000)
-    monkeypatch.setattr(detector, "MIN_FIELD_CHARS", 100)
-    long = "START " + "x" * 5000 + " END"
-
-    text, _, truncated = render_trace({"steps": [step("llmcall:1", text_in=long)]})
-
-    assert truncated
-    assert "START" in text and "END" in text and "characters cut" in text
-    assert len(text) < 1000
-
-
-def test_a_short_trace_is_not_cut():
-    assert render_trace(TRAJECTORY)[2] is False
 
 
 # ---------------------------------------------------------------- the answer
@@ -131,41 +90,6 @@ def test_an_unusable_answer_is_an_error(text):
         parse_detections(text, CODES, IDS)
 
 
-# ---------------------------------------------------------------- detect
-
-
-def test_detect_sends_the_definitions_and_the_trace_and_returns_the_detections():
-    seen = {}
-
-    def complete(system, user):
-        seen["system"], seen["user"] = system, user
-        return Completion(
-            _answer(_item("CC-3", "low", "unreconciled", "toolcall:2")), prompt_tokens=100, completion_tokens=20
-        )
-
-    result = detect(TRAJECTORY, select_failures(["IC-2", "CC-3"]), complete)
-
-    assert "### IC-2" in seen["user"] and "### CC-3" in seen["user"] and "### IR-1" not in seen["user"]
-    assert "Detect when:" in seen["user"] and "[step toolcall:2]" in seen["user"]
-    assert "Book a train to Paris" in seen["user"]
-    assert "empty answer is normal" in seen["system"]
-    assert [d.as_dict() for d in result.detections] == [
-        {"code": "CC-3", "confidence": "low", "reasoning": "unreconciled", "call_id": "toolcall:2"}
-    ]
-    assert (result.prompt_tokens, result.completion_tokens, result.truncated) == (100, 20, False)
-
-
-def test_detect_only_accepts_the_failures_it_asked_for():
-    result = detect(TRAJECTORY, select_failures(["IC-2"]), lambda s, u: Completion(_answer(_item("CC-3"))))
-
-    assert result.detections == []
-
-
-def test_detect_passes_on_an_unusable_answer():
-    with pytest.raises(DetectorError):
-        detect(TRAJECTORY, select_failures(["IC-2"]), lambda s, u: Completion("sorry, I cannot"))
-
-
 # ---------------------------------------------------------------- the Pydantic model
 
 
@@ -174,11 +98,6 @@ def test_the_schema_describes_every_field_for_the_model():
 
     assert all(p.get("description") for p in properties.values())
     assert properties["confidence"]["enum"] == ["low", "medium", "high"]
-
-
-def test_the_prompt_carries_the_schema_so_the_two_cannot_drift():
-    assert json.dumps(DetectionAnswer.model_json_schema(), indent=2) in ANSWER_FORMAT
-    assert "high: the trace clearly meets every condition" in ANSWER_FORMAT
 
 
 def test_an_item_is_normalised_by_the_model():

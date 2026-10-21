@@ -10,29 +10,20 @@ from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import BaseQueueMessage
 
 from cognitive_failure_worker.failures import select_failures
-from cognitive_failure_worker.detector import Completion, DetectionAnswer, DetectorError, detect
+from cognitive_failure_worker.agent import ChatReply, ToolCall, investigate
+from cognitive_failure_worker.detector import DetectorError
+from cognitive_failure_worker.trace_file import sweep_stale
 
 logger = logging.getLogger(__name__)
-
-# How the answer's format is enforced, strictest first; an endpoint that rejects one gets the next.
-# Whatever the model returns is validated against ``DetectionAnswer`` afterwards.
-_RESPONSE_FORMATS: tuple[dict | None, ...] = (
-    {
-        "type": "json_schema",
-        "json_schema": {"name": "cognitive_failure_detections", "schema": DetectionAnswer.model_json_schema()},
-    },
-    {"type": "json_object"},
-    None,
-)
-
 
 class CognitiveFailureWorker(BaseWorker):
     """Worker that detects cognitive failures in a session.
 
-    Reads the session's trajectory from the KG through the OXP API library, asks the judge model
-    which of the configured failures (from the challenges taxonomy) it shows, and writes a
-    ``CognitiveFailureReport`` for each, attached to the session and to the call where it
-    happened. Re-running a session overwrites the same detections. Which failures to look for is set in
+    Fetches the session's trajectory from the KG through the OXP API library, writes it to a
+    temporary file (deleted afterwards) and lets an agent read it with tools, without access to the API
+    or the graph, to find which of the configured failures (from the challenges taxonomy) it shows. The
+    worker then writes a ``CognitiveFailureReport`` for each, attached to the session and to the call
+    where it happened. Re-running a session overwrites the same detections. Which failures to look for is set in
     the config file; with none, the worker detects nothing.
     """
 
@@ -70,7 +61,7 @@ class CognitiveFailureWorker(BaseWorker):
         if not self.failures:
             logger.warning("No cognitive failure is configured: the worker will not detect anything")
         self._client = None
-        self._format = 0  # index into _RESPONSE_FORMATS of the strictest one the endpoint accepted
+        sweep_stale()  # trace files a killed process left behind
 
     @staticmethod
     def _failures_from(config_path: Optional[str]) -> list[dict]:
@@ -95,30 +86,23 @@ class CognitiveFailureWorker(BaseWorker):
 
         return get_neo4j_connector()
 
-    def _complete(self, system: str, user: str) -> Completion:
-        """One chat completion from the judge model, with the answer format enforced as far as the endpoint allows."""
+    def _chat(self, messages: list[dict], tools: list[dict], force_tool: str | None) -> ChatReply:
+        """One chat completion from the judge model, with tools; ``force_tool`` makes it call that tool."""
         if self._client is None:
             from openai import OpenAI
 
             self._client = OpenAI(api_key=self.llm_api_key, base_url=self.llm_base_model_url)
-        messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-        for index in range(self._format, len(_RESPONSE_FORMATS)):
-            response_format = _RESPONSE_FORMATS[index]
-            options = {} if response_format is None else {"response_format": response_format}
-            try:
-                response = self._client.chat.completions.create(
-                    model=self.llm_model_name, messages=messages, temperature=0, **options
-                )
-            except Exception as exc:
-                if index == len(_RESPONSE_FORMATS) - 1:
-                    raise
-                logger.info("Endpoint rejected response format %s (%s); trying a looser one", options or "none", exc)
-                continue
-            self._format = index
-            break
+        options = {}
+        if force_tool:
+            options["tool_choice"] = {"type": "function", "function": {"name": force_tool}}
+        response = self._client.chat.completions.create(
+            model=self.llm_model_name, messages=messages, tools=tools, temperature=0, **options
+        )
+        message = response.choices[0].message
         usage = getattr(response, "usage", None)
-        return Completion(
-            text=response.choices[0].message.content or "",
+        return ChatReply(
+            content=message.content or "",
+            tool_calls=[ToolCall(c.id, c.function.name, c.function.arguments) for c in message.tool_calls or []],
             prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
             completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
         )
@@ -132,16 +116,17 @@ class CognitiveFailureWorker(BaseWorker):
             logger.warning("Session %s has no trajectory steps: nothing to detect", session_id)
             return
         try:
-            result = detect(trajectory, self.failures, self._complete)
+            result = investigate(trajectory, self.failures, self._chat)
         except DetectorError as exc:
             logger.error("Cognitive failure detection failed for session %s: %s", session_id, exc)
             return
         written = write_cognitive_failure_reports(kg, session_id, [d.as_dict() for d in result.detections])
         logger.info(
-            "Session %s: %d failure(s) detected, %d written | tokens=%d",
+            "Session %s: %d failure(s) detected, %d written | turns=%d tokens=%d",
             session_id,
             len(result.detections),
             written,
+            result.turns,
             result.prompt_tokens + result.completion_tokens,
         )
 

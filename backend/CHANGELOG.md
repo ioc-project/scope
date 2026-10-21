@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cognitive failure worker.** `cognitive-failure-worker` detects the cognitive failures of the challenges
   taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveFailureReport` (failure code,
   `low`/`medium`/`high` confidence, reasoning) attached to the session by `reportsOn` and to the call where it
-  happened by `atCall`. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
+  happened by `atCall`. The worker fetches the trajectory, writes it to a temporary file that is deleted
+  afterwards, and an agent without access to the API or the graph reads it with `list_steps` / `read_step` /
+  `grep` tools and answers through a schema-enforced `submit_detections` tool. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
   (`workers.cognitive-failure.config` in the Helm chart). It is fed from the embedding worker's output, next to
   the stateful-eval worker. The Cypher is in `oxp.query_builders.failure_graph`, the writer in
   `oxp.client.failures`. Requires an `oxp-ontology` release with `CognitiveFailureReport`.

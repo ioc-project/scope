@@ -26,7 +26,7 @@
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://outshift-open.github.io/oxp-ontology/mas#" ;
     owl:priorVersion <https://outshift-open.github.io/oxp-ontology/metrics/1.0.0-rc0> ;
-    owl:versionInfo "1.0.7" ;
+    owl:versionInfo "1.0.6" ;
     owl:imports <https://outshift-open.github.io/oxp-ontology/mas> ;
     rdfs:comment "Metrics ontology for MAS telemetry. Defines the Metric/MetricResult definition-observation split and links to mas-ontology.ttl through mas:ofMetricType (a result to its Metric) and mas:measures (a result to the ExecutionElement it measures)." ;
     rdfs:seeAlso <https://outshift-open.github.io/oxp-ontology/mas> ,

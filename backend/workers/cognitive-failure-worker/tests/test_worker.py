@@ -9,7 +9,7 @@ import pytest
 from conftest import TRAJECTORY
 from worker_base.queue_message import BaseQueueMessage
 
-from cognitive_failure_worker.detector import Completion, DetectionAnswer
+from cognitive_failure_worker.agent import SUBMIT, ChatReply, ToolCall
 from cognitive_failure_worker.worker import CognitiveFailureWorker
 
 
@@ -43,7 +43,8 @@ def kg(mocker):
 
 
 def _answer(*items):
-    return Completion(json.dumps({"detections": list(items)}), prompt_tokens=10, completion_tokens=5)
+    call = ToolCall("call-1", SUBMIT, json.dumps({"detections": list(items)}))
+    return ChatReply(tool_calls=[call], prompt_tokens=10, completion_tokens=5)
 
 
 # ---------------------------------------------------------------- config
@@ -111,7 +112,7 @@ async def test_detections_are_written_and_the_message_is_forwarded(
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(
         worker,
-        "_complete",
+        "_chat",
         return_value=_answer(
             {"code": "IC-2", "confidence": "high", "reasoning": "kept going", "call_id": "toolcall:2"}
         ),
@@ -131,7 +132,7 @@ async def test_a_session_with_nothing_detected_writes_an_empty_list(rabbit_url, 
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
     write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports", return_value=0)
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
-    mocker.patch.object(worker, "_complete", return_value=_answer())
+    mocker.patch.object(worker, "_chat", return_value=_answer())
 
     await worker.handle_message(message)
 
@@ -145,7 +146,7 @@ async def test_an_unusable_answer_writes_nothing_but_still_forwards(
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
     write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
-    mocker.patch.object(worker, "_complete", return_value=Completion("I cannot help with that"))
+    mocker.patch.object(worker, "_chat", return_value=ChatReply(content="I cannot help with that"))
 
     assert await worker.handle_message(message) is True
 
@@ -158,11 +159,11 @@ async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, mess
     mocker.patch("oxp.client.dal.get_session_trajectory", return_value={"session_id": "session-1", "steps": []})
     write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
-    complete = mocker.patch.object(worker, "_complete")
+    chat = mocker.patch.object(worker, "_chat")
 
     await worker.handle_message(message)
 
-    complete.assert_not_called()
+    chat.assert_not_called()
     write.assert_not_called()
 
 
@@ -170,12 +171,12 @@ async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, mess
 async def test_with_no_failure_configured_the_graph_and_the_model_are_not_touched(rabbit_url, kg, message, mocker):
     get_trajectory = mocker.patch("oxp.client.dal.get_session_trajectory")
     worker = _worker(rabbit_url)
-    complete = mocker.patch.object(worker, "_complete")
+    chat = mocker.patch.object(worker, "_chat")
 
     assert await worker.handle_message(message) is True
 
     get_trajectory.assert_not_called()
-    complete.assert_not_called()
+    chat.assert_not_called()
     kg.execute.assert_not_called()
     assert len(worker.output_messages) == 1
 
@@ -184,78 +185,65 @@ async def test_with_no_failure_configured_the_graph_and_the_model_are_not_touche
 
 
 class _Client:
-    """A model endpoint that rejects the given response format types."""
+    """A model endpoint that answers with the given message."""
 
-    def __init__(self, reject=()):
-        self.reject = set(reject)
+    def __init__(self, message=None):
         self.calls = []
+        self.message = message or SimpleNamespace(content="done", tool_calls=None)
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
 
     def _create(self, **kwargs):
         self.calls.append(kwargs)
-        kind = kwargs.get("response_format", {}).get("type")
-        if kind in self.reject:
-            raise RuntimeError(f"{kind} is not supported")
-        message = SimpleNamespace(content='{"detections": []}')
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=message)], usage=SimpleNamespace(prompt_tokens=7, completion_tokens=3)
+            choices=[SimpleNamespace(message=self.message)],
+            usage=SimpleNamespace(prompt_tokens=7, completion_tokens=3),
         )
 
 
-def _formats(client):
-    return [c.get("response_format", {}).get("type", "none") for c in client.calls]
-
-
-def test_the_answer_schema_is_enforced_and_the_usage_returned(rabbit_url):
+def test_the_tools_are_offered_and_the_usage_returned(rabbit_url):
     worker = _worker(rabbit_url)
     worker._client = _Client()
+    tools = [{"type": "function", "function": {"name": "grep"}}]
 
-    completion = worker._complete("system", "user")
+    reply = worker._chat([{"role": "user", "content": "hi"}], tools, None)
 
     (call,) = worker._client.calls
     assert call["model"] == "gpt-4o" and call["temperature"] == 0
-    assert [m["role"] for m in call["messages"]] == ["system", "user"]
-    schema = call["response_format"]["json_schema"]["schema"]
-    assert call["response_format"]["type"] == "json_schema"
-    assert schema == DetectionAnswer.model_json_schema()
-    assert set(schema["$defs"]["DetectionItem"]["properties"]) == {"code", "confidence", "reasoning", "call_id"}
-    assert (completion.text, completion.prompt_tokens, completion.completion_tokens) == ('{"detections": []}', 7, 3)
+    assert call["tools"] == tools and "tool_choice" not in call
+    assert (reply.content, reply.tool_calls, reply.prompt_tokens, reply.completion_tokens) == ("done", [], 7, 3)
 
 
-def test_an_endpoint_without_schema_support_gets_json_mode(rabbit_url):
+def test_tool_calls_are_returned_as_they_came(rabbit_url):
     worker = _worker(rabbit_url)
-    worker._client = _Client(reject={"json_schema"})
+    function = SimpleNamespace(name="grep", arguments='{"pattern": "x"}')
+    worker._client = _Client(SimpleNamespace(content=None, tool_calls=[SimpleNamespace(id="c1", function=function)]))
 
-    worker._complete("system", "user")
+    reply = worker._chat([], [], None)
 
-    assert _formats(worker._client) == ["json_schema", "json_object"]
+    assert reply.content == "" and reply.tool_calls == [ToolCall("c1", "grep", '{"pattern": "x"}')]
 
 
-def test_an_endpoint_with_no_format_support_gets_a_plain_call(rabbit_url):
+def test_the_last_turn_forces_the_submit_tool(rabbit_url):
     worker = _worker(rabbit_url)
-    worker._client = _Client(reject={"json_schema", "json_object"})
+    worker._client = _Client()
 
-    completion = worker._complete("system", "user")
+    worker._chat([], [], SUBMIT)
 
-    assert _formats(worker._client) == ["json_schema", "json_object", "none"]
-    assert completion.text == '{"detections": []}'
+    assert worker._client.calls[0]["tool_choice"] == {"type": "function", "function": {"name": SUBMIT}}
 
 
-def test_the_format_the_endpoint_accepted_is_remembered(rabbit_url):
+def test_a_failing_endpoint_raises(rabbit_url):
     worker = _worker(rabbit_url)
-    worker._client = _Client(reject={"json_schema"})
-    worker._complete("system", "user")
-    worker._client.calls.clear()
-
-    worker._complete("system", "user")
-
-    assert _formats(worker._client) == ["json_object"]
-
-
-def test_a_failing_endpoint_raises_once_every_format_failed(rabbit_url):
-    worker = _worker(rabbit_url)
-    worker._client = _Client(reject={"json_schema", "json_object", None})
+    worker._client = _Client()
     worker._client.chat.completions.create = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("401 unauthorized"))
 
     with pytest.raises(RuntimeError, match="401"):
-        worker._complete("system", "user")
+        worker._chat([], [], None)
+
+
+def test_stale_trace_files_are_swept_at_startup(rabbit_url, mocker):
+    sweep = mocker.patch("cognitive_failure_worker.worker.sweep_stale")
+
+    _worker(rabbit_url)
+
+    sweep.assert_called_once()

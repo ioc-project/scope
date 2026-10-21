@@ -23,7 +23,7 @@ group "backend" {
     "normal-behaviour-worker",
     "intelligence-worker",
     "stateful-eval-worker",
-    "cognitive-challenge-worker",
+    "cognitive-failure-worker",
   ]
 }
 
@@ -129,9 +129,9 @@ target "stateful-eval-worker" {
   }
 }
 
-target "cognitive-challenge-worker" {
+target "cognitive-failure-worker" {
   inherits   = ["docker-metadata-action"]
   context    = "backend"
-  dockerfile = "workers/cognitive-challenge-worker/deploy/docker/Dockerfile"
+  dockerfile = "workers/cognitive-failure-worker/deploy/docker/Dockerfile"
   platforms  = ["linux/amd64"]
 }

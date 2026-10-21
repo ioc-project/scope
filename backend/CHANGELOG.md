@@ -9,26 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cognitive challenge worker.** `cognitive-challenge-worker` detects the cognitive challenges of the challenges
-  taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveChallengeReport` (challenge code,
+- **Cognitive failure worker.** `cognitive-failure-worker` detects the cognitive failures of the challenges
+  taxonomy (IR-1, CC-3, ...) in a session and writes a `CognitiveFailureReport` (failure code,
   `low`/`medium`/`high` confidence, reasoning) attached to the session by `reportsOn` and to the call where it
-  happened by `atCall`. Opt-in: list the challenges to look for in `cognitive_challenge_config.yaml`
-  (`workers.cognitive-challenge.config` in the Helm chart). It is fed from the embedding worker's output, next to
-  the stateful-eval worker. The Cypher is in `oxp.query_builders.challenge_graph`, the writer in
-  `oxp.client.challenges`. Requires an `oxp-ontology` release with `CognitiveChallengeReport`.
-- **L9 protocol reports.** `oxp.providers.OXPL9ReportProvider` writes, through the ontology models, an
-  `L9Report` per session (`protocolsEnabled` / `protocolsActivated`: which L9 protocols were available and
-  which were used) and an `L9ProtocolExecutionReport` per session and protocol (the agents and skills that had
+  happened by `atCall`. The worker fetches the trajectory, writes it to a temporary file that is deleted
+  afterwards, and an agent without access to the API or the graph reads it with `list_steps` / `read_step` /
+  `grep` tools and answers through a schema-enforced `submit_detections` tool. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
+  (`workers.cognitive-failure.config` in the Helm chart). It is fed from the embedding worker's output, next to
+  the stateful-eval worker. The Cypher is in `oxp.query_builders.failure_graph`, the writer in
+  `oxp.client.failures`. Requires an `oxp-ontology` release with `CognitiveFailureReport`.
+- **Cognition protocol reports.** `oxp.providers.OXPCognitionProtocolReportProvider` writes, through the ontology models, an
+  `CognitionProtocolReport` per session (`protocolsEnabled` / `protocolsActivated`: which Cognition protocols were available and
+  which were used) and a `CognitionProtocolExecutionReport` per session and protocol (the agents and skills that had
   it and used it, and its evaluation metrics), both linked to the `Session` by `reportsOn`.
   `save_protocol_execution_metrics` stores a protocol's metrics as `MetricResult` nodes that `measure` its
   execution report (the report's earlier results are replaced), via the new `protocol_execution_report` target
-  of `metric_graph.write_metric_result_query`. The Cypher is in `oxp.query_builders.l9_graph`.
+  of `metric_graph.write_metric_result_query`. The Cypher is in `oxp.query_builders.cognition_protocol_graph`.
   Requires `oxp-ontology>=1.0.6`.
-- **L9 protocols read API.** `GET /sessions/{id}/l9-protocols` reads the session's `L9Report` and
-  `L9ProtocolExecutionReport` nodes and returns, per protocol (`L9-ACCORD`...), `enabled` / `activated`, the
+- **Cognition protocols read API.** `GET /sessions/{id}/cognition-protocols` reads the session's `CognitionProtocolReport` and
+  `CognitionProtocolExecutionReport` nodes and returns, per protocol (`L9-ACCORD`...), `enabled` / `activated`, the
   agents and skills that had / used it, and a generic `metrics` list (`name`, `section`, `value`, `reasoning`
-  or parsed `details`, `provider`, `unit`, `timestamp`). `sessions-with-l9-protocols` returns each session's
-  enabled / activated protocols from its `L9Report`; its `concord` summary is no longer filled.
+  or parsed `details`, `provider`, `unit`, `timestamp`). `sessions-with-cognition-protocols` returns each session's
+  enabled / activated protocols from its `CognitionProtocolReport`; its `concord` summary is no longer filled.
 
 ### Changed
 

@@ -10,9 +10,9 @@ import uuid
 from typing import Any, Callable
 
 import aio_pika
-from oxp.dependencies import get_neo4j_connector
+from scope.dependencies import get_neo4j_connector
 
-from worker_base.dal_adapter import OXPApiDALAdapter
+from worker_base.dal_adapter import SCOPEApiDALAdapter
 from worker_base.queue_message import BaseMessage, FeedbackMessage
 from worker_base.utils import resolve_rabbitmq_url
 
@@ -50,7 +50,7 @@ class BaseWorker:
         )
 
         try:
-            self.db_handler = OXPApiDALAdapter(get_neo4j_connector())
+            self.db_handler = SCOPEApiDALAdapter(get_neo4j_connector())
         except Exception as exc:
             logger.warning(
                 "Failed to initialize API-managed Neo4j connector; DB operations disabled: %s",

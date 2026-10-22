@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS oxp.trace_labels
+CREATE TABLE IF NOT EXISTS scope.trace_labels
 (
     session_id  String,
     label       Bool,

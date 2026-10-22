@@ -16,19 +16,19 @@ from datetime import datetime, timezone
 import pytest
 
 import fakeredis
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client.utils import timestamp_to_epoch
-from oxp.connectors.clickhouse import ClickHouseConnector
-from oxp.connectors.sqlalchemy import SQLAlchemyConnector
-from oxp.core.config import settings
-from oxp.dependencies import get_db, get_redis
-from oxp.repositories.sqlite_repository import SqliteOtelRepository
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client.utils import timestamp_to_epoch
+from scope.connectors.clickhouse import ClickHouseConnector
+from scope.connectors.sqlalchemy import SQLAlchemyConnector
+from scope.core.config import settings
+from scope.dependencies import get_db, get_redis
+from scope.repositories.sqlite_repository import SqliteOtelRepository
 from fastapi.testclient import TestClient
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Path to CSV data shipped with the repo
@@ -39,15 +39,17 @@ CSV_PATH = os.path.join(DATA_DIR, "csv", "otel_traces.csv")
 # ── Connector type flag ──────────────────────────────────────────────────────
 # Set CONNECTOR_TYPE=CLICKHOUSE to run against a real ClickHouse instance.
 # Neo4J is used automatically for graph endpoints via the get_neo4j_db
-# singleton in oxp.dependencies — no override needed here.
+# singleton in scope.dependencies — no override needed here.
 # Defaults to SQLITE for fully local, dependency-free runs.
 
 CONNECTOR_TYPE = os.environ.get("CONNECTOR_TYPE", "SQLITE").upper()
 
 # ── Module-scoped connector (shared across all tests) ────────────────────────
 
-_tmp_dir = tempfile.mkdtemp(prefix="oxp_test_")
-_DB_PATH = os.path.join(_tmp_dir, "oxp_test.db") if CONNECTOR_TYPE == "SQLITE" else None
+_tmp_dir = tempfile.mkdtemp(prefix="scope_test_")
+_DB_PATH = (
+    os.path.join(_tmp_dir, "scope_test.db") if CONNECTOR_TYPE == "SQLITE" else None
+)
 _connector: ClickHouseConnector | SQLAlchemyConnector | None = None
 
 

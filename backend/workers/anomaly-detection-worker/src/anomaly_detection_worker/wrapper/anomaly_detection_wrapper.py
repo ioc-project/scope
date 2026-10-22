@@ -11,7 +11,7 @@ from dem.anomaly.graph_detector import GraphAnomalyDetector
 from dem.anomaly.metric_detector import MetricAnomalyDetector
 from dem.anomaly.textual_detector import TextualAnomalyDetector
 from dem.utils.graph_utils import execution_graph_to_nx_graph
-from oxp_ontology.models.nodes.anomaly_report import AnomalyReport
+from scope_ontology.models.nodes.anomaly_report import AnomalyReport
 from worker_base.queue_message import SessionDetail
 
 logger = logging.getLogger(__name__)

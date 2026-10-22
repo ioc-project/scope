@@ -43,7 +43,7 @@ class Neo4jWriteLogger:
 
     def setup_hook(self):
         """Install the logging hook into the wrapper module."""
-        from oxp.client.dal import ingest_normalized_kg
+        from scope.client.dal import ingest_normalized_kg
 
         self.original_ingest = ingest_normalized_kg
 
@@ -73,7 +73,7 @@ class Neo4jWriteLogger:
                 raise
 
         # Monkey-patch the ingest function
-        norm_wrapper_module.oxp_api_ingest_normalized_kg = logging_ingest_normalized_kg
+        norm_wrapper_module.scope_api_ingest_normalized_kg = logging_ingest_normalized_kg
         logger.info("Neo4j write logger hook installed")
 
     def get_log_data(self, session_id: str, worker_result: Any = None) -> Dict[str, Any]:

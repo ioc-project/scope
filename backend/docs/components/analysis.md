@@ -2,7 +2,7 @@
 
 Advanced analytics toolkit (package name: `dem`) — anomaly detection, consistency checking, embeddings, semantic grouping, and lightweight LLM integration, operating on metric, textual, and graph representations of MAS executions.
 
-**Source:** [`dem`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/dem)
+**Source:** [`dem`](https://github.com/ioc-project/scope/tree/main/backend/dem)
 
 ## Overview
 

@@ -27,6 +27,7 @@ COPY pyproject.toml uv.lock /app/
 COPY workers/normal-behaviour-worker /app/workers/normal-behaviour-worker
 COPY worker-base /app/worker-base
 COPY api /app/api
+COPY --from=ontology . /ontology
 COPY dem /app/dem
 
 RUN uv sync --package normal-behaviour-worker --frozen --no-editable

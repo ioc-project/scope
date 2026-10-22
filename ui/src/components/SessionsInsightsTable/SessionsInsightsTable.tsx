@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { SessionInsight } from '@/types/oxp.type';
+import { SessionInsight } from '@/types/scope.type';
 import { Tags } from '@/components';
 import { formatDurationMs } from '@/utils/stringUtils';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';

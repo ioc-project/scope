@@ -5,18 +5,18 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from oxp.client.dal import (
-    attach_session_to_group as oxp_api_attach_session_to_group,
+from scope.client.dal import (
+    attach_session_to_group as scope_api_attach_session_to_group,
 )
-from oxp.client.dal import (
-    get_analysis_data_for_semantic_group as oxp_api_get_analysis_data_for_semantic_group,
+from scope.client.dal import (
+    get_analysis_data_for_semantic_group as scope_api_get_analysis_data_for_semantic_group,
 )
-from oxp.client.dal import get_session_group as oxp_api_get_session_group
-from oxp.client.dal import (
-    wait_for_hierarchical_grouping_unlock as oxp_api_wait_for_hierarchical_grouping_unlock,
+from scope.client.dal import get_session_group as scope_api_get_session_group
+from scope.client.dal import (
+    wait_for_hierarchical_grouping_unlock as scope_api_wait_for_hierarchical_grouping_unlock,
 )
-from oxp.connectors.base import Connector
-from oxp.dependencies import get_neo4j_connector
+from scope.connectors.base import Connector
+from scope.dependencies import get_neo4j_connector
 from worker_base import queue_message
 from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import SessionGroupMessage
@@ -26,7 +26,7 @@ from grouping_worker.wrapper.grouping_wrapper import GroupingWrapper
 logger = logging.getLogger(__name__)
 
 
-class OXPApiGroupingDALAdapter:
+class SCOPEApiGroupingDALAdapter:
     def __init__(self, connector: Connector):
         self._connector = connector
 
@@ -34,7 +34,7 @@ class OXPApiGroupingDALAdapter:
         self._connector.close()
 
     async def wait_for_hierarchical_grouping_unlock(self) -> bool:
-        return await oxp_api_wait_for_hierarchical_grouping_unlock(db=self._connector)
+        return await scope_api_wait_for_hierarchical_grouping_unlock(db=self._connector)
 
     def get_analysis_data_for_semantic_group(
         self,
@@ -42,7 +42,7 @@ class OXPApiGroupingDALAdapter:
         group_hash: str,
         embedding_model: str,
     ) -> List[Dict[str, Any]]:
-        return oxp_api_get_analysis_data_for_semantic_group(
+        return scope_api_get_analysis_data_for_semantic_group(
             db=self._connector,
             group_id=group_id,
             group_hash=group_hash,
@@ -55,7 +55,7 @@ class OXPApiGroupingDALAdapter:
         embedding_model: str,
         max_distance: float,
     ) -> Tuple[str, str]:
-        return oxp_api_get_session_group(
+        return scope_api_get_session_group(
             db=self._connector,
             session_id=session_id,
             embedding_model=embedding_model,
@@ -68,7 +68,7 @@ class OXPApiGroupingDALAdapter:
         group_id: str,
         node_hash: str,
     ) -> bool:
-        return oxp_api_attach_session_to_group(
+        return scope_api_attach_session_to_group(
             db=self._connector,
             session_id=session_id,
             group_id=group_id,
@@ -105,7 +105,7 @@ class GroupingWorker(BaseWorker):
             raise ValueError("Missing embedding model name.")
 
         try:
-            self.db_handler = OXPApiGroupingDALAdapter(get_neo4j_connector())
+            self.db_handler = SCOPEApiGroupingDALAdapter(get_neo4j_connector())
         except Exception as exc:
             logger.warning(
                 "Failed to initialize API-managed Neo4j connector; DB operations disabled: %s",

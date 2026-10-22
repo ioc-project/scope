@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the OXP backend will be documented in this file.
+All notable changes to the SCOPE backend will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -16,16 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   afterwards, and an agent without access to the API or the graph reads it with `list_steps` / `read_step` /
   `grep` tools and answers through a schema-enforced `submit_detections` tool. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
   (`workers.cognitive-failure.config` in the Helm chart). It is fed from the embedding worker's output, next to
-  the stateful-eval worker. The Cypher is in `oxp.query_builders.failure_graph`, the writer in
-  `oxp.client.failures`. Requires an `oxp-ontology` release with `CognitiveFailureReport`.
-- **Cognition protocol reports.** `oxp.providers.OXPCognitionProtocolReportProvider` writes, through the ontology models, an
+  the stateful-eval worker. The Cypher is in `scope.query_builders.failure_graph`, the writer in
+  `scope.client.failures`. Requires an `scope-ontology` release with `CognitiveFailureReport`.
+- **Cognition protocol reports.** `scope.providers.SCOPECognitionProtocolReportProvider` writes, through the ontology models, an
   `CognitionProtocolReport` per session (`protocolsEnabled` / `protocolsActivated`: which Cognition protocols were available and
   which were used) and a `CognitionProtocolExecutionReport` per session and protocol (the agents and skills that had
   it and used it, and its evaluation metrics), both linked to the `Session` by `reportsOn`.
   `save_protocol_execution_metrics` stores a protocol's metrics as `MetricResult` nodes that `measure` its
   execution report (the report's earlier results are replaced), via the new `protocol_execution_report` target
-  of `metric_graph.write_metric_result_query`. The Cypher is in `oxp.query_builders.cognition_protocol_graph`.
-  Requires `oxp-ontology>=1.0.6`.
+  of `metric_graph.write_metric_result_query`. The Cypher is in `scope.query_builders.cognition_protocol_graph`.
+  Requires `scope-ontology>=1.0.6`.
 - **Cognition protocols read API.** `GET /sessions/{id}/cognition-protocols` reads the session's `CognitionProtocolReport` and
   `CognitionProtocolExecutionReport` nodes and returns, per protocol (`ACCORD`...), `enabled` / `activated`, the
   agents and skills that had / used it, and a generic `metrics` list (`name`, `section`, `value`, `reasoning`
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   there is no backward compatibility, so existing metric nodes must be deleted and recomputed.
 - `aboutMetric` links from consistency, anomaly and normal-behaviour reports now point at the `Metric`
   definition(s) of the metric name (they never matched anything before).
-- Requires `oxp-ontology` with `MetricResult.timestamp`.
+- Requires `scope-ontology` with `MetricResult.timestamp`.
 - The stateful-eval worker can run the trajectory metrics (Policy Safety, Task Completion, ...) and writes each
   as a session `MetricResult`. They are opt-in: list the ones to run in `stateful_eval_config.yaml` (`workers.stateful-eval.config` in the
   Helm chart); with no file or an empty list none run.
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-Initial open-source release of the OXP backend.
+Initial open-source release of the SCOPE backend.
 
 - **[api](docs/components/api.md)** — unified DB access layer across raw OTel spans
   (ClickHouse/SQLite/PostgreSQL) and the knowledge graph (Neo4j), with an optional FastAPI REST

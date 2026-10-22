@@ -6,7 +6,7 @@
 import { useMemo } from 'react';
 import { Stack } from '@mui/material';
 import { COGNITIVE_FAILURE_DESCRIPTIONS } from '@/common/cognitiveFailures';
-import { SessionWithCognitionProtocols } from '@/types/oxp.type';
+import { SessionWithCognitionProtocols } from '@/types/scope.type';
 import { SimpleTable, SubSection } from '../CognitionProtocols/primitives';
 import { ComparisonRow, ComparisonTable } from './ComparisonTable';
 import {

@@ -4,7 +4,7 @@
  */
 
 import { AgentErrorBreakdownTable } from './AgentErrorBreakdownTable';
-import type { ErrorItem } from '@/types/oxp.type';
+import type { ErrorItem } from '@/types/scope.type';
 
 interface AgentErrorBreakdownProps {
   data: ErrorItem[];

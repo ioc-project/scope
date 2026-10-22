@@ -17,19 +17,19 @@ import pytest
 
 import fakeredis
 import tests.other.test_endpoint_ui_data_mocker as mocker
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.client.sessions import _get_session_timeline_waterfall
-from oxp.connectors.sqlalchemy import SQLAlchemyConnector
-from oxp.dependencies import get_db, get_redis
-from oxp.query_builders.types import Dialect
-from oxp.repositories.sqlite_repository import SqliteOtelRepository
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.client.sessions import _get_session_timeline_waterfall
+from scope.connectors.sqlalchemy import SQLAlchemyConnector
+from scope.dependencies import get_db, get_redis
+from scope.query_builders.types import Dialect
+from scope.repositories.sqlite_repository import SqliteOtelRepository
 from fastapi.testclient import TestClient
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Path to CSV data shipped with the repo
@@ -39,8 +39,8 @@ CSV_PATH = os.path.join(DATA_DIR, "csv", "otel_traces.csv")
 
 # ── Module-scoped connector (shared across all tests) ────────────────────────
 
-_tmp_dir = tempfile.mkdtemp(prefix="oxp_test_")
-_DB_PATH = os.path.join(_tmp_dir, "oxp_test.db")
+_tmp_dir = tempfile.mkdtemp(prefix="scope_test_")
+_DB_PATH = os.path.join(_tmp_dir, "scope_test.db")
 _connector: SQLAlchemyConnector | None = None
 
 
@@ -87,9 +87,9 @@ def client(local_db):
 
 
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-# from oxp.db.database import init_oxp_db
-# from oxp.scripts.seed import seed_database_test
-# import oxp.ui
+# from scope.db.database import init_scope_db
+# from scope.scripts.seed import seed_database_test
+# import scope.ui
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

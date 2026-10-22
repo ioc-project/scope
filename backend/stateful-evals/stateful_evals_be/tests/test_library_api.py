@@ -20,7 +20,7 @@ from stateful_evals_be import (
     session_result_payload,
 )
 from stateful_evals_be.evaluation.processor import CORE_METRICS
-from stateful_evals_be.integrations.oxp import oxp_span_to_otel
+from stateful_evals_be.integrations.scope import scope_span_to_otel
 from stateful_evals_be.models.requests import FailureDetail
 
 
@@ -319,11 +319,11 @@ def test_library_and_span_normalization_need_no_api_namespace():
             "-c",
             """
 import sys
-sys.modules['oxp'] = None
+sys.modules['scope'] = None
 from stateful_evals_be import EvaluationEngine, evaluate_file, evaluate_spans
-from stateful_evals_be.integrations.oxp import oxp_span_to_otel
+from stateful_evals_be.integrations.scope import scope_span_to_otel
 from stateful_evals_be.integrations.files import load_trajectory_file
-span = oxp_span_to_otel({
+span = scope_span_to_otel({
     'span_id': 'span-1',
     'span_attributes': {'ioa_observe.entity.output': {'content': 'Hello.'}},
     'links_span_id': ['span-0'],
@@ -358,7 +358,7 @@ assert 'stateful_evals_be.evaluation.processor' not in sys.modules
     )
 
 
-def test_oxp_adapter_preserves_typed_otel_links():
+def test_scope_adapter_preserves_typed_otel_links():
     source = {
         "span_id": "recipient",
         "trace_id": "trace-1",
@@ -367,12 +367,12 @@ def test_oxp_adapter_preserves_typed_otel_links():
         "links_trace_state": [""],
         "links_attributes": [{"link.type": "peer_message"}],
     }
-    normalized = oxp_span_to_otel(source)
+    normalized = scope_span_to_otel(source)
     assert normalized["Links.TraceId"] == ["trace-1"]
     assert normalized["Links.SpanId"] == ["sender"]
     assert normalized["Links.TraceState"] == [""]
     assert normalized["Links.Attributes"] == [{"link.type": "peer_message"}]
-    assert oxp_span_to_otel({})["Links.SpanId"] == []
+    assert scope_span_to_otel({})["Links.SpanId"] == []
 
 
 @pytest.mark.parametrize("score", [0, 1])

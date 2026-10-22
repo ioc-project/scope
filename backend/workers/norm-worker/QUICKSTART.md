@@ -5,7 +5,7 @@
 ### Prerequisites
 - Python 3.11+
 - RabbitMQ (local or Docker)
-- Access to OXP Backend for data lake
+- Access to SCOPE Backend for data lake
 
 ### Installation
 

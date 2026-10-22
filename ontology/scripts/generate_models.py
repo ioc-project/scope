@@ -8,7 +8,7 @@ import textwrap
 from rdflib import OWL, RDF, RDFS, XSD, Graph, Namespace
 from rdflib.namespace import SH
 
-MAS = Namespace("https://outshift-open.github.io/oxp-ontology/mas#")
+MAS = Namespace("https://ioc-project.github.io/scope-ontology/mas#")
 
 # Map XSD types to Python type hints
 XSD_TYPE_MAP = {
@@ -142,7 +142,7 @@ def generate_robust_pydantic_models(ttl_path, output_dir=None):
     """Generate ontology-backed KG node and edge Pydantic models from Turtle."""
     if output_dir is None:
         package_root = os.path.dirname(os.path.dirname(__file__))
-        output_dir = os.path.join(package_root, "src", "oxp_ontology", "models")
+        output_dir = os.path.join(package_root, "src", "scope_ontology", "models")
 
     g = Graph()
     ttl_paths = ttl_path if isinstance(ttl_path, (list, tuple, set)) else [ttl_path]
@@ -308,8 +308,8 @@ def generate_robust_pydantic_models(ttl_path, output_dir=None):
             f.write(code)
 
     # 3. Re-export every generated class from its package's __init__.py, so
-    # callers can write `from oxp_ontology.models.nodes import AgentCall`
-    # instead of `from oxp_ontology.models.nodes.agent_call import AgentCall`.
+    # callers can write `from scope_ontology.models.nodes import AgentCall`
+    # instead of `from scope_ontology.models.nodes.agent_call import AgentCall`.
     write_package_init(nodes_dir, node_exports)
     write_package_init(edges_dir, edge_exports)
 
@@ -330,12 +330,12 @@ def write_package_init(package_dir, exports):
 
 
 if __name__ == "__main__":
-    import oxp_ontology
+    import scope_ontology
 
     ontology_names = sorted(
-        getattr(oxp_ontology, "ONTOLOGY_FILES", {"mas": "mas-ontology.ttl"})
+        getattr(scope_ontology, "ONTOLOGY_FILES", {"mas": "mas-ontology.ttl"})
     )
-    ttl_paths = [oxp_ontology.get_ontology_path(name) for name in ontology_names]
+    ttl_paths = [scope_ontology.get_ontology_path(name) for name in ontology_names]
     print(f"Using ontologies from: {', '.join(str(path) for path in ttl_paths)}")
     output_dir = generate_robust_pydantic_models(ttl_paths)
     print(f"Models generated successfully in {output_dir}/")

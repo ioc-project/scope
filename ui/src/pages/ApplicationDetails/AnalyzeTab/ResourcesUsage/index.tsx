@@ -13,7 +13,7 @@ import {
 import { DEFAULT_END_DATE, DEFAULT_START_DATE } from '@/common/constants';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PATHS } from '@/routes/routes';
-import { useCostEfficiencyGrouppedSessions } from '@/api/oxpApi';
+import { useCostEfficiencyGrouppedSessions } from '@/api/scopeApi';
 
 export const ResourcesUsage = () => {
   const { applicationId } = useParams();

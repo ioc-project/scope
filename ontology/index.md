@@ -1,12 +1,12 @@
-# OXP Ontology Documentation
+# SCOPE Ontology Documentation
 
-🌐 **Live Documentation**: [https://outshift-open.github.io/observe-and-explain-platform/](https://outshift-open.github.io/observe-and-explain-platform/)
+🌐 **Live Documentation**: [https://ioc-project.github.io/scope/](https://ioc-project.github.io/scope/)
 
-The deployed site covers all five bundled ontologies — **MAS**, **Metrics**, **Semantic**, **Analysis**, and **Insight** — each with three documentation formats, plus the [backend documentation](https://outshift-open.github.io/observe-and-explain-platform/backend/).
+The deployed site covers all five bundled ontologies — **MAS**, **Metrics**, **Semantic**, **Analysis**, and **Insight** — each with three documentation formats, plus the [backend documentation](https://ioc-project.github.io/scope/backend/).
 
 ## 📚 Documentation Formats
 
-Each ontology (`mas`, `metrics`, `semantic`, `analysis`, `insight`) gets its own set, at `<ontology>/widoco/`, `<ontology>/webvowl/`, and `<ontology>/lode/` — e.g. [MAS Widoco](https://outshift-open.github.io/observe-and-explain-platform/mas/widoco/index-en.html):
+Each ontology (`mas`, `metrics`, `semantic`, `analysis`, `insight`) gets its own set, at `<ontology>/widoco/`, `<ontology>/webvowl/`, and `<ontology>/lode/` — e.g. [MAS Widoco](https://ioc-project.github.io/scope/mas/widoco/index-en.html):
 
 ### 1. Widoco (Standard)
 W3C-compliant OWL documentation with cross-references and namespace details.
@@ -32,7 +32,7 @@ python3 -m http.server 8000 --directory docs
 
 ```
 .
-├── src/oxp_ontology/
+├── src/scope_ontology/
 │   ├── mas-ontology.ttl        # Core execution schema
 │   ├── semantic-ontology.ttl   # Embedding layer
 │   ├── metrics-ontology.ttl    # Metrics

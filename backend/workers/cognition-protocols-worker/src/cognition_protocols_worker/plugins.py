@@ -25,7 +25,9 @@ def instantiate(target: Any, base: type) -> Any:
         return target()
     if callable(target):
         return target()
-    raise TypeError(f"{target!r} is not a {base.__name__}, a subclass of one, or a factory for one")
+    raise TypeError(
+        f"{target!r} is not a {base.__name__}, a subclass of one, or a factory for one"
+    )
 
 
 class Registry(Generic[T]):
@@ -46,7 +48,9 @@ class Registry(Generic[T]):
         if not isinstance(item, self.base) or not name:
             raise TypeError(f"{item!r} is not a {self.base.__name__} with a name")
         if name in self._items and not replace:
-            raise ValueError(f"a {self.base.__name__} for protocol {name!r} is already registered")
+            raise ValueError(
+                f"a {self.base.__name__} for protocol {name!r} is already registered"
+            )
         self._items[name] = item
 
     def names(self) -> list[str]:
@@ -65,6 +69,17 @@ class Registry(Generic[T]):
                 item = instantiate(entry.load(), self.base)
                 self.register(item)
             except Exception as exc:
-                logger.error("%s plugin %r (%s) not loaded: %s", self.base.__name__, entry.name, entry.value, exc)
+                logger.error(
+                    "%s plugin %r (%s) not loaded: %s",
+                    self.base.__name__,
+                    entry.name,
+                    entry.value,
+                    exc,
+                )
             else:
-                logger.info("%s for protocol %r loaded from %s", self.base.__name__, item.name, entry.value)
+                logger.info(
+                    "%s for protocol %r loaded from %s",
+                    self.base.__name__,
+                    item.name,
+                    entry.value,
+                )

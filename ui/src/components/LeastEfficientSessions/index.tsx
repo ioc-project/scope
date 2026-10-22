@@ -4,8 +4,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { WastefulSession } from '@/types/oxp.type';
-import { useTopWastefulSessions } from '@/api/oxpApi';
+import { WastefulSession } from '@/types/scope.type';
+import { useTopWastefulSessions } from '@/api/scopeApi';
 import { Stack, Typography } from '@mui/material';
 import { EmptyState, Spinner } from '@open-ui-kit/core';
 import { InefficientSessionCard } from './InefficientSessionCard';

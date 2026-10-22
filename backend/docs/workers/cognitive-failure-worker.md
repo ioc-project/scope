@@ -3,14 +3,14 @@
 Detects the cognitive failures of the challenges taxonomy (IR-1, IC-2, CC-3, ...) in a session and writes
 a `CognitiveFailureReport` for each one it finds.
 
-**Source:** [`workers/cognitive-failure-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/cognitive-failure-worker)
+**Source:** [`workers/cognitive-failure-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/cognitive-failure-worker)
 
 ## How it works
 
 For each message (`BaseQueueMessage` with a `session_id`), `CognitiveFailureWorker.handle_message`:
 
-1. Reads the session's trajectory from the knowledge graph through the OXP API library
-   (`oxp.client.dal.get_session_trajectory`): every LLM, tool and agent call in order, with the text going in
+1. Reads the session's trajectory from the knowledge graph through the SCOPE API library
+   (`scope.client.dal.get_session_trajectory`): every LLM, tool and agent call in order, with the text going in
    and out. A session with no steps is skipped.
 2. Writes the trajectory to a private temporary file (`trace_file.TraceFile`, one JSON line per step) and runs an
    agent over it (`agent.investigate`). The agent has no client for the API or the graph: it only reads that
@@ -31,7 +31,7 @@ For each message (`BaseQueueMessage` with a `session_id`), `CognitiveFailureWork
    The file is deleted when the investigation ends, whether it succeeded, failed or was cancelled. Texts
    longer than 200,000 characters are cut when written, and a worker that is killed leaves nothing for long:
    at startup the worker removes trace directories older than an hour.
-3. Writes a `CognitiveFailureReport` per detection (`oxp.client.failures`). A report is keyed by session,
+3. Writes a `CognitiveFailureReport` per detection (`scope.client.failures`). A report is keyed by session,
    failure and call, so re-running a session overwrites the same detections; reports of an earlier run that
    are not detected again stay. A run whose answer cannot be used writes nothing.
 4. Forwards the message to the output queues, if any (none by default).
@@ -46,7 +46,7 @@ Detection quality has not been measured yet. The model endpoint must support too
 - `-[:atCall]->` the LLM, tool or agent call, when the detection names a step of the session.
 
 The id comes from the session, the failure and the call, so a re-run overwrites. `CognitiveFailureReport`
-is a class of the OXP ontology.
+is a class of the SCOPE ontology.
 
 ## Queues
 

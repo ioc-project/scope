@@ -6,8 +6,8 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp_ontology.models.nodes.normal_behaviour_report import NormalBehaviourReport
 from pydantic import Field
+from scope_ontology.models.nodes.normal_behaviour_report import NormalBehaviourReport
 from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import BaseQueueMessage, SessionDetail
 

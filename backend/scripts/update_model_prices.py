@@ -48,7 +48,7 @@ MIN_ENTRIES = 1000
 def load(source: str) -> dict:
     if source.startswith(("http://", "https://")):
         request = urllib.request.Request(
-            source, headers={"User-Agent": "oxp-model-prices-updater"}
+            source, headers={"User-Agent": "scope-model-prices-updater"}
         )
         with urllib.request.urlopen(request, timeout=60) as response:
             return json.loads(response.read().decode("utf-8"))

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from worker_base.base_worker import BaseWorker
-from worker_base.dal_adapter import OXPApiDALAdapter
+from worker_base.dal_adapter import SCOPEApiDALAdapter
 from worker_base.queue_message import BaseMessage
 
 
@@ -111,7 +111,7 @@ class TestBaseWorker:
             rabbitmq_url="amqp://localhost",
             input_queue="test_queue",
         )
-        assert isinstance(worker.db_handler, OXPApiDALAdapter)
+        assert isinstance(worker.db_handler, SCOPEApiDALAdapter)
         mock_get_connector.assert_called_once()
 
 

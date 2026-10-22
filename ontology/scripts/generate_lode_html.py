@@ -178,6 +178,6 @@ if __name__ == "__main__":
     import sys
 
     generate_lode_html(
-        sys.argv[1] if len(sys.argv) > 1 else "src/oxp_ontology/mas-ontology.ttl",
+        sys.argv[1] if len(sys.argv) > 1 else "src/scope_ontology/mas-ontology.ttl",
         sys.argv[2] if len(sys.argv) > 2 else "docs/lode/index.html",
     )

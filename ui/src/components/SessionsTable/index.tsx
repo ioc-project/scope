@@ -4,8 +4,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Session, SessionWithStatefulEval } from '@/types/oxp.type';
-import { useApplicationSessionsWithStatefulEval } from '@/api/oxpApi';
+import { Session, SessionWithStatefulEval } from '@/types/scope.type';
+import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
 import { SessionsTable } from './SessionsTable.tsx';
 import { Stack, SxProps, useTheme } from '@mui/material';
 import { useDebouncedValue } from '@/utils';

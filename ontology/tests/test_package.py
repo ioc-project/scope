@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Unit tests for oxp-ontology package
+Unit tests for scope-ontology package
 """
 
 from pathlib import Path
 
 import pytest
 
-from oxp_ontology import (
+from scope_ontology import (
     ONTOLOGY_FILES,
     __version__,
     get_ontology_path,
@@ -148,7 +148,7 @@ class TestOntologyValidity:
         path = get_ontology_path("metrics")
         g.parse(path, format="turtle")
 
-        mas = Namespace("https://outshift-open.github.io/oxp-ontology/mas#")
+        mas = Namespace("https://ioc-project.github.io/scope-ontology/mas#")
 
         assert (mas.Metric, RDF.type, OWL.Class) in g
         assert (mas.Metric, RDFS.subClassOf, mas.Element) in g
@@ -167,7 +167,7 @@ class TestOntologyValidity:
 
         g = Graph()
         g.parse(get_ontology_path("metrics"), format="turtle")
-        mas = Namespace("https://outshift-open.github.io/oxp-ontology/mas#")
+        mas = Namespace("https://ioc-project.github.io/scope-ontology/mas#")
 
         assert (mas.timestamp, RDFS.domain, mas.MetricResult) in g
         assert (mas.timestamp, RDFS.range, XSD.dateTime) in g
@@ -180,7 +180,7 @@ class TestOntologyValidity:
 
         g = Graph()
         g.parse(get_ontology_path("metrics"), format="turtle")
-        mas = Namespace("https://outshift-open.github.io/oxp-ontology/mas#")
+        mas = Namespace("https://ioc-project.github.io/scope-ontology/mas#")
 
         expected = {
             "evaluationModel": XSD.string,
@@ -239,7 +239,7 @@ class TestCognitionProtocolReportsOntology:
 
         g, mas = (
             self._graph(),
-            Namespace("https://outshift-open.github.io/oxp-ontology/mas#"),
+            Namespace("https://ioc-project.github.io/scope-ontology/mas#"),
         )
         for cls in (mas.CognitionProtocolReport, mas.CognitionProtocolExecutionReport):
             assert (cls, RDF.type, OWL.Class) in g
@@ -251,7 +251,7 @@ class TestCognitionProtocolReportsOntology:
 
         g, mas = (
             self._graph(),
-            Namespace("https://outshift-open.github.io/oxp-ontology/mas#"),
+            Namespace("https://ioc-project.github.io/scope-ontology/mas#"),
         )
         assert (mas.reportsOn, RDFS.range, mas.Session) in g
         assert next(g.objects(mas.reportsOn, SH.minCount)).toPython() == 1
@@ -262,7 +262,7 @@ class TestCognitionProtocolReportsOntology:
 
         g, mas = (
             self._graph(),
-            Namespace("https://outshift-open.github.io/oxp-ontology/mas#"),
+            Namespace("https://ioc-project.github.io/scope-ontology/mas#"),
         )
         union = next(g.objects(mas.measures, RDFS.range))
         members = set(Collection(g, next(g.objects(union, OWL.unionOf))))
@@ -273,7 +273,7 @@ class TestCognitionProtocolReportsOntology:
 
         g, mas = (
             self._graph(),
-            Namespace("https://outshift-open.github.io/oxp-ontology/mas#"),
+            Namespace("https://ioc-project.github.io/scope-ontology/mas#"),
         )
         for prop in (
             "protocolsEnabled",
@@ -291,22 +291,22 @@ class TestPackageIntegration:
 
     def test_import_package(self):
         """Package can be imported"""
-        import oxp_ontology
+        import scope_ontology
 
-        assert oxp_ontology is not None
+        assert scope_ontology is not None
 
     def test_exposed_functions(self):
         """Package exposes public API"""
-        from oxp_ontology import get_ontology_path, load_graph
+        from scope_ontology import get_ontology_path, load_graph
 
         assert callable(get_ontology_path)
         assert callable(load_graph)
 
     def test_ontology_files_bundled(self):
         """All TTL files are bundled in package"""
-        import oxp_ontology
+        import scope_ontology
 
-        package_dir = Path(oxp_ontology.__file__).parent
+        package_dir = Path(scope_ontology.__file__).parent
 
         for filename in ONTOLOGY_FILES.values():
             ttl_path = package_dir / filename

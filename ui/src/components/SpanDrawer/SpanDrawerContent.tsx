@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Accordion, Box, Stack, Tab, Tabs } from '@open-ui-kit/core';
 import { Divider, Typography, useTheme } from '@mui/material';
 import { TabPanel } from '@/components/TabPanel.tsx';
-import { Attribute, AttributeType, SpanDetails } from '@/types/oxp.type';
+import { Attribute, AttributeType, SpanDetails } from '@/types/scope.type';
 import { format } from 'date-fns';
 
 interface SpanDrawerContentProps {

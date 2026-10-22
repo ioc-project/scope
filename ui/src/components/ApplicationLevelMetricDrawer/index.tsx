@@ -8,7 +8,7 @@ import { DrawerTitle } from './DrawerTitle';
 import { DrawerContent } from './DrawerContent';
 import { AnalyzeSemanticGroupingData } from '@/types/agentCharts.type';
 import { ApplicationLevelMetricCategory, ApplicationLevelMetricCategoryDescription } from '@/api/applicationLevelMetrics';
-import { ApplicationSummaryMetrics } from '@/types/oxp.type';
+import { ApplicationSummaryMetrics } from '@/types/scope.type';
 
 interface ApplicationLevelMetricDrawerWrapper {
   onClose: () => void;

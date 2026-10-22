@@ -27,6 +27,7 @@ COPY pyproject.toml uv.lock /app/
 COPY workers/consistency-worker /app/workers/consistency-worker
 COPY worker-base /app/worker-base
 COPY api /app/api
+COPY --from=ontology . /ontology
 COPY dem /app/dem
 
 RUN uv sync --package consistency-worker --frozen --no-editable

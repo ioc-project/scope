@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from oxp.client import dal
-from oxp.query_builders import dal as q
+from scope.client import dal
+from scope.query_builders import dal as q
 
 FORBIDDEN = ("hasMetric", ":Span", "measuresCall")
 

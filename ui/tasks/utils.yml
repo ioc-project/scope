@@ -12,7 +12,7 @@ vars:
   TMP_FOLDER: ".tmp"
 
 tasks:
-  build-oxp-ui:
+  build-scope-ui:
     internal: false
     dir: .
     cmds:

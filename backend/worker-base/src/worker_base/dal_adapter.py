@@ -2,51 +2,51 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 """Adapter exposing the methods workers used on the old ``KG_DAL`` instance,
-delegating to the stateless ``oxp.client.dal`` API functions instead.
+delegating to the stateless ``scope.client.dal`` API functions instead.
 """
 
 from typing import Any, Dict, List
 
-from oxp.client.dal import (
-    analysis_pre_check as oxp_api_analysis_pre_check,
+from scope.client.dal import (
+    analysis_pre_check as scope_api_analysis_pre_check,
 )
-from oxp.client.dal import (
-    generate_insights_from_query as oxp_api_generate_insights_from_query,
+from scope.client.dal import (
+    generate_insights_from_query as scope_api_generate_insights_from_query,
 )
-from oxp.client.dal import (
-    get_all_application_ids as oxp_api_get_all_application_ids,
+from scope.client.dal import (
+    get_all_application_ids as scope_api_get_all_application_ids,
 )
-from oxp.client.dal import (
-    get_analysis_data_for_semantic_group as oxp_api_get_analysis_data_for_semantic_group,
+from scope.client.dal import (
+    get_analysis_data_for_semantic_group as scope_api_get_analysis_data_for_semantic_group,
 )
-from oxp.client.dal import (
-    get_mas_name as oxp_api_get_mas_name,
+from scope.client.dal import (
+    get_mas_name as scope_api_get_mas_name,
 )
-from oxp.client.dal import (
-    get_semantic_group_hierarchy as oxp_api_get_semantic_group_hierarchy,
+from scope.client.dal import (
+    get_semantic_group_hierarchy as scope_api_get_semantic_group_hierarchy,
 )
-from oxp.client.dal import (
-    get_session_io_embeddings as oxp_api_get_session_io_embeddings,
+from scope.client.dal import (
+    get_session_io_embeddings as scope_api_get_session_io_embeddings,
 )
-from oxp.client.dal import (
-    ingest_anomaly_report as oxp_api_ingest_anomaly_report,
+from scope.client.dal import (
+    ingest_anomaly_report as scope_api_ingest_anomaly_report,
 )
-from oxp.client.dal import (
-    ingest_consistency_report as oxp_api_ingest_consistency_report,
+from scope.client.dal import (
+    ingest_consistency_report as scope_api_ingest_consistency_report,
 )
-from oxp.client.dal import (
-    ingest_insights as oxp_api_ingest_insights,
+from scope.client.dal import (
+    ingest_insights as scope_api_ingest_insights,
 )
-from oxp.client.dal import (
-    ingest_normal_behaviour_report as oxp_api_ingest_normal_behaviour_report,
+from scope.client.dal import (
+    ingest_normal_behaviour_report as scope_api_ingest_normal_behaviour_report,
 )
-from oxp.client.dal import (
-    wait_for_hierarchical_grouping_unlock as oxp_api_wait_for_hierarchical_grouping_unlock,
+from scope.client.dal import (
+    wait_for_hierarchical_grouping_unlock as scope_api_wait_for_hierarchical_grouping_unlock,
 )
-from oxp.connectors.base import Connector
+from scope.connectors.base import Connector
 
 
-class OXPApiDALAdapter:
+class SCOPEApiDALAdapter:
     """Compatibility adapter that exposes the methods used by workers.
 
     The implementation delegates to API DAL functions instead of KG_DAL methods.
@@ -59,7 +59,7 @@ class OXPApiDALAdapter:
         self._connector.close()
 
     async def wait_for_hierarchical_grouping_unlock(self):
-        return await oxp_api_wait_for_hierarchical_grouping_unlock(db=self._connector)
+        return await scope_api_wait_for_hierarchical_grouping_unlock(db=self._connector)
 
     def analysis_pre_check(
         self,
@@ -68,7 +68,7 @@ class OXPApiDALAdapter:
         group_hash: str = "",
         session_id: str = "",
     ):
-        return oxp_api_analysis_pre_check(
+        return scope_api_analysis_pre_check(
             db=self._connector,
             group_id=group_id,
             report_type=report_type,
@@ -84,7 +84,7 @@ class OXPApiDALAdapter:
         skip: int = 0,
         limit: int = 0,
     ):
-        return oxp_api_get_analysis_data_for_semantic_group(
+        return scope_api_get_analysis_data_for_semantic_group(
             db=self._connector,
             group_id=group_id,
             group_hash=group_hash,
@@ -101,10 +101,10 @@ class OXPApiDALAdapter:
         source: Any = None,
     ) -> bool:
         """``consistency_report`` is a
-        ``oxp_ontology.models.nodes.consistency_report.ConsistencyReport`` instance.
+        ``scope_ontology.models.nodes.consistency_report.ConsistencyReport`` instance.
         ``source`` is the ``dem.consistency.utils.ConsistencySessions`` it was
         computed from, used only to recover non-ontology bookkeeping (metadata)."""
-        return oxp_api_ingest_consistency_report(
+        return scope_api_ingest_consistency_report(
             db=self._connector,
             group_id=group_id,
             group_hash=group_hash,
@@ -120,11 +120,11 @@ class OXPApiDALAdapter:
         source: Any = None,
     ) -> bool:
         """``anomaly_report`` is a
-        ``oxp_ontology.models.nodes.anomaly_report.AnomalyReport`` instance.
+        ``scope_ontology.models.nodes.anomaly_report.AnomalyReport`` instance.
         ``source`` is the ``dem.anomaly.AnomalyDetectionSessions`` it was
         computed from, used only to recover non-ontology bookkeeping
         (metadata, inlier/outlier sessions)."""
-        return oxp_api_ingest_anomaly_report(
+        return scope_api_ingest_anomaly_report(
             db=self._connector,
             group_id=group_id,
             group_hash=group_hash,
@@ -140,11 +140,11 @@ class OXPApiDALAdapter:
         source: Any = None,
     ) -> bool:
         """``normal_behaviour_report`` is a
-        ``oxp_ontology.models.nodes.normal_behaviour_report.NormalBehaviourReport`` instance.
+        ``scope_ontology.models.nodes.normal_behaviour_report.NormalBehaviourReport`` instance.
         ``source`` is the ``dem.normal_behaviour.utils.NormalBehaviourSessions``
         it was computed from, used only to recover non-ontology bookkeeping
         (metadata)."""
-        return oxp_api_ingest_normal_behaviour_report(
+        return scope_api_ingest_normal_behaviour_report(
             db=self._connector,
             group_id=group_id,
             group_hash=group_hash,
@@ -153,39 +153,39 @@ class OXPApiDALAdapter:
         )
 
     def get_mas_name(self, session_id: str) -> str:
-        return oxp_api_get_mas_name(db=self._connector, session_id=session_id)
+        return scope_api_get_mas_name(db=self._connector, session_id=session_id)
 
     def get_semantic_group_hierarchy(
         self,
         embedding_model: str,
         application_id: str,
     ) -> List[Dict[str, Any]]:
-        return oxp_api_get_semantic_group_hierarchy(
+        return scope_api_get_semantic_group_hierarchy(
             db=self._connector,
             embedding_model=embedding_model,
             application_id=application_id,
         )
 
     def get_session_io_embeddings(self, session_id: str) -> Dict[str, Any]:
-        return oxp_api_get_session_io_embeddings(db=self._connector, session_id=session_id)
+        return scope_api_get_session_io_embeddings(db=self._connector, session_id=session_id)
 
     def generate_insights_from_query(
         self,
         query: str,
         application_id: str,
     ) -> List[Dict[str, Any]]:
-        return oxp_api_generate_insights_from_query(
+        return scope_api_generate_insights_from_query(
             db=self._connector,
             query=query,
             application_id=application_id,
         )
 
     def ingest_insights(self, insights: List[Any]) -> None:
-        """``insights`` is a list of ``oxp_ontology.models.nodes.insight.Insight`` instances."""
-        return oxp_api_ingest_insights(
+        """``insights`` is a list of ``scope_ontology.models.nodes.insight.Insight`` instances."""
+        return scope_api_ingest_insights(
             db=self._connector,
             insights=insights,
         )
 
     def get_all_application_ids(self) -> List[str]:
-        return oxp_api_get_all_application_ids(db=self._connector)
+        return scope_api_get_all_application_ids(db=self._connector)

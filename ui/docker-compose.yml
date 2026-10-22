@@ -1,5 +1,5 @@
 services:
-  oxp-ui:
+  scope-ui:
     build:
       context: .
       dockerfile: Dockerfile

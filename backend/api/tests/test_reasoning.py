@@ -11,10 +11,10 @@ import fakeredis
 import pytest
 from fastapi.testclient import TestClient
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.dependencies import get_neo4j_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.connectors.neo4j import Neo4JConnector
+from scope.dependencies import get_neo4j_db, get_redis
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
 """
-Direct integration test for oxp_api_get_state_content.
+Direct integration test for scope_api_get_state_content.
 
 Requires a running Neo4j instance.  Connection settings are read from
 environment variables with the following defaults:
@@ -25,16 +25,16 @@ from pathlib import Path
 import pytest
 
 try:
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        get_session_io as oxp_api_get_session_io,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        get_session_io as scope_api_get_session_io,
     )
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        get_state_content as oxp_api_get_state_content,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        get_state_content as scope_api_get_state_content,
     )
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        ingest_embeddings as oxp_api_ingest_embeddings,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        ingest_embeddings as scope_api_ingest_embeddings,
     )
-    from oxp.connectors.neo4j import Neo4JConnector  # pyright: ignore[reportMissingImports]
+    from scope.connectors.neo4j import Neo4JConnector  # pyright: ignore[reportMissingImports]
 except ModuleNotFoundError:
     _REPO_ROOT = Path(__file__).resolve().parents[3]
     _API_SRC = _REPO_ROOT / "api"
@@ -46,25 +46,25 @@ except ModuleNotFoundError:
         module.__path__ = [str(path)]
         module.__package__ = name
         # Force replacement in case another plugin loaded a different
-        # top-level oxp package without the expected submodules.
+        # top-level scope package without the expected submodules.
         sys.modules[name] = module
 
-    _force_namespace_package("oxp", _API_SRC / "oxp")
-    _force_namespace_package("oxp.client", _API_SRC / "oxp" / "client")
-    _force_namespace_package("oxp.connectors", _API_SRC / "oxp" / "connectors")
-    _force_namespace_package("oxp.query_builders", _API_SRC / "oxp" / "query_builders")
-    _force_namespace_package("oxp.core", _API_SRC / "oxp" / "core")
+    _force_namespace_package("scope", _API_SRC / "scope")
+    _force_namespace_package("scope.client", _API_SRC / "scope" / "client")
+    _force_namespace_package("scope.connectors", _API_SRC / "scope" / "connectors")
+    _force_namespace_package("scope.query_builders", _API_SRC / "scope" / "query_builders")
+    _force_namespace_package("scope.core", _API_SRC / "scope" / "core")
 
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        get_session_io as oxp_api_get_session_io,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        get_session_io as scope_api_get_session_io,
     )
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        get_state_content as oxp_api_get_state_content,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        get_state_content as scope_api_get_state_content,
     )
-    from oxp.client.dal import (  # pyright: ignore[reportMissingImports]
-        ingest_embeddings as oxp_api_ingest_embeddings,
+    from scope.client.dal import (  # pyright: ignore[reportMissingImports]
+        ingest_embeddings as scope_api_ingest_embeddings,
     )
-    from oxp.connectors.neo4j import Neo4JConnector  # pyright: ignore[reportMissingImports]
+    from scope.connectors.neo4j import Neo4JConnector  # pyright: ignore[reportMissingImports]
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ FILTERS_NEQ = {"content": ""}
 # ---------------------------------------------------------------------------
 
 
-def test_oxp_api_get_state_content():
+def test_scope_api_get_state_content():
     connector = Neo4JConnector(
         host=NEO4J_URI,
         username=NEO4J_USERNAME,
@@ -106,7 +106,7 @@ def test_oxp_api_get_state_content():
 
     connector.connect()
     try:
-        result_api = oxp_api_get_state_content(
+        result_api = scope_api_get_state_content(
             db=connector,
             filters_eq=FILTERS_EQ,
             filters_neq=FILTERS_NEQ,
@@ -125,7 +125,7 @@ def test_oxp_api_get_state_content():
         print(r)
 
 
-def test_oxp_api_get_session_io():
+def test_scope_api_get_session_io():
     connector = Neo4JConnector(
         host=NEO4J_URI,
         username=NEO4J_USERNAME,
@@ -135,7 +135,7 @@ def test_oxp_api_get_session_io():
 
     connector.connect()
     try:
-        result_api = oxp_api_get_session_io(
+        result_api = scope_api_get_session_io(
             db=connector,
             session_id=TEST_SESSION_ID,
         )
@@ -153,7 +153,7 @@ def test_oxp_api_get_session_io():
         print(r)
 
 
-def test_oxp_api_ingest_embeddings():
+def test_scope_api_ingest_embeddings():
     connector = Neo4JConnector(
         host=NEO4J_URI,
         username=NEO4J_USERNAME,
@@ -164,7 +164,7 @@ def test_oxp_api_ingest_embeddings():
     created_embedding_id = ""
     connector.connect()
     try:
-        state_rows = oxp_api_get_state_content(
+        state_rows = scope_api_get_state_content(
             db=connector,
             filters_eq=FILTERS_EQ,
             filters_neq=FILTERS_NEQ,
@@ -184,7 +184,7 @@ def test_oxp_api_ingest_embeddings():
             }
         ]
 
-        oxp_api_ingest_embeddings(
+        scope_api_ingest_embeddings(
             db=connector,
             embeddings=payload,
         )

@@ -24,7 +24,7 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "oxp-api",
+    "scope-api",
     "worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -46,7 +46,7 @@ dev = [
 grouping-worker-cli = "grouping_worker.cli:main"
 
 [tool.uv.sources]
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 worker-base = { workspace = true }
 
 [project.urls]

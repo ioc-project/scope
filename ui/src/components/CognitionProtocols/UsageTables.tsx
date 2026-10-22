@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CognitionBound, CognitionPhaseUsage, CognitionUsageSummary } from '@/types/oxp.type';
+import { CognitionBound, CognitionPhaseUsage, CognitionUsageSummary } from '@/types/scope.type';
 import {
   NotAvailable,
   SimpleTable,

@@ -13,7 +13,7 @@ AVAILABLE_EMBEDDERS = {
 }
 DEFAULT_EMBEDDER = "SentenceTransformerEmbedder"
 DEFAULT_MODEL = "all-MiniLM-L6-v2"
-EMPTY_STATE_CONTENT = "OXP_EMPTY_STATE"
+EMPTY_STATE_CONTENT = "SCOPE_EMPTY_STATE"
 
 
 class EmbeddingDALHandler(Protocol):
@@ -75,7 +75,7 @@ class EmbeddingWrapper:
 
         # Every State belonging to this session -- a session's own boundary
         # states are shared with (not distinct from) whichever ExecutionElement
-        # actually owns them (see oxp-ontology's SessionInitialStateShared/
+        # actually owns them (see scope-ontology's SessionInitialStateShared/
         # FinalStateShared shapes), so this single scan already covers what a
         # separate "session io" fetch used to try to cover on its own.
         transitions = self.db_handler.get_state_content(session_id)

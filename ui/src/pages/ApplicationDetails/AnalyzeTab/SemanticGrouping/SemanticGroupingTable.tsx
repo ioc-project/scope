@@ -14,7 +14,7 @@ import {
   Tag,
   TagBackgroundColorVariants
 } from '@open-ui-kit/core';
-import { SemanticGroup } from '@/types/oxp.type';
+import { SemanticGroup } from '@/types/scope.type';
 import { getScoreColor } from '@/utils/metrics';
 
 type MRT_ColumnDefList = TableProps<SemanticGroup>['columns'];

@@ -26,6 +26,7 @@ COPY pyproject.toml uv.lock /app/
 COPY workers/anomaly-detection-worker /app/workers/anomaly-detection-worker
 COPY worker-base /app/worker-base
 COPY api /app/api
+COPY --from=ontology . /ontology
 COPY dem /app/dem
 
 RUN uv sync --package anomaly-detection-worker --frozen --no-editable

@@ -9,7 +9,7 @@ import { Box, LinearProgress, useTheme } from '@mui/material';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { CustomTooltip, RemediationTags, WidgetCard } from '@/components';
 import { COGNITIVE_FAILURE_DESCRIPTIONS } from '@/common/cognitiveFailures';
-import { SessionsWithCognitiveObservability } from '@/types/oxp.type';
+import { SessionsWithCognitiveObservability } from '@/types/scope.type';
 import { getScoreColor } from '@/utils/metrics';
 import { getFailuresAboveThreshold } from './utils';
 

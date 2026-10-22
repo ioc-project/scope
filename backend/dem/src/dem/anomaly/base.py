@@ -12,7 +12,7 @@ from .utils import AnomalyDetectionResult
 
 class AnomalyDetector(ABC):
     """
-    Abstract Base Class for all anomaly detectors in the oxp library.
+    Abstract Base Class for all anomaly detectors in the scope library.
     Defines the common interface for detecting anomalies across different data types.
     """
 

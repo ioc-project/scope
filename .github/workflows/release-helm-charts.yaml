@@ -24,7 +24,7 @@ concurrency:
 env:
   CHARTS_DIR: deploy/k8s/charts
   OCI_REGISTRY: ghcr.io
-  OCI_REPO: ghcr.io/outshift-open/charts
+  OCI_REPO: ghcr.io/ioc-project/charts
 
 jobs:
   release:
@@ -46,7 +46,7 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           EXPECTED="${GITHUB_REF_NAME#helm-v}"
-          for chart in oxp-api oxp-ui oxp; do
+          for chart in scope-api scope-ui scope; do
             ACTUAL=$(helm show chart "$CHARTS_DIR/$chart" | awk '/^version:/ {gsub(/"/, "", $2); print $2}')
             if [[ "$ACTUAL" != "$EXPECTED" ]]; then
               echo "::error::Chart '$chart' is version '$ACTUAL' but tag '$GITHUB_REF_NAME' expects '$EXPECTED'. Bump Chart.yaml before tagging."
@@ -56,11 +56,11 @@ jobs:
 
       - name: Lint subcharts
         run: |
-          helm lint "$CHARTS_DIR/oxp-api"
-          helm lint "$CHARTS_DIR/oxp-ui"
+          helm lint "$CHARTS_DIR/scope-api"
+          helm lint "$CHARTS_DIR/scope-ui"
 
       - name: Package subcharts
-        run: helm package "$CHARTS_DIR/oxp-api" "$CHARTS_DIR/oxp-ui" --destination dist
+        run: helm package "$CHARTS_DIR/scope-api" "$CHARTS_DIR/scope-ui" --destination dist
 
       - name: Log in to GHCR
         if: github.ref_type == 'tag'
@@ -70,20 +70,20 @@ jobs:
       - name: Push subcharts
         if: github.ref_type == 'tag'
         run: |
-          for pkg in dist/oxp-api-*.tgz dist/oxp-ui-*.tgz; do
+          for pkg in dist/scope-api-*.tgz dist/scope-ui-*.tgz; do
             helm push "$pkg" "oci://$OCI_REPO"
           done
 
       - name: Build and lint umbrella chart
         if: github.ref_type == 'tag'
         run: |
-          helm dependency build "$CHARTS_DIR/oxp"
-          helm lint "$CHARTS_DIR/oxp"
-          helm package "$CHARTS_DIR/oxp" --destination dist
+          helm dependency build "$CHARTS_DIR/scope"
+          helm lint "$CHARTS_DIR/scope"
+          helm package "$CHARTS_DIR/scope" --destination dist
 
       - name: Push umbrella chart
         if: github.ref_type == 'tag'
-        run: helm push dist/oxp-[0-9]*.tgz "oci://$OCI_REPO"
+        run: helm push dist/scope-[0-9]*.tgz "oci://$OCI_REPO"
 
       - name: Create GitHub release
         if: github.ref_type == 'tag'

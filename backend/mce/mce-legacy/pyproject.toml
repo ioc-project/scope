@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oxp-mce-legacy"
+name = "scope-mce-legacy"
 version = "0.1.0"
 authors = [
     { name = "Outshift Open", email = "oss@cisco.com" }
@@ -12,9 +12,9 @@ license = "Apache-2.0"
 description = "Legacy adapters and compatibility layer for MCE"
 requires-python = ">=3.13,<3.15"
 dependencies = [
-    "oxp-mce-core>=2.0.0rc1",
-    "oxp-mce-provider-native>=0.1.0",
-    "oxp-mce-provider-sdk>=0.1.0",
+    "scope-mce-core>=2.0.0rc1",
+    "scope-mce-provider-native>=0.1.0",
+    "scope-mce-provider-sdk>=0.1.0",
     "click>=8.0.0",
     "requests>=2.28.0",
 ]
@@ -25,6 +25,6 @@ include = ["mce.legacy*"]
 namespaces = true
 
 [tool.uv.sources]
-oxp-mce-core = { workspace = true }
-oxp-mce-provider-native = { workspace = true }
-oxp-mce-provider-sdk = { workspace = true }
+scope-mce-core = { workspace = true }
+scope-mce-provider-native = { workspace = true }
+scope-mce-provider-sdk = { workspace = true }

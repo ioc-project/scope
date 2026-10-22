@@ -23,7 +23,7 @@ import {
   useApplicationSummaryMetrics,
   useSemanticGroupDetails,
   useSemanticGroups
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { useDebouncedValue } from '@/utils';
 import { useTimeRangeStore } from '@/store';
 import {
@@ -35,7 +35,7 @@ import {
   computeOverallPerformance
 } from '@/utils';
 import { colorTokens } from '@/theme/colors';
-import { SessionWithStatefulEval } from '@/types/oxp.type';
+import { SessionWithStatefulEval } from '@/types/scope.type';
 
 const COLLECT_TAB_SEGMENTS = ['completed', 'live-sessions'];
 

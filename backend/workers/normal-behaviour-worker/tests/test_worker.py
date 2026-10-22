@@ -45,7 +45,7 @@ def _make_fake_dal():
 async def test_handle_message_returns_true(monkeypatch):
     fake_dal = _make_fake_dal()
     monkeypatch.setattr(base_worker_module, "get_neo4j_connector", lambda: None)
-    monkeypatch.setattr(base_worker_module, "OXPApiDALAdapter", lambda connector: fake_dal)
+    monkeypatch.setattr(base_worker_module, "SCOPEApiDALAdapter", lambda connector: fake_dal)
 
     class FakeWrapper:
         def __init__(self, **kwargs):

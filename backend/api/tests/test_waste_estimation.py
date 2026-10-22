@@ -13,15 +13,15 @@ import sys
 
 import fakeredis
 import pytest
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.dependencies import get_neo4j_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.connectors.neo4j import Neo4JConnector
+from scope.dependencies import get_neo4j_db, get_redis
 from fastapi.testclient import TestClient
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 BASE = "/api/v1/waste-estimation"

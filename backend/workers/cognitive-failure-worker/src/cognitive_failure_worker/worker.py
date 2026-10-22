@@ -16,10 +16,11 @@ from cognitive_failure_worker.trace_file import sweep_stale
 
 logger = logging.getLogger(__name__)
 
+
 class CognitiveFailureWorker(BaseWorker):
     """Worker that detects cognitive failures in a session.
 
-    Fetches the session's trajectory from the KG through the OXP API library, writes it to a
+    Fetches the session's trajectory from the KG through the SCOPE API library, writes it to a
     temporary file (deleted afterwards) and lets an agent read it with tools, without access to the API
     or the graph, to find which of the configured failures (from the challenges taxonomy) it shows. The
     worker then writes a ``CognitiveFailureReport`` for each, attached to the session and to the call
@@ -82,7 +83,7 @@ class CognitiveFailureWorker(BaseWorker):
 
     def _get_kg(self):
         """The shared Neo4j connector (owned and closed by the base worker)."""
-        from oxp.dependencies import get_neo4j_connector
+        from scope.dependencies import get_neo4j_connector
 
         return get_neo4j_connector()
 
@@ -108,8 +109,8 @@ class CognitiveFailureWorker(BaseWorker):
         )
 
     def _detect_and_write(self, kg, session_id: str) -> None:
-        from oxp.client.failures import write_cognitive_failure_reports
-        from oxp.client.dal import get_session_trajectory
+        from scope.client.failures import write_cognitive_failure_reports
+        from scope.client.dal import get_session_trajectory
 
         trajectory = get_session_trajectory(kg, session_id)
         if not trajectory["steps"]:

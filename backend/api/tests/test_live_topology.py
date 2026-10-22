@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints import live_topology as live_topology_endpoint
-from oxp.client._live_topology import LiveTopologyClient
-from oxp.models.live_topology import (
+from scope.api import app
+from scope.api.api_v1.endpoints import live_topology as live_topology_endpoint
+from scope.client._live_topology import LiveTopologyClient
+from scope.models.live_topology import (
     LiveAgents,
     LiveTools,
     LiveTopologySessions,
@@ -16,7 +16,7 @@ from oxp.models.live_topology import (
     RealtimeTopologyNode,
     RealtimeTopologyResponse,
 )
-from oxp.query_builders.types import Dialect
+from scope.query_builders.types import Dialect
 
 
 class LiveTopologyStubClient:
@@ -239,11 +239,11 @@ class _LiveTopologyFakeDB:
 
 def _install_query_stubs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "oxp.query_builders.live_topology.get_orphan_live_topology_sessions",
+        "scope.query_builders.live_topology.get_orphan_live_topology_sessions",
         lambda dialect: "orphans_stmt",
     )
     monkeypatch.setattr(
-        "oxp.query_builders.live_topology.get_live_topology_sessions",
+        "scope.query_builders.live_topology.get_live_topology_sessions",
         lambda dialect: "sessions_stmt",
     )
 

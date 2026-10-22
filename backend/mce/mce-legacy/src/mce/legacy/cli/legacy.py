@@ -8,10 +8,10 @@ from pathlib import Path
 
 
 def _get_kg_provider():
-    """Instantiate a OXPKGProvider (oxp-api). Patchable in tests."""
-    from oxp.providers import OXPKGProvider  # type: ignore[import]
+    """Instantiate a SCOPEKGProvider (scope-api). Patchable in tests."""
+    from scope.providers import SCOPEKGProvider  # type: ignore[import]
 
-    return OXPKGProvider()
+    return SCOPEKGProvider()
 
 
 @click.group(name="legacy")

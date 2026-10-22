@@ -7,7 +7,7 @@ import { Stack } from '@open-ui-kit/core';
 import { Grid, Typography } from '@mui/material';
 import { metrics } from '@/api/metrics.ts';
 import { MetricChart, WidgetCard } from '@/components';
-import { SingleValueData, TimelineData, Unit } from '@/types/oxp.type';
+import { SingleValueData, TimelineData, Unit } from '@/types/scope.type';
 import {
   ApplicationCostCharts,
   ApplicationGeneralCharts,

@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 logger = logging.getLogger(__name__)
 
+
 class DetectionItem(BaseModel):
     """One detection, as the model must report it. Its schema is what the model is asked to follow."""
 

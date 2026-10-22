@@ -1,0 +1,310 @@
+#  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+#  SPDX-License-Identifier: Apache-2.0
+"""
+Full integration example: Plugging an external MetricsProvider into scope-api.
+==========================================================================
+
+This shows exactly how someone (e.g. the mce team) would:
+
+  1. Implement MetricsProvider using their own Neo4j connection
+  2. Plug it into scope-api so all /metrics endpoints use their impl
+  3. Start the server — existing endpoints work, no code changes needed
+
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+from datetime import datetime, timezone
+from typing import Any
+
+from neo4j import GraphDatabase
+
+# ── Import the interface + types from scope ──────────────────────────────────
+from scope.interfaces import MetricResult, MetricsProvider, NumericMetricResult
+
+logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. THE EXTERNAL PROVIDER  (this is what the mce team writes)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class Neo4jMetricsProvider(MetricsProvider):
+    """
+    MetricsProvider implementation using a direct neo4j-driver connection.
+
+    This replaces scope' built-in SCOPEMetricsProvider. The endpoints
+    don't know or care — they just call MetricsProvider methods.
+    """
+
+    def __init__(self, uri: str, user: str = "neo4j", password: str = "password"):
+        self._driver = GraphDatabase.driver(uri, auth=(user, password))
+
+    def close(self):
+        self._driver.close()
+
+    # ── MetricsProvider.get_metrics ─────────────────────────────────────────
+
+    def get_metrics(
+        self,
+        resource_ids: str | list[str],
+        metric_ids: str | list[str] | None = None,
+        session_id: str | None = None,
+        recursive: bool = False,
+        **kwargs: Any,
+    ) -> list[MetricResult]:
+        rids = [resource_ids] if isinstance(resource_ids, str) else resource_ids
+        mids = [metric_ids] if isinstance(metric_ids, str) else metric_ids
+
+        # Metrics are ontology MetricResult nodes: each one `measures` a Session
+        # (matched by sessionId) or an execution element such as an LLMCall /
+        # ToolCall (matched by spanId) and is `ofMetricType` of a Metric definition.
+        query = """
+        UNWIND $rids AS rid
+        MATCH (t)
+        WHERE (t:Session AND t.sessionId = rid)
+           OR (t.spanId = rid AND NOT t:Session)
+        MATCH (r:MetricResult)-[:measures]->(t), (r)-[:ofMetricType]->(d:Metric)
+        WHERE $mids IS NULL OR d.name IN $mids
+        RETURN
+            rid AS resource_id,
+            d.name         AS metric_id,
+            d.metricProvider AS provider,
+            r.result       AS value_json,
+            r.timestamp    AS timestamp
+        """
+
+        results = []
+        with self._driver.session() as session:
+            for record in session.run(query, rids=rids, mids=mids):
+                raw = record["value_json"]
+                val, metadata = 0.0, {}
+                try:
+                    parsed = json.loads(raw) if isinstance(raw, str) else raw
+                    val = (
+                        parsed.get("value", 0.0)
+                        if isinstance(parsed, dict)
+                        else float(parsed)
+                    )
+                    if isinstance(parsed, dict):
+                        metadata = parsed
+                except (ValueError, TypeError, json.JSONDecodeError):
+                    metadata = {"raw_value": str(raw)}
+
+                results.append(
+                    NumericMetricResult(
+                        metric_id=record["metric_id"],
+                        resource_id=record["resource_id"],
+                        provider=record["provider"] or "neo4j-mce",
+                        value=val,
+                        timestamp=(
+                            record["timestamp"].to_native()
+                            if record.get("timestamp") is not None
+                            else datetime.now(timezone.utc)
+                        ),
+                        metadata=metadata,
+                    )
+                )
+        return results
+
+    # ── MetricsProvider.save_metrics ────────────────────────────────────────
+
+    def save_metrics(self, metrics: MetricResult | list[MetricResult]) -> bool:
+        items = [metrics] if isinstance(metrics, MetricResult) else metrics
+
+        # One Metric definition per (name, provider); one MetricResult per
+        # (definition, resource) so recomputing a metric overwrites the old value.
+        query = """
+        UNWIND $batch AS item
+        MATCH (t)
+        WHERE (t:Session AND t.sessionId = item.resource_id)
+           OR (t.spanId = item.resource_id AND NOT t:Session)
+        MERGE (d:Metric {id: item.definition_id})
+        SET d.name = item.metric_id, d.metricProvider = item.provider
+        MERGE (r:MetricResult {id: item.result_id})
+        SET r.name = item.metric_id,
+            r.result = item.value,
+            r.reasoning = item.reasoning,
+            r.timestamp = datetime(item.timestamp)
+        MERGE (r)-[:ofMetricType]->(d)
+        MERGE (r)-[:measures]->(t)
+        """
+
+        batch = [
+            {
+                "resource_id": m.resource_id,
+                "metric_id": m.metric_id,
+                "definition_id": f"metric:{m.provider}:{m.metric_id}",
+                "result_id": f"metricresult:{m.provider}:{m.metric_id}:{m.resource_id}",
+                "timestamp": m.timestamp.isoformat(),
+                "provider": m.provider,
+                "value": m.value,
+                "reasoning": m.reasoning or "",
+            }
+            for m in items
+            if not m.error and m.value is not None
+        ]
+        if not batch:
+            return True
+        try:
+            with self._driver.session() as session:
+                session.run(query, batch=batch)
+            return True
+        except Exception as e:
+            logger.error("save_metrics failed: %s", e)
+            return False
+
+    # ── MetricsProvider.clean_metrics ───────────────────────────────────────
+
+    def clean_metrics(self, session_id: str | None = None) -> int:
+        # Deletes the results; the Metric definitions stay.
+        if session_id:
+            q = """
+            MATCH (r:MetricResult)-[:measures]->(t)
+            WHERE t.sessionId = $sid
+            DETACH DELETE r RETURN count(r) AS deleted
+            """
+            p = {"sid": session_id}
+        else:
+            q = "MATCH (r:MetricResult) DETACH DELETE r RETURN count(r) AS deleted"
+            p = {}
+        with self._driver.session() as s:
+            rec = s.run(q, **p).single()
+            return rec["deleted"] if rec else 0
+
+    # ── MetricsProvider.list_llm_calls ──────────────────────────────────────
+
+    def list_llm_calls(self, session_id: str) -> list[dict[str, Any]]:
+        q = """
+        MATCH (lc:LLMCall {sessionId: $sid})
+        RETURN coalesce(lc.executionId, lc.spanId) AS id,
+               coalesce(lc.modelName, 'unknown') AS model,
+               lc.timestamp AS timestamp
+        ORDER BY timestamp
+        """
+        with self._driver.session() as session:
+            return [dict(r) for r in session.run(q, sid=session_id)]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2A. PATTERN A — Swap at startup (recommended for production)
+#     Wire the provider before the server starts serving requests.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def run_server_with_custom_provider():
+    """
+    Start scope-api with the external Neo4jMetricsProvider.
+
+    After this, every HTTP call to:
+        GET  /api/v1/metrics/sessions/{id}
+        POST /api/v1/metrics/sessions/{id}
+        GET  /api/v1/metrics/sessions/{id}/spans/{span_id}
+        POST /api/v1/metrics/sessions/{id}/spans/{span_id}
+
+    flows through Neo4jMetricsProvider instead of SCOPEMetricsProvider.
+    The endpoint code is UNTOUCHED.
+    """
+    import uvicorn
+
+    # 1. Create the external provider
+    provider = Neo4jMetricsProvider(
+        uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        user=os.getenv("NEO4J_USERNAME", "neo4j"),
+        password=os.getenv("NEO4J_PASSWORD", "password"),
+    )
+
+    # 2. Swap it in — this is the ONE line that matters
+    from scope.api.api_v1.endpoints.metrics import set_metrics_provider
+
+    set_metrics_provider(provider)
+
+    # 3. Start the server as normal
+    #    All /metrics endpoints now use Neo4jMetricsProvider
+    print("Starting scope-api with Neo4jMetricsProvider...")
+    uvicorn.run("scope.api:app", host="0.0.0.0", port=8000)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2B. PATTERN B — Hot-swap at runtime (e.g. from a management endpoint)
+#     The server is already running, swap provider without restart.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def hot_swap_example():
+    """
+    Call this from anywhere (admin endpoint, management script, etc.)
+    to switch the active provider while the server is running.
+
+    Example admin endpoint you could add:
+
+        @router.post("/admin/set-provider")
+        def admin_set_provider(body: dict):
+            provider = Neo4jMetricsProvider(uri=body["uri"], ...)
+            set_metrics_provider(provider)
+            return {"status": "switched to Neo4jMetricsProvider"}
+    """
+    from scope.api.api_v1.endpoints.metrics import set_metrics_provider
+
+    provider = Neo4jMetricsProvider(
+        uri="bolt://production-neo4j:7687",
+        password=os.getenv("NEO4J_PASSWORD", "password"),
+    )
+    set_metrics_provider(provider)
+    print("Provider swapped! All /metrics requests now use Neo4jMetricsProvider.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2C. PATTERN C — Library usage (no server, just the provider directly)
+#     Use the provider from Python code without starting FastAPI.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def library_usage_example():
+    """
+    Use Neo4jMetricsProvider directly as a library — no server needed.
+
+    This is how the mce engine would use it in a batch pipeline:
+
+        for session_id in session_ids:
+            data = data_provider.fetch(session_id, requirements)
+            result = compute_metric(data)
+            metrics_provider.save_metrics(result)
+    """
+    provider = Neo4jMetricsProvider(
+        uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        password=os.getenv("NEO4J_PASSWORD", "password"),
+    )
+
+    session_id = "demo-session-001"
+
+    # ── Write a metric ────────────────────────────────────────────────────
+    result = NumericMetricResult(
+        metric_id="accuracy",
+        resource_id=session_id,
+        provider="mce-engine",
+        value=0.92,
+        reasoning="Based on ground-truth comparison",
+    )
+    ok = provider.save_metrics(result)
+    print(f"Saved: {'OK' if ok else 'FAILED'}")
+
+    # ── Read it back (same provider) ──────────────────────────────────────
+    stored = provider.get_metrics(session_id, metric_ids=["accuracy"])
+    for m in stored:
+        print(f"  {m.metric_id} = {m.value} (provider={m.provider})")
+
+    # ── Clean up ──────────────────────────────────────────────────────────
+    # deleted = provider.clean_metrics(session_id=session_id)
+    # print(f"Cleaned {deleted} metrics")
+
+    provider.close()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    run_server_with_custom_provider()

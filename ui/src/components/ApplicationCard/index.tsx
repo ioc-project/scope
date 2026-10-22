@@ -21,7 +21,7 @@ import {
   Card,
   CardContent
 } from '@open-ui-kit/core';
-import { ApplicationWithStatefulEval } from '@/types/oxp.type';
+import { ApplicationWithStatefulEval } from '@/types/scope.type';
 import { CustomTooltip, Tags, WidgetCard } from '..';
 import {
   getDisplayedResultsCount,

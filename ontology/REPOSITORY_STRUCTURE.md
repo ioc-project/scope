@@ -1,4 +1,4 @@
-# OXP Ontology Package Structure
+# SCOPE Ontology Package Structure
 
 ```
 ontology/
@@ -12,7 +12,7 @@ ontology/
 ├── Taskfile.yml                  # Task automation (test, validate, version, build)
 ├── Makefile                      # Doc/model/shape generation targets
 │
-├── src/oxp_ontology/              # Python package + ontology sources
+├── src/scope_ontology/              # Python package + ontology sources
 │  ├── __init__.py                # get_ontology_path(), load_graph(), OntologyService, re-exports validation/verification API
 │  ├── validation.py              # Structural + payload validation (validate_bundled_ontologies, validate_session_payload, ...)
 │  ├── verification.py            # SHACL-based KG object verification (verify_kg_object)
@@ -24,7 +24,7 @@ ontology/
 │  ├── mas-shapes-custom.ttl      # Hand-maintained SHACL (SPARQL-based multi-node constraints) — committed
 │  ├── mas-shapes.ttl             # Auto-generated SHACL scaffolding — gitignored, NOT committed
 │  └── models/                    # Pydantic KG node/edge models
-│     ├── __init__.py            # Flat re-export: `from oxp_ontology.models import AgentCall`
+│     ├── __init__.py            # Flat re-export: `from scope_ontology.models import AgentCall`
 │       ├── base.py                # KGBase/KGNode/KGEdge — hand-written, the only committed file here
 │       ├── nodes/                 # Generated from the ontology — gitignored, NOT committed
 │       └── edges/                 # Generated from the ontology — gitignored, NOT committed
@@ -34,9 +34,9 @@ ontology/
 │  └── RELEASE_PROCESS.md         # Release workflow (PR -> merge -> tag -> publish)
 │
 ├── scripts/                       # Utility Scripts
-│  ├── validate_ttl.py            # CLI wrapper around oxp_ontology.validation
+│  ├── validate_ttl.py            # CLI wrapper around scope_ontology.validation
 │  ├── version_manager.py         # Per-component version get/bump/set (mas, semantic, metrics, analysis, insight)
-│  ├── generate_models.py         # Generates src/oxp_ontology/models/{nodes,edges}/ from the ontology
+│  ├── generate_models.py         # Generates src/scope_ontology/models/{nodes,edges}/ from the ontology
 │  ├── generate_shacl_shapes.py   # Generates mas-shapes.ttl from the ontology
 │  ├── inject_shacl_into_properties.py  # Migration tool: dual-types owl:*Property declarations as sh:PropertyShape
 │  ├── generate_all_docs.sh       # Local, single-ontology (mas-only) Widoco+WebVOWL+LODE build for previewing
@@ -87,14 +87,14 @@ task version-bump-rc
 
 ## Documentation Websites
 
-- **Main docs**: https://outshift-open.github.io/observe-and-explain-platform/
-- **MAS Widoco**: https://outshift-open.github.io/observe-and-explain-platform/mas/widoco/
-- **MAS WebVOWL**: https://outshift-open.github.io/observe-and-explain-platform/mas/webvowl/
-- **Metrics Widoco**: https://outshift-open.github.io/observe-and-explain-platform/metrics/widoco/
-- **Metrics WebVOWL**: https://outshift-open.github.io/observe-and-explain-platform/metrics/webvowl/
-- **Semantic Widoco**: https://outshift-open.github.io/observe-and-explain-platform/semantic/widoco/
-- **Analysis Widoco**: https://outshift-open.github.io/observe-and-explain-platform/analysis/widoco/
-- **Insight Widoco**: https://outshift-open.github.io/observe-and-explain-platform/insight/widoco/
-- **Backend docs**: https://outshift-open.github.io/observe-and-explain-platform/backend/
+- **Main docs**: https://ioc-project.github.io/scope/
+- **MAS Widoco**: https://ioc-project.github.io/scope/mas/widoco/
+- **MAS WebVOWL**: https://ioc-project.github.io/scope/mas/webvowl/
+- **Metrics Widoco**: https://ioc-project.github.io/scope/metrics/widoco/
+- **Metrics WebVOWL**: https://ioc-project.github.io/scope/metrics/webvowl/
+- **Semantic Widoco**: https://ioc-project.github.io/scope/semantic/widoco/
+- **Analysis Widoco**: https://ioc-project.github.io/scope/analysis/widoco/
+- **Insight Widoco**: https://ioc-project.github.io/scope/insight/widoco/
+- **Backend docs**: https://ioc-project.github.io/scope/backend/
 
 See [DOCS_DEPLOYMENT.md](DOCS_DEPLOYMENT.md) for how these are generated.

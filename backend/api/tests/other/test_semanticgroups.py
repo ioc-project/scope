@@ -16,17 +16,17 @@ from datetime import datetime, timezone
 import pytest
 
 import fakeredis
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.connectors.sqlalchemy import SQLAlchemyConnector
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.connectors.neo4j import Neo4JConnector
+from scope.connectors.sqlalchemy import SQLAlchemyConnector
+from scope.dependencies import get_db, get_redis
 from fastapi.testclient import TestClient
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Path to CSV data shipped with the repo
@@ -36,8 +36,8 @@ CSV_PATH = os.path.join(DATA_DIR, "csv", "otel_traces.csv")
 
 # ── Module-scoped connector (shared across all tests) ────────────────────────
 
-_tmp_dir = tempfile.mkdtemp(prefix="oxp_test_")
-_DB_PATH = os.path.join(_tmp_dir, "oxp_test.db")
+_tmp_dir = tempfile.mkdtemp(prefix="scope_test_")
+_DB_PATH = os.path.join(_tmp_dir, "scope_test.db")
 _connector: SQLAlchemyConnector | None = None
 
 _connector: Neo4JConnector | None = None

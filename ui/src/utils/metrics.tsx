@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SingleValueData, TimelineData, Unit } from '@/types/oxp.type';
+import { SingleValueData, TimelineData, Unit } from '@/types/scope.type';
 import {
   formatDurationMs,
   formatTwoDecimals,
@@ -15,7 +15,7 @@ import { Theme } from '@mui/material/styles';
 import {
   ApplicationSummaryQualityMetric,
   ApplicationSummaryReliabilityMetric
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import { Stack, Typography } from '@mui/material';
 import { unitSuffix } from '@/common/constants';
 import { metricCatalog, SemanticGroupMetric } from '@/common';

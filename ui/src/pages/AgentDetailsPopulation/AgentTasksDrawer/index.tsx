@@ -6,7 +6,7 @@
 import { Box, SideDrawer, Spinner, Stack } from '@open-ui-kit/core';
 import { DrawerTitle } from './DrawerTitle';
 import { DrawerContent } from './DrawerContent';
-import { Task } from '@/types/oxp.type';
+import { Task } from '@/types/scope.type';
 
 interface AgentTasksDrawerProps {
   onClose: () => void;

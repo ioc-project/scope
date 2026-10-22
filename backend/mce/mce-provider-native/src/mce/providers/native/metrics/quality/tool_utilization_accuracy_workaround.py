@@ -15,7 +15,7 @@ Convention
 ----------
 This module is a metric-local workaround. It must only adapt already-fetched
 metric context and must never trigger an additional KG query. Query-shape
-fallbacks belong to oxp-api query builders and providers.
+fallbacks belong to scope-api query builders and providers.
 """
 
 

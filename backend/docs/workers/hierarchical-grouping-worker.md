@@ -3,7 +3,7 @@
 Periodic worker that (re)computes the hierarchical semantic-group structure over all of a MAS
 application's sessions, and flags which groups need (re-)analysis downstream.
 
-**Source:** [`workers/hierarchical-grouping-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/hierarchical-grouping-worker)
+**Source:** [`workers/hierarchical-grouping-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/hierarchical-grouping-worker)
 
 ## Overview
 
@@ -53,7 +53,7 @@ hierarchical-grouping-worker-cli --test
 
 ### Configuration
 
-Neo4j connection settings are resolved by the API layer (`oxp.dependencies`) from environment
+Neo4j connection settings are resolved by the API layer (`scope.dependencies`) from environment
 variables; the worker does not expose Neo4j CLI flags.
 
 | Env var | CLI flag | Default | Description |

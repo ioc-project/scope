@@ -3,7 +3,7 @@
 
 """Hatch build hook: generate the SHACL shapes and the Pydantic KG models before packaging.
 
-``src/oxp_ontology/mas-shapes.ttl`` and ``models/{nodes,edges}/`` are generated from the
+``src/scope_ontology/mas-shapes.ttl`` and ``models/{nodes,edges}/`` are generated from the
 ontology and not committed. CI generates them before it builds the published wheel; this
 hook does the same whenever the package is built from a source checkout, so a git
 dependency (``{ git = "...", subdirectory = "ontology" }``) or ``pip install ./ontology``
@@ -48,5 +48,5 @@ class GenerateModelsHook(BuildHookInterface):
             sys.argv = argv
 
         models = _load(scripts / "generate_models.py")
-        ttl_files = sorted((root / "src" / "oxp_ontology").glob("*.ttl"))
+        ttl_files = sorted((root / "src" / "scope_ontology").glob("*.ttl"))
         models.generate_robust_pydantic_models([str(p) for p in ttl_files])

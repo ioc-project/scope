@@ -6,7 +6,7 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { Chart } from '@antv/g2';
 import { Box, Stack, Typography } from '@mui/material';
-import { CostEfficiencyGrouppedSessions as CostEfficiencyGrouppedSessionsType } from '@/types/oxp.type';
+import { CostEfficiencyGrouppedSessions as CostEfficiencyGrouppedSessionsType } from '@/types/scope.type';
 import { formatTwoDecimals } from '@/utils/stringUtils';
 import {
   SemanticGroupOption,

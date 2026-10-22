@@ -139,7 +139,7 @@ def mock_provider():
 
     fetch() returns a complete demo context; resolve_session_id() maps
     exec-llm-* IDs back to SESSION_ID so the engine can locate the session.
-    This provider does NOT pass isinstance checks for the concrete OXP
+    This provider does NOT pass isinstance checks for the concrete SCOPE
     graph provider — use neo4j_provider_stub for tests that need --list-resources.
     """
     m = MagicMock()
@@ -151,13 +151,13 @@ def mock_provider():
 
 
 @contextlib.contextmanager
-def mock_oxp_provider():
-    """Context manager to mock OXP API imports when running tests without package."""
-    # If oxp actually exists in the environment, use it if possible,
+def mock_scope_provider():
+    """Context manager to mock SCOPE API imports when running tests without package."""
+    # If scope actually exists in the environment, use it if possible,
     # but for consistent CI, forcing the mock might be safer.
     # We'll only mock if import fails or we force it.
     try:
-        import oxp.providers  # noqa
+        import scope.providers  # noqa
 
         yield
         return
@@ -165,32 +165,34 @@ def mock_oxp_provider():
         pass
 
     # Create mock module hierarchy
-    mock_oxp = MagicMock()
+    mock_scope = MagicMock()
     mock_providers = MagicMock()
 
     # Define a concrete class for isinstance checks
-    class MockOXPKGProvider:
+    class MockSCOPEKGProvider:
         def __init__(self, *args, **kwargs):
             pass
 
-    mock_providers.OXPKGProvider = MockOXPKGProvider
-    mock_oxp.providers = mock_providers
+    mock_providers.SCOPEKGProvider = MockSCOPEKGProvider
+    mock_scope.providers = mock_providers
 
     # Patch sys.modules
-    with patch.dict(sys.modules, {"oxp": mock_oxp, "oxp.providers": mock_providers}):
+    with patch.dict(
+        sys.modules, {"scope": mock_scope, "scope.providers": mock_providers}
+    ):
         yield
 
 
 @pytest.fixture
 def neo4j_provider_stub():
-    """Mock OXP graph provider instance that satisfies isinstance checks.
+    """Mock SCOPE graph provider instance that satisfies isinstance checks.
 
-    Patches sys.modules so `oxp.providers` is importable even without the package.
+    Patches sys.modules so `scope.providers` is importable even without the package.
     """
-    with mock_oxp_provider():
-        from oxp.providers import OXPGraphProvider
+    with mock_scope_provider():
+        from scope.providers import SCOPEGraphProvider
 
-        prov = OXPGraphProvider()
+        prov = SCOPEGraphProvider()
         prov._db = None
         prov._workarounds = None
         prov.fetch = MagicMock(return_value=_llm_context())

@@ -29,6 +29,7 @@ COPY worker-base /app/worker-base
 COPY dem /app/dem
 COPY mce /app/mce
 COPY api /app/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package analysis-worker --frozen --no-editable \
     --no-install-package numba \

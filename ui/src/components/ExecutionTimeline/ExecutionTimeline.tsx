@@ -17,7 +17,7 @@
 import { Typography, Box, Stack } from '@open-ui-kit/core';
 import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useStateMachine } from '@/api/kgInspectorApi';
-import { useTimelineReasoningPath } from '@/api/oxpApi';
+import { useTimelineReasoningPath } from '@/api/scopeApi';
 import { useTheme, Tooltip, alpha, Chip, IconButton } from '@mui/material';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -27,7 +27,7 @@ import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 import type {
   TimelineReasoningVariable,
   TimelineReasoningDependency
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 
 type HierarchyLevel = 'session' | 'mas' | 'agent' | 'task' | 'call';
 

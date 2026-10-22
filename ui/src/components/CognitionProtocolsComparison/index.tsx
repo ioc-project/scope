@@ -10,7 +10,7 @@ import { Banner, EmptyState, Skeleton } from '@open-ui-kit/core';
 import { format } from 'date-fns';
 import dayjs from 'dayjs';
 import { IntervalPicker } from '@/components';
-import { useSessionsWithCognitionProtocols } from '@/api/oxpApi';
+import { useSessionsWithCognitionProtocols } from '@/api/scopeApi';
 import { FAILURE_CONFIDENCE_THRESHOLD } from '@/common/cognitiveFailures';
 import { useTimeRangeStore } from '@/store';
 import { useDebouncedValue } from '@/utils';

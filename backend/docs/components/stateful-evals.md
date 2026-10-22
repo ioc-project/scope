@@ -2,13 +2,13 @@
 
 An in-process library that evaluates a multi-agent trajectory span by span against a policy, returning a binary pass/fail verdict plus diagnostic metrics — a cost-effective alternative to full LLM-as-judge grading of every metric independently.
 
-**Source:** [`stateful-evals`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/stateful-evals)
+**Source:** [`stateful-evals`](https://github.com/ioc-project/scope/tree/main/backend/stateful-evals)
 
 ## Overview
 
 Stateful Evals (package `stateful_evals_be`) builds a `TrajectoryContext` as it reads a session's spans in start-time order: the policy and agent contracts, what the user asked for, what tools returned, what agents claimed, which requirements are still open, and how agents coordinated. Each span is judged against that accumulated state (via an LLM judge), then ingested to update the state, so later spans are judged with full knowledge of everything that came before. After the last span, a final audit produces a `trajectory_score` (fatal/minor failure classification) and, optionally, a set of diagnostic trajectory-level metrics (e.g. `groundedness`, `task_completion`) that never affect that score.
 
-It is a pure library — callers supply spans and model access, and own scheduling/persistence. It runs the [MCE](mce.md) engine in process for metric computation and needs no database, server, or MCE URL of its own. Database sessions are read by the stateful-eval worker through the OXP API (`get_session_trajectory`) and evaluated with `evaluate_trajectory`.
+It is a pure library — callers supply spans and model access, and own scheduling/persistence. It runs the [MCE](mce.md) engine in process for metric computation and needs no database, server, or MCE URL of its own. Database sessions are read by the stateful-eval worker through the SCOPE API (`get_session_trajectory`) and evaluated with `evaluate_trajectory`.
 
 ### Modules
 
@@ -18,7 +18,7 @@ It is a pure library — callers supply spans and model access, and own scheduli
 | `policies/` | Built-in domain policy files (`noa.md`, `tau2_airline.md`, `tau2_retail.md`, `tau2_telecom.md`) that define what "correct" behavior looks like for a domain |
 | `domain/` | Domain-specific extraction logic (e.g. agent contracts, intents) used while building the context |
 | `models/` | Pydantic request/response models (`requests.py` — `TemporalMetricOptions`, etc. — and `spans.py` — `SpanRecord`) |
-| `integrations/` | Converters from other span formats into the library's span shape, e.g. `oxp.py` (`oxp_span_to_otel`) for OXP snake_case spans, `files.py` for file-based loading |
+| `integrations/` | Converters from other span formats into the library's span shape, e.g. `scope.py` (`scope_span_to_otel`) for SCOPE snake_case spans, `files.py` for file-based loading |
 | `plugins/mdt_metrics/` | A separate installable package (`mdt-metrics`) providing the built-in trajectory metric implementations |
 | `scripts/` | Standalone entry points: `import_trajectories` (import a trajectory dataset into ClickHouse) |
 | `data/` | Bundled example trajectory data |
@@ -80,7 +80,7 @@ A judge model is configured via `LLM_MODEL_NAME`, `LLM_BASE_MODEL_URL` (an OpenA
 
 See the [quickstart](../../stateful-evals/quickstart/README.md) for a full walkthrough — inspecting a `TrajectoryContext` with no model calls, then running `evaluate_file` on a bundled NOA trip planner trajectory — and [Trajectory Context](../../stateful-evals/stateful_evals_be/evaluation/README.md) / [Defining Evaluation Metrics](../../stateful-evals/stateful_evals_be/evaluation/trajectory_context_metrics/README.md) for the state model and how to register a new metric.
 
-In the pipeline, the [stateful-eval-worker](../workers/stateful-eval-worker.md) reads a session's trajectory from the KG (OXP API `oxp.client.dal.get_session_trajectory`), calls `evaluate_trajectory`, and writes the resulting metrics and per-transition context back onto the Transition nodes.
+In the pipeline, the [stateful-eval-worker](../workers/stateful-eval-worker.md) reads a session's trajectory from the KG (SCOPE API `scope.client.dal.get_session_trajectory`), calls `evaluate_trajectory`, and writes the resulting metrics and per-transition context back onto the Transition nodes.
 
 ## Development
 

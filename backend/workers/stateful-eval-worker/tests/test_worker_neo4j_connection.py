@@ -29,8 +29,8 @@ class _Driver:
 
 @pytest.fixture
 def drivers(monkeypatch):
-    import oxp.connectors.neo4j as neo4j_module
-    import oxp.dependencies as dependencies
+    import scope.connectors.neo4j as neo4j_module
+    import scope.dependencies as dependencies
 
     opened = []
 

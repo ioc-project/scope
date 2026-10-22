@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { SemanticGroupsInsight } from '@/types/oxp.type';
+import { SemanticGroupsInsight } from '@/types/scope.type';
 import { Tags } from '@/components';
 import { Dayjs } from 'dayjs';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';

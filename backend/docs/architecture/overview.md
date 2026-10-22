@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The picture belows depicts the overall architecture of OXP.
+The picture belows depicts the overall architecture of SCOPE.
 
 ![image ](../figures/Architecture.png "Overview architecture")
 

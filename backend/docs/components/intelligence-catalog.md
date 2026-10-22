@@ -2,7 +2,7 @@
 
 Central, version-controlled repository of Insight templates — JSON files that pair a Cypher query over the knowledge graph with a rendering template for the resulting `Insight` node.
 
-**Source:** [`intelligence-catalog`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/intelligence-catalog)
+**Source:** [`intelligence-catalog`](https://github.com/ioc-project/scope/tree/main/backend/intelligence-catalog)
 
 ## Overview
 

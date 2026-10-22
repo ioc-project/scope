@@ -4,7 +4,7 @@
  */
 
 import { isBestEffortState, isCommitState } from '@/common/cognitionProtocols';
-import { SessionWithCognitionProtocols, Unit } from '@/types/oxp.type';
+import { SessionWithCognitionProtocols, Unit } from '@/types/scope.type';
 import { formatDurationMs } from '@/utils';
 import { NO_DATA } from '../CognitionProtocols/primitives';
 

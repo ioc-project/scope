@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from dem.intelligence import InsightTemplateModel, load_templates_from_disk
-from oxp_ontology.models.nodes.insight import Insight
+from scope_ontology.models.nodes.insight import Insight
 
 logger = logging.getLogger(__name__)
 

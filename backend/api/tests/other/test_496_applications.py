@@ -15,19 +15,19 @@ import pytest
 from fastapi.testclient import TestClient
 from dotenv import load_dotenv
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.connectors.clickhouse import ClickHouseConnector
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.connectors.clickhouse import ClickHouseConnector
+from scope.connectors.neo4j import Neo4JConnector
+from scope.dependencies import get_db, get_redis
 
 # Load .env for test-only environment defaults.
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so "oxp" is importable.
+# Ensure the project root is on sys.path so "scope" is importable.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Module-scoped ClickHouse connector (shared across all tests).

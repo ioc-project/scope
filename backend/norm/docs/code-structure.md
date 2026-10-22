@@ -20,13 +20,13 @@ core.
 | Module | Role |
 |--------|------|
 | `normalizer.py` | `normalize()`, `Normalizer` (thin file-loading wrapper), `dump_jsonld()` |
-| `ontology.py` | Resolves ontology TTL/SHACL shape paths from the installed `oxp-ontology` package — no vendored TTL copies |
+| `ontology.py` | Resolves ontology TTL/SHACL shape paths from the installed `scope-ontology` package — no vendored TTL copies |
 | `verifier.py` | Structural checks (`check_unknown_node_types`, `check_unknown_edge_types`, `check_edge_domain_range`, `check_orphaned_edges`), SHACL (`run_shacl_validation`), `nodes_edges_to_jsonld`, `verify_kg()` |
 | `compare.py` | KG structural regression diff (`compare_kg`, `read_kg_json`/`write_kg_json`) — not currently wired into norm-worker or any other caller; a standalone utility for comparing two KG documents |
 
-Ontology node/edge models (`oxp_ontology.models.nodes`/`.edges`) live in the
-external `oxp-ontology` package, generated from its own TTL files — norm only
-imports and consumes them. `oxp_ontology.models.base.KGBase` uses
+Ontology node/edge models (`scope_ontology.models.nodes`/`.edges`) live in the
+external `scope-ontology` package, generated from its own TTL files — norm only
+imports and consumes them. `scope_ontology.models.base.KGBase` uses
 `extra="forbid"`, so constructing a node/edge with an undeclared field raises
 `pydantic.ValidationError` immediately.
 
@@ -40,9 +40,9 @@ from norm import normalize
 nodes, edges = normalize(raw_span_dicts)
 ```
 
-Fetching spans from oxp-api and adapting oxp-api's `SpanMetadataItem` rows to
+Fetching spans from scope-api and adapting scope-api's `SpanMetadataItem` rows to
 the raw span-dict shape `normalize()` expects is norm-worker's own job (see
 `norm_worker.wrapper.norm_wrapper._to_otel_span_dict`), not something norm
-provides — oxp-api's `SpanMetadataItem` is itself sourced from the same
+provides — scope-api's `SpanMetadataItem` is itself sourced from the same
 ClickHouse `otel_traces` columns as `load_otel_export`, so the mapping is a
 straight field rename with no reformatting.

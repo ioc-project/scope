@@ -9,12 +9,12 @@ import { GenericGraph } from '../GenericGraph/GenericGraph';
 import {
   StaticTopology as StaticTopologyType,
   StaticTopologyTool
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import {
   ApplicationAgentToolsResponse,
   useApplicationAgentTools,
   useStaticTopology
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { TagBackgroundColorVariants } from '@open-ui-kit/core';
 import { isToolDataArray } from '@/utils';
 

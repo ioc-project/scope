@@ -1,13 +1,13 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-from oxp.interfaces.models import (
+from scope.interfaces.models import (
     AggregateFacet,
     EdgeFacet,
     NodeFacet,
     RetrievalRequest,
     RetrievalScope,
 )
-from oxp.providers.kg import OXPKGProvider
+from scope.providers.kg import SCOPEKGProvider
 
 
 class FakeConnector:
@@ -127,7 +127,7 @@ class PartialConversationConnector:
 
 
 def test_retrieve_supports_time_interval_and_count_aggregate() -> None:
-    provider = OXPKGProvider(db=FakeConnector())
+    provider = SCOPEKGProvider(db=FakeConnector())
 
     request = RetrievalRequest(
         scope=RetrievalScope(
@@ -169,7 +169,7 @@ def test_retrieve_supports_time_interval_and_count_aggregate() -> None:
 
 
 def test_fetch_uses_retrieval_request_for_single_session() -> None:
-    provider = OXPKGProvider(db=FakeConnector())
+    provider = SCOPEKGProvider(db=FakeConnector())
     result = provider.fetch(
         "session-1",
         requirements=type(
@@ -200,7 +200,7 @@ def test_fetch_uses_retrieval_request_for_single_session() -> None:
 
 
 def test_retrieve_compiles_generic_toolcall_chain() -> None:
-    provider = OXPKGProvider(db=FakeConnector())
+    provider = SCOPEKGProvider(db=FakeConnector())
     result = provider.retrieve(
         RetrievalRequest(
             scope=RetrievalScope(session_ids=["session-1"]),
@@ -229,7 +229,7 @@ def test_retrieve_compiles_generic_toolcall_chain() -> None:
 
 
 def test_retrieve_enriches_toolcall_output_from_state_content() -> None:
-    provider = OXPKGProvider(db=FakeConnector())
+    provider = SCOPEKGProvider(db=FakeConnector())
     result = provider.retrieve(
         RetrievalRequest(
             scope=RetrievalScope(session_ids=["session-1"]),
@@ -271,7 +271,7 @@ def test_retrieve_enriches_toolcall_output_from_state_content() -> None:
 
 
 def test_normalize_tool_call_aliases_output_content_and_error_flag() -> None:
-    node = OXPKGProvider._normalize_tool_call(
+    node = SCOPEKGProvider._normalize_tool_call(
         {"id": "tool-1", "success": False},
         enrichment={
             "name": "search",
@@ -287,7 +287,7 @@ def test_normalize_tool_call_aliases_output_content_and_error_flag() -> None:
 
 
 def test_normalize_llm_call_aliases_prompt_completion_and_error_flag() -> None:
-    node = OXPKGProvider._normalize_llm_call(
+    node = SCOPEKGProvider._normalize_llm_call(
         {"id": "llm-1", "success": False},
         enrichment={"inputContent": "prompt", "outputContent": "completion"},
     )
@@ -299,12 +299,12 @@ def test_normalize_llm_call_aliases_prompt_completion_and_error_flag() -> None:
 
 def test_normalize_calls_leave_contains_error_false_when_success_unset() -> None:
     """success is None (no signal recorded) must not read as an error."""
-    node = OXPKGProvider._normalize_llm_call({"id": "llm-1"}, enrichment=None)
+    node = SCOPEKGProvider._normalize_llm_call({"id": "llm-1"}, enrichment=None)
     assert node["contains_error"] is False
 
 
 def test_fetch_returns_llm_and_tool_spans_with_enriched_content() -> None:
-    provider = OXPKGProvider(db=FakeConnector())
+    provider = SCOPEKGProvider(db=FakeConnector())
 
     result = provider.fetch(
         "session-1",
@@ -321,7 +321,7 @@ def test_fetch_returns_llm_and_tool_spans_with_enriched_content() -> None:
 
 
 def test_derive_session_query_response_prefers_agent_spans_then_llm_spans() -> None:
-    query, response = OXPKGProvider._derive_session_query_response(
+    query, response = SCOPEKGProvider._derive_session_query_response(
         [{"inputContent": "session question", "outputContent": "session answer"}],
         [{"prompt": "llm question", "completion": "llm answer"}],
     )
@@ -329,7 +329,7 @@ def test_derive_session_query_response_prefers_agent_spans_then_llm_spans() -> N
     assert query == "session question"
     assert response == "session answer"
 
-    fallback_query, fallback_response = OXPKGProvider._derive_session_query_response(
+    fallback_query, fallback_response = SCOPEKGProvider._derive_session_query_response(
         [],
         [
             {"prompt": "first question", "completion": "first answer"},
@@ -344,7 +344,7 @@ def test_derive_session_query_response_prefers_agent_spans_then_llm_spans() -> N
 def test_fetch_fills_partial_conversation_from_llm_spans_and_normalizes_tool_spans() -> (
     None
 ):
-    provider = OXPKGProvider(db=PartialConversationConnector())
+    provider = SCOPEKGProvider(db=PartialConversationConnector())
 
     result = provider.fetch(
         "session-1",

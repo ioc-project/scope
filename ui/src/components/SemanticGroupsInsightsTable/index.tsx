@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useSemanticGroupsInsights } from '@/api/oxpApi';
+import { useSemanticGroupsInsights } from '@/api/scopeApi';
 import { Spinner, Stack } from '@open-ui-kit/core';
 import { SemanticGroupsInsightsTable } from './SemanticGroupsInsightsTable';
 import { IntervalPicker } from '@/components/IntervalPicker';

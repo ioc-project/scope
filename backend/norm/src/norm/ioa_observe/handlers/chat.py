@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from oxp_ontology.models.edges import executesLLM, hasLLMCall, usesLLM
-from oxp_ontology.models.nodes import LLM, AgentCall, LLMCall
+from scope_ontology.models.edges import executesLLM, hasLLMCall, usesLLM
+from scope_ontology.models.nodes import LLM, AgentCall, LLMCall
 
 from ..fields import (
     _first_str,

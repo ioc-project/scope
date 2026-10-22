@@ -1,6 +1,6 @@
 # Workers
 
-Standalone worker packages for the OXP telemetry pipeline. Each worker is an independently deployable Python package with a CLI entry point, RabbitMQ queue mode, and Argo Workflows single-message mode.
+Standalone worker packages for the SCOPE telemetry pipeline. Each worker is an independently deployable Python package with a CLI entry point, RabbitMQ queue mode, and Argo Workflows single-message mode.
 
 All workers are built on the shared [`worker-base`](../worker-base/README.md) framework.
 

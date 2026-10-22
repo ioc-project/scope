@@ -50,8 +50,14 @@ def _entry(name, value):
 
 
 def test_installed_packages_add_evaluators_through_entry_points(monkeypatch):
-    entries = [_entry("a", f"{__name__}:Tooly"), _entry("b", f"{__name__}:factory"), _entry("c", "no_such_module:Nope")]
-    monkeypatch.setattr(plugins, "entry_points", lambda group: [e for e in entries if e.group == group])
+    entries = [
+        _entry("a", f"{__name__}:Tooly"),
+        _entry("b", f"{__name__}:factory"),
+        _entry("c", "no_such_module:Nope"),
+    ]
+    monkeypatch.setattr(
+        plugins, "entry_points", lambda group: [e for e in entries if e.group == group]
+    )
     registry = EvaluatorRegistry(builtin_evaluators())
     registry.load_entry_points()  # the broken one is skipped
     assert registry.names() == ["accord", "concord", "made", "tooly"]
@@ -66,7 +72,9 @@ def test_mce_evaluator_runs_the_services_session_computation_with_the_protocols_
             return ["ok"], ["skipped"]
 
     built = []
-    evaluator = McEvaluator("p", "p.yaml", service_factory=lambda: built.append(1) or Service())
+    evaluator = McEvaluator(
+        "p", "p.yaml", service_factory=lambda: built.append(1) or Service()
+    )
     first = evaluator.evaluate("s1")
     evaluator.evaluate("s2")
     assert (first.passed, first.failed) == (["ok"], ["skipped"])
@@ -74,12 +82,24 @@ def test_mce_evaluator_runs_the_services_session_computation_with_the_protocols_
 
 
 @pytest.mark.parametrize("protocol", ["accord", "concord"])
-def test_the_protocol_config_names_only_installed_plugins_and_keeps_mce_cache_off(protocol):
+def test_the_protocol_config_names_only_installed_plugins_and_keeps_mce_cache_off(
+    protocol,
+):
     import yaml
     from mce.core.registry.discovery import _discover_plugin_metrics
 
-    config = Path(registry_module.__file__).parents[1] / "protocols" / f"{protocol}_mce_config.yaml"
+    config = (
+        Path(registry_module.__file__).parents[1]
+        / "protocols"
+        / f"{protocol}_mce_config.yaml"
+    )
     cfg = yaml.safe_load(config.read_text())
     plugins_installed = {m.metric_id for m in _discover_plugin_metrics()}
-    assert cfg["metrics"]["Session"] and set(cfg["metrics"]["Session"]) <= plugins_installed
-    assert cfg["cache"] == {"read": False, "write": False}  # nothing lands on the Session
+    assert (
+        cfg["metrics"]["Session"]
+        and set(cfg["metrics"]["Session"]) <= plugins_installed
+    )
+    assert cfg["cache"] == {
+        "read": False,
+        "write": False,
+    }  # nothing lands on the Session

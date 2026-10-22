@@ -14,12 +14,12 @@ import {
   useTheme
 } from '@mui/material';
 import { ApplicationCard } from '@/components';
-import { ApplicationWithStatefulEval } from '@/types/oxp.type';
+import { ApplicationWithStatefulEval } from '@/types/scope.type';
 import {
   useApplications,
   useApplicationListSummaryMetrics,
   useApplicationsWithStatefulEval
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import {
   RepositorySortOption,
   RepositorySortOptionLabel

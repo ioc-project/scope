@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useImpactAssessmentSession } from '@/api/oxpApi';
-import { OutlierMetric, Unit } from '@/types/oxp.type';
+import { useImpactAssessmentSession } from '@/api/scopeApi';
+import { OutlierMetric, Unit } from '@/types/scope.type';
 import { OutlierMetricsTable } from './OutlierMetricsTable';
 import { useMemo } from 'react';
 import { metricCatalog, unitSuffix } from '@/common';
 import { formatDurationMs, formatTwoDecimals } from '@/utils/stringUtils';
 import { formatMetricValue } from '@/utils/metrics';
 import { useParams } from 'react-router';
-import { useNormalBehaviourReport } from '@/api/oxpApi';
+import { useNormalBehaviourReport } from '@/api/scopeApi';
 
 interface OutlierMetricsTableWrapperProps {
   sessionId: string;

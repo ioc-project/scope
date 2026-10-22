@@ -17,8 +17,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Box, Chip, Stack, Typography, useTheme } from '@mui/material';
 import { Spinner } from '@open-ui-kit/core';
-import { useApplicationReasoningPath } from '@/api/oxpApi';
-import type { AppReasoningNode } from '@/types/oxp.type';
+import { useApplicationReasoningPath } from '@/api/scopeApi';
+import type { AppReasoningNode } from '@/types/scope.type';
 import { ApplicationReasoningPathNode } from './ApplicationReasoningPathNode';
 import {
   computeLayout,

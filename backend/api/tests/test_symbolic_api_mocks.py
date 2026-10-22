@@ -7,11 +7,11 @@ from pprint import pformat
 
 from fastapi.testclient import TestClient
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.connectors.base import Connector
-from oxp.dependencies import get_neo4j_db
-from oxp.models.otel_traces import SymbolicSessionStateResponse
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.connectors.base import Connector
+from scope.dependencies import get_neo4j_db
+from scope.models.otel_traces import SymbolicSessionStateResponse
 
 logger = logging.getLogger(__name__)
 

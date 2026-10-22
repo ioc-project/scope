@@ -7,7 +7,7 @@ Run with:
 
 Use CONNECTOR_TYPE to choose the database backend:
     CONNECTOR_TYPE=SQLITE  pytest tests/test_endpoint_ui_dev.py -v -s   (default)
-    CONNECTOR_TYPE=CLICKHOUSE OXP_CH_HOST=... pytest tests/test_endpoint_ui_dev.py -v -s
+    CONNECTOR_TYPE=CLICKHOUSE SCOPE_CH_HOST=... pytest tests/test_endpoint_ui_dev.py -v -s
 """
 
 import json
@@ -22,21 +22,21 @@ import pytest
 import fakeredis
 from dotenv import load_dotenv
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.connectors.clickhouse import ClickHouseConnector
-from oxp.connectors.sqlalchemy import SQLAlchemyConnector
-from oxp.core.config import settings
-from oxp.dependencies import get_db, get_redis
-from oxp.repositories.sqlite_repository import SqliteOtelRepository
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.connectors.clickhouse import ClickHouseConnector
+from scope.connectors.sqlalchemy import SQLAlchemyConnector
+from scope.core.config import settings
+from scope.dependencies import get_db, get_redis
+from scope.repositories.sqlite_repository import SqliteOtelRepository
 from fastapi.testclient import TestClient
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Path to CSV data shipped with the repo
@@ -55,25 +55,27 @@ CONNECTOR_TYPE = os.environ.get("CONNECTOR_TYPE", "SQLITE").upper()
 _DEBUG = logger.isEnabledFor(logging.DEBUG)
 
 # SQLite-specific paths (only used when CONNECTOR_TYPE == "SQLITE")
-OXP_DB_PATH = os.environ.get(
-    "OXP_DB_PATH",
+SCOPE_DB_PATH = os.environ.get(
+    "SCOPE_DB_PATH",
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "sandbox"),
 )
 
 if CONNECTOR_TYPE == "SQLITE":
     if _DEBUG:
         _db_dir = (
-            os.path.dirname(OXP_DB_PATH) if OXP_DB_PATH.endswith(".db") else OXP_DB_PATH
+            os.path.dirname(SCOPE_DB_PATH)
+            if SCOPE_DB_PATH.endswith(".db")
+            else SCOPE_DB_PATH
         )
         os.makedirs(_db_dir, exist_ok=True)
         _DB_PATH = (
-            OXP_DB_PATH
-            if OXP_DB_PATH.endswith(".db")
-            else os.path.join(OXP_DB_PATH, "oxp_test.db")
+            SCOPE_DB_PATH
+            if SCOPE_DB_PATH.endswith(".db")
+            else os.path.join(SCOPE_DB_PATH, "scope_test.db")
         )
     else:
-        _tmp_dir = tempfile.mkdtemp(prefix="oxp_test_")
-        _DB_PATH = os.path.join(_tmp_dir, "oxp_test.db")
+        _tmp_dir = tempfile.mkdtemp(prefix="scope_test_")
+        _DB_PATH = os.path.join(_tmp_dir, "scope_test.db")
 else:
     _DB_PATH = None  # not used for ClickHouse
 

@@ -29,8 +29,8 @@ whatever that resolver left unresolved.
 
 from __future__ import annotations
 
-from oxp_ontology.models.edges import hasFinalState, hasInitialState, hasLLMCall, hasToolCall
-from oxp_ontology.models.nodes import AgentCall, LLMCall, ToolCall
+from scope_ontology.models.edges import hasFinalState, hasInitialState, hasLLMCall, hasToolCall
+from scope_ontology.models.nodes import AgentCall, LLMCall, ToolCall
 
 from ..registry import Registry
 from ..trajectory import bridge_states_if_mismatched

@@ -4,7 +4,7 @@
  */
 
 import { Stack, Typography } from '@mui/material';
-import { ConfidenceLevel, SessionWithMetrics, Unit } from '@/types/oxp.type';
+import { ConfidenceLevel, SessionWithMetrics, Unit } from '@/types/scope.type';
 import { SessionDistributionChart } from './SessionDistributionChart';
 import { GeneralSize, Tag, TagBackgroundColorVariants } from '@open-ui-kit/core';
 import { capitalizeFirstLetter } from '@/utils/stringUtils';

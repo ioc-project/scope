@@ -15,9 +15,9 @@ import json
 import logging
 from typing import Any
 
-from oxp_ontology.models.base import KGBase
-from oxp_ontology.models.edges import belongsToMAS
-from oxp_ontology.models.nodes import MAS, Agent, StructuralElement
+from scope_ontology.models.base import KGBase
+from scope_ontology.models.edges import belongsToMAS
+from scope_ontology.models.nodes import MAS, Agent, StructuralElement
 
 from ..fields import get_application_id
 from ..registry import Registry

@@ -1,8 +1,8 @@
 # Normalization
 
-The normalization library (`norm`) is the component that parses raw OpenTelemetry spans into ontology-backed knowledge graph data (`{"nodes": [...], "edges": [...]}`), which conforms to the [OXP ontology](https://cisco-eti.github.io/oxp-ontology/).
+The normalization library (`norm`) is the component that parses raw OpenTelemetry spans into ontology-backed knowledge graph data (`{"nodes": [...], "edges": [...]}`), which conforms to the [SCOPE ontology](https://ioc-project.github.io/scope-ontology/).
 
-**Source:** [`norm`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/norm)
+**Source:** [`norm`](https://github.com/ioc-project/scope/tree/main/backend/norm)
 
 ## Overview
 
@@ -13,11 +13,11 @@ The normalized data is made up of:
 - the execution hierarchy (the session execution, who called what)
 - the trajectory (what content actually flowed through the system)
 
-These elements correspond respectively to the `StructuralElement`, `ExecutionElement`, and `TrajectoryElement` in the OXP ontology. 
+These elements correspond respectively to the `StructuralElement`, `ExecutionElement`, and `TrajectoryElement` in the SCOPE ontology. 
 
 ![Normalization pipeline](../figures/norm-diagram.png)
 
-The normalization library simply contains the span data extraction, with no I/O beyond optional file loading: it does not fetch spans itself, does not talk to the graph database, and does not run as a service. [norm-worker](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/norm-worker) is the production caller — it fetches spans through the API client, adapts them to the raw span-dict shape `norm` expects, calls `normalize()`, and writes the result to the graph.
+The normalization library simply contains the span data extraction, with no I/O beyond optional file loading: it does not fetch spans itself, does not talk to the graph database, and does not run as a service. [norm-worker](https://github.com/ioc-project/scope/tree/main/backend/workers/norm-worker) is the production caller — it fetches spans through the API client, adapts them to the raw span-dict shape `norm` expects, calls `normalize()`, and writes the result to the graph.
 
 
 ## Design principles
@@ -25,7 +25,7 @@ The normalization library simply contains the span data extraction, with no I/O 
 The normalization implementation follows the following principles:
 
 1. Every span is dispatched straight to individual handlers based on their `SpanName`, which create/update a corresponding set of nodes and edges in the knowledge graph.
-2. To ensure sanity of the resulting graph, every generated node/edge is validated as an object from the OXP ontology.
+2. To ensure sanity of the resulting graph, every generated node/edge is validated as an object from the SCOPE ontology.
 3. A set of post-processing steps ensure the eventual sanity of the resulting graph, mostly reconciling the trajectory after every span was processed by its handler.
 
 

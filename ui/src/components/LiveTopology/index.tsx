@@ -10,11 +10,11 @@ import { GenericGraph } from '../GenericGraph/GenericGraph';
 import {
   StaticTopology as StaticTopologyType,
   StaticTopologyTool
-} from '@/types/oxp.type';
-import { useStaticTopology, useLiveTopologySession } from '@/api/oxpApi';
+} from '@/types/scope.type';
+import { useStaticTopology, useLiveTopologySession } from '@/api/scopeApi';
 import { TagBackgroundColorVariants } from '@open-ui-kit/core';
 import { isToolDataArray } from '@/utils';
-import type { LiveTopologyNode, LiveTopologyEdge } from '@/types/oxpApi.type';
+import type { LiveTopologyNode, LiveTopologyEdge } from '@/types/scopeApi.type';
 import type { Graph } from '@antv/g6';
 
 const FILTERED_NODE_IDS: string[] = ['__start__', '__end__'];

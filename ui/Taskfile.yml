@@ -32,9 +32,9 @@ tasks:
     cmds:
       - task: utils:bugfixprerelease
 
-  oxp-ui-version:
-    desc: Print oxp-ui version
+  scope-ui-version:
+    desc: Print scope-ui version
     cmds:
       - task: utils:version
         vars:
-          MODULE: oxp-ui
+          MODULE: scope-ui

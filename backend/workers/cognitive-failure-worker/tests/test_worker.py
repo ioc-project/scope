@@ -3,8 +3,8 @@
 import json
 from types import SimpleNamespace
 
-import oxp.client.failures  # noqa: F401  (so mocker can patch it)
-import oxp.client.dal  # noqa: F401
+import scope.client.failures  # noqa: F401  (so mocker can patch it)
+import scope.client.dal  # noqa: F401
 import pytest
 from conftest import TRAJECTORY
 from worker_base.queue_message import BaseQueueMessage
@@ -104,11 +104,9 @@ def test_the_shipped_example_config_loads(rabbit_url):
 
 
 @pytest.mark.asyncio
-async def test_detections_are_written_and_the_message_is_forwarded(
-    rabbit_url, tmp_path, kg, message, mocker
-):
-    mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports", return_value=1)
+async def test_detections_are_written_and_the_message_is_forwarded(rabbit_url, tmp_path, kg, message, mocker):
+    mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    write = mocker.patch("scope.client.failures.write_cognitive_failure_reports", return_value=1)
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(
         worker,
@@ -129,8 +127,8 @@ async def test_detections_are_written_and_the_message_is_forwarded(
 
 @pytest.mark.asyncio
 async def test_a_session_with_nothing_detected_writes_an_empty_list(rabbit_url, tmp_path, kg, message, mocker):
-    mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports", return_value=0)
+    mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    write = mocker.patch("scope.client.failures.write_cognitive_failure_reports", return_value=0)
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(worker, "_chat", return_value=_answer())
 
@@ -140,11 +138,9 @@ async def test_a_session_with_nothing_detected_writes_an_empty_list(rabbit_url, 
 
 
 @pytest.mark.asyncio
-async def test_an_unusable_answer_writes_nothing_but_still_forwards(
-    rabbit_url, tmp_path, kg, message, mocker
-):
-    mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
-    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
+async def test_an_unusable_answer_writes_nothing_but_still_forwards(rabbit_url, tmp_path, kg, message, mocker):
+    mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    write = mocker.patch("scope.client.failures.write_cognitive_failure_reports")
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     mocker.patch.object(worker, "_chat", return_value=ChatReply(content="I cannot help with that"))
 
@@ -156,8 +152,8 @@ async def test_an_unusable_answer_writes_nothing_but_still_forwards(
 
 @pytest.mark.asyncio
 async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, message, mocker):
-    mocker.patch("oxp.client.dal.get_session_trajectory", return_value={"session_id": "session-1", "steps": []})
-    write = mocker.patch("oxp.client.failures.write_cognitive_failure_reports")
+    mocker.patch("scope.client.dal.get_session_trajectory", return_value={"session_id": "session-1", "steps": []})
+    write = mocker.patch("scope.client.failures.write_cognitive_failure_reports")
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
     chat = mocker.patch.object(worker, "_chat")
 
@@ -169,7 +165,7 @@ async def test_a_session_without_steps_is_skipped(rabbit_url, tmp_path, kg, mess
 
 @pytest.mark.asyncio
 async def test_with_no_failure_configured_the_graph_and_the_model_are_not_touched(rabbit_url, kg, message, mocker):
-    get_trajectory = mocker.patch("oxp.client.dal.get_session_trajectory")
+    get_trajectory = mocker.patch("scope.client.dal.get_session_trajectory")
     worker = _worker(rabbit_url)
     chat = mocker.patch.object(worker, "_chat")
 

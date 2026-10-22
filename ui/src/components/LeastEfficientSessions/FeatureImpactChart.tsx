@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useWastedResourcesFeatureScores } from '@/api/oxpApi';
-import { WastefulSession } from '@/types/oxp.type';
+import { useWastedResourcesFeatureScores } from '@/api/scopeApi';
+import { WastefulSession } from '@/types/scope.type';
 import {
   Box,
   FormControl,

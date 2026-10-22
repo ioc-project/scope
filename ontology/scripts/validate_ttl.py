@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import sys
 
-from oxp_ontology.validation import format_report, validate_bundled_ontologies
+from scope_ontology.validation import format_report, validate_bundled_ontologies
 
 
 def main() -> int:

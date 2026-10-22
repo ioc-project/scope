@@ -13,7 +13,8 @@ members = [
 ]
 
 [tool.uv.sources]
-oxp-api = { path = "../api", editable = true }
+scope-api = { path = "../api", editable = true }
+scope-ontology = { path = "../../ontology", editable = true }
 
 [dependency-groups]
 dev = [

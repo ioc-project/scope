@@ -1,6 +1,6 @@
 # Normalization
 
-This library is the normalization library of OXP, which converts raw OpenTelemetry spans into a normalized, ontology-verified KG documents (`{"nodes": [...], "edges": [...]}`) that conform to the [OXP ontology](https://outshift-open.github.io/observe-and-explain-platform/).
+This library is the normalization library of SCOPE, which converts raw OpenTelemetry spans into a normalized, ontology-verified KG documents (`{"nodes": [...], "edges": [...]}`) that conform to the [SCOPE ontology](https://ioc-project.github.io/scope/).
 
 ## Overview
 
@@ -71,7 +71,7 @@ unused legacy scaffolding — not part of the built package).
 | Module | Role |
 |---|---|
 | `normalizer.py` | `normalize()`, `Normalizer` (thin file-loading wrapper), `dump_jsonld()` |
-| `ontology.py` | Resolves ontology TTL/SHACL shape paths from the installed `oxp-ontology` package — no vendored TTL copies |
+| `ontology.py` | Resolves ontology TTL/SHACL shape paths from the installed `scope-ontology` package — no vendored TTL copies |
 | `verifier.py` | Structural checks (`check_unknown_node_types`, `check_unknown_edge_types`, `check_edge_domain_range`, `check_orphaned_edges`), SHACL (`run_shacl_validation`), `nodes_edges_to_jsonld`, `verify_kg()` |
 | `compare.py` | KG structural regression diff (`compare_kg`, `read_kg_json`/`write_kg_json`) — a standalone comparison utility, not currently wired into norm-worker |
 
@@ -92,6 +92,6 @@ unused legacy scaffolding — not part of the built package).
 
 `norm` is normally not invoked directly — it's run by the standalone
 [`norm-worker`](../workers/norm-worker.md), which depends on `norm[graph]` and calls
-`normalize()` on spans it fetches from [oxp-api](api.md). Adapting oxp-api's
+`normalize()` on spans it fetches from [scope-api](api.md). Adapting scope-api's
 `SpanMetadataItem` rows to the raw span-dict shape `normalize()` expects is norm-worker's own job
 (a straight field rename — both are sourced from the same ClickHouse `otel_traces` columns).

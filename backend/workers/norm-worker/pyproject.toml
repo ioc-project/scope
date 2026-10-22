@@ -25,9 +25,9 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "norm[graph]",
-    "oxp-api",
+    "scope-api",
     "worker-base",
-    "oxp-ontology",
+    "scope-ontology",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",

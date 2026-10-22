@@ -1,7 +1,7 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-from oxp.interfaces.models import MetricResult
-from oxp.providers import OXPMetricsProvider
+from scope.interfaces.models import MetricResult
+from scope.providers import SCOPEMetricsProvider
 
 
 class _FakeConnector:
@@ -22,7 +22,7 @@ class _FakeConnector:
 
 def test_save_metrics_persists_scalar_metric_result_and_explicit_fields() -> None:
     connector = _FakeConnector()
-    provider = OXPMetricsProvider(db=connector)
+    provider = SCOPEMetricsProvider(db=connector)
 
     result = MetricResult(
         metric_id="LLMErrorRate",
@@ -48,7 +48,7 @@ def test_save_metrics_persists_scalar_metric_result_and_explicit_fields() -> Non
 
 def test_save_metrics_falls_back_to_metric_name_for_metric_id() -> None:
     connector = _FakeConnector()
-    provider = OXPMetricsProvider(db=connector)
+    provider = SCOPEMetricsProvider(db=connector)
 
     result = MetricResult(
         metric_id="Groundedness",
@@ -68,7 +68,7 @@ def test_save_metrics_falls_back_to_metric_name_for_metric_id() -> None:
 
 def test_save_span_metrics_falls_back_to_metric_name_for_metric_id() -> None:
     connector = _FakeConnector()
-    provider = OXPMetricsProvider(db=connector)
+    provider = SCOPEMetricsProvider(db=connector)
 
     result = MetricResult(
         metric_id="Relevancy",
@@ -108,7 +108,7 @@ def test_get_metrics_falls_back_to_the_span_query_when_no_session_matches() -> N
             ]
 
     connector = _Seq()
-    results = OXPMetricsProvider(db=connector).get_metrics(
+    results = SCOPEMetricsProvider(db=connector).get_metrics(
         "span-1", session_id="s1", hops=0
     )
     assert [r.value for r in results] == [0.9]
@@ -130,7 +130,7 @@ def test_get_metrics_reads_metric_results() -> None:
             "subgraph": None,
         }
     ]
-    provider = OXPMetricsProvider(db=_FakeConnector(rows=rows))
+    provider = SCOPEMetricsProvider(db=_FakeConnector(rows=rows))
 
     results = provider.get_metrics("session-1")
 
@@ -142,15 +142,15 @@ def test_get_metrics_reads_metric_results() -> None:
     assert results[0].metadata == {"subgraph": None}
 
 
-def test_get_metrics_without_a_provider_falls_back_to_oxp() -> None:
+def test_get_metrics_without_a_provider_falls_back_to_scope() -> None:
     rows = [{"metrics": [{"name": "Groundedness", "result": 0.87}], "subgraph": None}]
 
-    (result,) = OXPMetricsProvider(db=_FakeConnector(rows=rows)).get_metrics(
+    (result,) = SCOPEMetricsProvider(db=_FakeConnector(rows=rows)).get_metrics(
         "session-1"
     )
 
     assert (result.metric_id, result.value, result.provider) == (
         "Groundedness",
         0.87,
-        "oxp",
+        "scope",
     )

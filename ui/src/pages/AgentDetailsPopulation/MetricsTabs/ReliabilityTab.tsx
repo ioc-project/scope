@@ -9,8 +9,8 @@ import { useParams } from 'react-router';
 import {
   AgentMetricType,
   AgentReliabilityAndSafetyMetrics
-} from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
+} from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
 
 interface ReliabilityTabProps {
   agentId: string;

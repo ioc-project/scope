@@ -1,6 +1,6 @@
-# OXP pipelines
+# SCOPE pipelines
 
-OXP runs two pipelines on top of the same knowledge graph: an **ingestion pipeline**, triggered once per completed MAS session, and a set of **periodic operations**, triggered on independent schedules. See the [architecture overview](overview.md) for how they fit into the platform as a whole.
+SCOPE runs two pipelines on top of the same knowledge graph: an **ingestion pipeline**, triggered once per completed MAS session, and a set of **periodic operations**, triggered on independent schedules. See the [architecture overview](overview.md) for how they fit into the platform as a whole.
 
 Both pipelines are built from [workers](../workers/index.md): standalone, independently deployable Python packages that share the [`worker-base`](../components/worker-base.md) framework. This is what makes the pipelines modular — a worker only needs to agree on the RabbitMQ queue(s) it reads from and writes to (or the knowledge graph state it reads/writes for periodic jobs). Nothing else in the pipeline needs to know it exists.
 

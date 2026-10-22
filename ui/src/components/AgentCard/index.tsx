@@ -6,7 +6,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { CardContent, Stack, Typography, Box, useTheme } from '@mui/material';
 import { PATHS } from '@/routes/routes.tsx';
-import { AgentCardWithStatefulEval } from '@/types/oxp.type';
+import { AgentCardWithStatefulEval } from '@/types/scope.type';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { WidgetCard } from '..';
 import { getScoreVariant } from '@/utils/metrics';

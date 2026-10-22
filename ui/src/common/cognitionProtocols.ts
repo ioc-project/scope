@@ -7,7 +7,7 @@ import {
   CognitionAccordProtocol,
   CognitionConcordProtocol,
   CognitionProtocol
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 
 export const COGNITION_CONCORD = 'CONCORD';
 export const COGNITION_ACCORD = 'ACCORD';

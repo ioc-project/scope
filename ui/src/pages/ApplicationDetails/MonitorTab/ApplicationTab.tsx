@@ -23,12 +23,12 @@ import {
   useApplicationMetrics,
   useApplicationSummaryMetrics,
   useAgenticProtocolsMetrics
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { useParams } from 'react-router';
 import { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { unitSuffix } from '@/common/constants';
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 import {
   computeOverallQuality,
   computeOverallReliability,

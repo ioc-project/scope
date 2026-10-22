@@ -11,7 +11,7 @@ import {
   isAccordProtocol,
   isConcordProtocol
 } from '@/common/cognitionProtocols';
-import { CognitionProtocol } from '@/types/oxp.type';
+import { CognitionProtocol } from '@/types/scope.type';
 import { ActivationSection } from './ActivationSection';
 import { ConcordDetails } from './ConcordDetails';
 import { AccordDetails } from './AccordDetails';

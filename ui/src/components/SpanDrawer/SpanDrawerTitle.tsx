@@ -4,7 +4,7 @@
  */
 
 import { Stack, Typography } from '@open-ui-kit/core';
-import { SpanDetails } from '@/types/oxp.type';
+import { SpanDetails } from '@/types/scope.type';
 import { getIconFromTraceType } from '@/utils';
 import { TraceType } from '@/types/trace-types.ts';
 import { capitalizeFirstLetter } from '@/utils';

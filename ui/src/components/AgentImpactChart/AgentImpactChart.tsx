@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import type { SxProps } from '@mui/material';
 import { SpiderChart, SpiderChartProps } from '@/components';
 import { metricCatalog } from '@/common';
-import { ImpactAssessment } from '@/types/oxp.type';
+import { ImpactAssessment } from '@/types/scope.type';
 
 const COLOR_PALETTE = ['#B80B98', '#0BB2B8', '#FF9000', '#3B82F6'];
 

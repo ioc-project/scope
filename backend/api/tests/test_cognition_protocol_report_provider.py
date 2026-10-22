@@ -2,9 +2,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 """CognitionProtocolReport / CognitionProtocolExecutionReport persistence, against a fake connector."""
 
-from oxp.interfaces.models import MetricResult
-from oxp.providers import OXPCognitionProtocolReportProvider
-from oxp.query_builders import cognition_protocol_graph, metric_graph
+from scope.interfaces.models import MetricResult
+from scope.providers import SCOPECognitionProtocolReportProvider
+from scope.query_builders import cognition_protocol_graph, metric_graph
 
 
 class _FakeConnector:
@@ -38,7 +38,7 @@ def _metric(name: str, value, **extra) -> MetricResult:
 def test_cognition_protocol_report_lists_the_protocols_enabled_and_activated():
     db = _FakeConnector()
     assert (
-        OXPCognitionProtocolReportProvider(db=db).save_cognition_protocol_report(
+        SCOPECognitionProtocolReportProvider(db=db).save_cognition_protocol_report(
             "s1", ["concord", "accord"], ["accord"]
         )
         is True
@@ -61,7 +61,7 @@ def test_cognition_protocol_report_lists_the_protocols_enabled_and_activated():
 
 def test_nothing_is_written_for_a_session_that_is_not_in_the_graph():
     db = _FakeConnector(session_exists=False)
-    provider = OXPCognitionProtocolReportProvider(db=db)
+    provider = SCOPECognitionProtocolReportProvider(db=db)
     assert provider.save_cognition_protocol_report("ghost", ["accord"], []) is False
     assert (
         provider.save_protocol_execution_report(
@@ -80,7 +80,7 @@ def test_nothing_is_written_for_a_session_that_is_not_in_the_graph():
 
 def test_participation_is_recorded_on_the_protocol_execution_report():
     db = _FakeConnector()
-    provider = OXPCognitionProtocolReportProvider(db=db)
+    provider = SCOPECognitionProtocolReportProvider(db=db)
     assert provider.save_protocol_execution_report(
         "s1",
         "accord",
@@ -106,7 +106,7 @@ def test_participation_is_recorded_on_the_protocol_execution_report():
 
 def test_metrics_become_nodes_that_measure_the_report_not_the_session():
     db = _FakeConnector()
-    ok = OXPCognitionProtocolReportProvider(db=db).save_protocol_execution_metrics(
+    ok = SCOPECognitionProtocolReportProvider(db=db).save_protocol_execution_metrics(
         "s1",
         "accord",
         [_metric("AccordConverged", 1.0), _metric("AccordCacheRate", 0.25)],
@@ -140,7 +140,7 @@ def test_metrics_that_errored_or_have_no_value_are_not_stored():
         _metric("AccordConverged", 1.0),
         _metric("AccordSkipped", 0.0, error="not applicable"),
     ]
-    assert OXPCognitionProtocolReportProvider(db=db).save_protocol_execution_metrics(
+    assert SCOPECognitionProtocolReportProvider(db=db).save_protocol_execution_metrics(
         "s1", "accord", metrics
     )
     upsert, _clear, *writes = db.commands
@@ -160,8 +160,8 @@ def test_a_failing_write_is_reported_not_raised():
             raise RuntimeError("neo4j down")
 
     assert (
-        OXPCognitionProtocolReportProvider(db=_Broken()).save_cognition_protocol_report(
-            "s1", ["accord"], []
-        )
+        SCOPECognitionProtocolReportProvider(
+            db=_Broken()
+        ).save_cognition_protocol_report("s1", ["accord"], [])
         is False
     )

@@ -7,7 +7,7 @@ import { Stack, Button, GaugeChart, Card } from '@open-ui-kit/core';
 import { Box, Grid, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import { MetricChart, WidgetCard } from '@/components';
-import { TimelineData, Unit } from '@/types/oxp.type';
+import { TimelineData, Unit } from '@/types/scope.type';
 import { getScoreVariant, getInsightMessage } from '@/utils';
 import {
   ApplicationLevelMetricCategory,
@@ -18,7 +18,7 @@ import {
   ApplicationSummaryMetrics,
   ApplicationSummaryMetricsValue,
   ApplicationSummaryQualityMetric
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import { PATHS } from '@/routes/routes';
 import { useNavigate } from 'react-router-dom';
 

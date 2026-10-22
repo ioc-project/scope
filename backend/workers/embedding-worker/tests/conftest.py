@@ -103,7 +103,7 @@ def auto_patch_neo4j_connector(monkeypatch):
 
     # Patch in common locations where it might be imported
     patches = [
-        "oxp.connectors.neo4j.Neo4JConnector",
+        "scope.connectors.neo4j.Neo4JConnector",
         "test_dal_migration.Neo4JConnector",
     ]
 

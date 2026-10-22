@@ -14,16 +14,16 @@ import json
 import logging
 
 from mce.client.config import MCEClientConfig
-from mce.client.setup import build_oxp_kg_provider
+from mce.client.setup import build_scope_kg_provider
 
 logger = logging.getLogger(__name__)
 
 
 def _get_kg_provider():
-    """Instantiate a OXPKGProvider (oxp-api). Patchable in tests."""
-    provider = build_oxp_kg_provider(MCEClientConfig.from_env())
+    """Instantiate a SCOPEKGProvider (scope-api). Patchable in tests."""
+    provider = build_scope_kg_provider(MCEClientConfig.from_env())
     if provider is None:
-        raise click.ClickException("oxp-api is required to build the KG provider")
+        raise click.ClickException("scope-api is required to build the KG provider")
     return provider
 
 

@@ -135,7 +135,7 @@ def test_push_to_neo4j_uses_injected_db_handler():
     assert calls["edges"] == []
 
 
-def test_fetch_spans_uses_oxp_api_local_client(monkeypatch):
+def test_fetch_spans_uses_scope_api_local_client(monkeypatch):
     calls = {
         "db": None,
         "session_ids": None,
@@ -176,7 +176,7 @@ def test_fetch_spans_uses_oxp_api_local_client(monkeypatch):
         "get_db",
         fake_get_db,
     )
-    monkeypatch.setattr(norm_wrapper_module, "OXPLocalClient", FakeLocalClient)
+    monkeypatch.setattr(norm_wrapper_module, "SCOPELocalClient", FakeLocalClient)
 
     wrapper = norm_wrapper_module.NormWrapper(db_handler=object())
     spans = wrapper._fetch_spans("session-9")
@@ -197,7 +197,7 @@ def test_fetch_spans_uses_oxp_api_local_client(monkeypatch):
 async def test_worker_logs_neo4j_writes_to_json(monkeypatch, tmp_path):
     """Integration test that captures Neo4j writes from the worker and logs them to JSON.
 
-    This test intercepts the oxp_api_ingest_normalized_kg call to capture all nodes
+    This test intercepts the scope_api_ingest_normalized_kg call to capture all nodes
     and edges before they're written to Neo4j, then logs them to a JSON file.
     """
     output_file = tmp_path / "neo4j_writes.json"
@@ -256,9 +256,9 @@ async def test_worker_logs_neo4j_writes_to_json(monkeypatch, tmp_path):
         pass
 
     monkeypatch.setattr(norm_wrapper_module, "get_db", fake_get_db)
-    monkeypatch.setattr(norm_wrapper_module, "OXPLocalClient", FakeLocalClient)
-    # The Neo4j connector and oxp_api_ingest_normalized_kg are now owned by
-    # NormWorker/OXPApiNormDALAdapter (worker.py), not by NormWrapper.
+    monkeypatch.setattr(norm_wrapper_module, "SCOPELocalClient", FakeLocalClient)
+    # The Neo4j connector and scope_api_ingest_normalized_kg are now owned by
+    # NormWorker/SCOPEApiNormDALAdapter (worker.py), not by NormWrapper.
     monkeypatch.setattr(
         norm_worker_module,
         "get_neo4j_connector",
@@ -266,7 +266,7 @@ async def test_worker_logs_neo4j_writes_to_json(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(
         norm_worker_module,
-        "oxp_api_ingest_normalized_kg",
+        "scope_api_ingest_normalized_kg",
         capturing_ingest_normalized_kg,
     )
 

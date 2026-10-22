@@ -46,7 +46,7 @@ def test_legacy_compute_output_format(tmp_path):
     }
     config_file.write_text(json.dumps(config_data))
 
-    # 2. Patch OXPDataProvider to use JsonDataProvider instead.
+    # 2. Patch SCOPEDataProvider to use JsonDataProvider instead.
     # legacy.py uses _get_kg_provider() — patch that factory function.
     with patch("mce.legacy.cli.legacy._get_kg_provider") as MockProviderCls:
         # Use an in-memory mock — demo_data.json is not shipped with the package

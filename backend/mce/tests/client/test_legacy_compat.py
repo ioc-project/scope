@@ -5,7 +5,7 @@
 Adapted from
   telemetry-hub/metrics_computation_engine/src/metrics_computation_engine/tests/
 to ensure the new mce-client/mce interface remains backward-compatible with
-legacy MCE consumers (workflows worker, oxp-backend, etc.).
+legacy MCE consumers (workflows worker, scope-backend, etc.).
 
 Sources for ported test patterns:
   - test_registry.py                      → TestEngineRegistryCompat

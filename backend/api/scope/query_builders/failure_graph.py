@@ -20,7 +20,6 @@ validated against it.
 from __future__ import annotations
 
 import hashlib
-from datetime import UTC, datetime
 from typing import Any
 
 from scope_ontology.models.nodes import CognitiveFailureReport as ReportModel
@@ -54,9 +53,11 @@ def failure_report_properties(
     confidence: str,
     reasoning: str,
     call_id: str | None = None,
-    reported_at: datetime | None = None,
+    name: str | None = None,
 ) -> dict[str, Any]:
     """Properties of the ontology ``CognitiveFailureReport`` (validated against the model).
+
+    ``name`` is the failure's name in the taxonomy (for example "Incomplete Synthesis"); it defaults to the code.
 
     Raises ``ValueError`` if ``confidence`` is not ``low``, ``medium`` or ``high``, and
     ``pydantic.ValidationError`` if the report does not fit the model (for example an empty code).
@@ -67,11 +68,10 @@ def failure_report_properties(
         raise ValueError("a failure report needs a code and a reasoning")
     return ReportModel(
         id=_failure_report_id(session_id, code, call_id),
-        name=code,
+        name=(name or "").strip() or code,
         code=code,
         confidence=confidence,
         reasoning=reasoning,
-        reportedAt=reported_at or datetime.now(UTC),
     ).model_dump()
 
 

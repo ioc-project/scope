@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from cognitive_failure_worker.detector import (
@@ -42,7 +42,14 @@ the steps' texts). Decide what to read: use the failures' signs and heuristics t
 evidence they ask for, and read the steps around it. Do not try to read everything.
 
 Report a failure only when the trace itself shows what its detection heuristic asks for, and say at which \
-step. Most traces show few failures or none: an empty answer is normal and correct. Do not report a \
+step. Every step is cited as its description, span and id, as the tools show it, for example "the 2nd moderator \
+LLM call (span 4f2a9c, id llmcall:12)"; use the id as the detection's call_id, and when a failure involves \
+several steps pick the one where it becomes visible. In the reasoning, cite steps by their description and span, \
+never by a position or "#n".
+
+The reasoning is read by someone who has not seen the trace. Write two to four sentences: which signs of the \
+failure appear, the key evidence (quote or closely paraphrase the text), where it happens, why that meets the \
+detection heuristic, and what it led to. Most traces show few failures or none: an empty answer is normal and correct. Do not report a \
 failure for style, for minor imperfections, or because it merely could have happened.
 
 When you are done, call {SUBMIT} once, with no detections if you found none. You have at most {MAX_TURNS} \
@@ -158,6 +165,11 @@ def _run_tool(trace: TraceFile, call: ToolCall) -> str:
     return result
 
 
+def _named(detections, failures: Sequence[Mapping[str, Any]]):
+    names = {c["code"]: c.get("name") for c in failures}
+    return [replace(d, name=names.get(d.code)) for d in detections]
+
+
 def _first_message(trace: TraceFile, session_id: Any, failures: Sequence[Mapping[str, Any]]) -> str:
     return (
         f"## Failures to look for\n\n{render_failures(failures)}\n\n"
@@ -195,7 +207,7 @@ def investigate(
             if not reply.tool_calls:  # an answer in plain text is accepted if it is the expected JSON
                 try:
                     detections = parse_detections(reply.content, codes, trace.step_ids)
-                    return DetectionResult(detections, prompt_tokens, completion_tokens, turn)
+                    return DetectionResult(_named(detections, failures), prompt_tokens, completion_tokens, turn)
                 except DetectorError:
                     messages.append({"role": "user", "content": f"Call {SUBMIT} with your answer."})
                     continue
@@ -207,7 +219,7 @@ def investigate(
                     except DetectorError as exc:
                         messages.append({"role": "tool", "tool_call_id": call.id, "content": f"Rejected: {exc}"})
                     else:
-                        return DetectionResult(detections, prompt_tokens, completion_tokens, turn)
+                        return DetectionResult(_named(detections, failures), prompt_tokens, completion_tokens, turn)
                 else:
                     messages.append({"role": "tool", "tool_call_id": call.id, "content": _run_tool(trace, call)})
         raise DetectorError(f"no usable answer within {max_turns} turns")

@@ -29,6 +29,7 @@ def step_row(
     return {
         "transition_id": tid,
         "call_id": tid.replace("transition", kind + "call"),
+        "span_id": "span-" + tid,
         "kind": kind,
         "name": name,
         "description": desc,
@@ -127,6 +128,7 @@ def test_get_session_trajectory_steps(connector):
     )  # State text is passed through untouched
     assert tool["kind"] == "tool" and tool["description"] == "Reads a document"
     assert tool["call_id"] == "toolcall:t3" and tool["duration_ms"] == 1000.0
+    assert tool["span_id"].startswith("span-")
     assert no_agent["agent_id"] == ""
 
 

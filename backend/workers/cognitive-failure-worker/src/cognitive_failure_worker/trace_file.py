@@ -41,6 +41,22 @@ def _clip(text: str | None) -> str:
     return f"{text[:head]} …[{len(text) - head - tail} characters cut]… {text[-tail:]}"
 
 
+def _ordinal(n: int) -> str:
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+_KINDS = {"llm": "LLM", "tool": "tool", "agent": "agent"}
+
+
+def _who(step: Mapping[str, Any]) -> str:
+    """The actor a reader would name: the agent for an LLM call, the tool or agent otherwise."""
+    kind = step.get("kind")
+    if kind == "llm":
+        return str(step.get("agent_id") or step.get("name") or "unknown")
+    return str(step.get("name") or step.get("agent_id") or "unknown")
+
+
 def _preview(text: str) -> str:
     flat = " ".join(text.split())
     return flat if len(flat) <= PREVIEW_CHARS else flat[:PREVIEW_CHARS] + "…"
@@ -77,6 +93,7 @@ class TraceFile:
         # Per step: (call_id, offset, length in the file, summary). Small; the text stays on disk.
         self._index: list[tuple[str, int, int, dict[str, Any]]] = []
         self._by_id: dict[str, int] = {}
+        self._seen: dict[tuple[str, str], int] = {}
 
     # ------------------------------------------------------------ lifecycle
 
@@ -108,8 +125,11 @@ class TraceFile:
         with self._path.open("wb") as handle:
             for position, step in enumerate(self._trajectory.get("steps") or []):
                 call_id = str(step["call_id"])
+                who, kind = _who(step), step.get("kind")
+                n = self._seen[(str(kind), who)] = self._seen.get((str(kind), who), 0) + 1
                 record = {
                     "call_id": call_id,
+                    "span_id": str(step.get("span_id") or ""),
                     "kind": step.get("kind"),
                     "name": step.get("name"),
                     "agent_id": step.get("agent_id"),
@@ -123,6 +143,8 @@ class TraceFile:
                 summary = {
                     "position": position,
                     "call_id": call_id,
+                    "span_id": record["span_id"],
+                    "description": f"the {_ordinal(n)} {who} {_KINDS.get(str(kind), str(kind))} call",
                     "kind": record["kind"],
                     "name": record["name"],
                     "agent_id": record["agent_id"],
@@ -145,20 +167,25 @@ class TraceFile:
 
     @staticmethod
     def _label(summary: Mapping[str, Any]) -> str:
-        label = f"#{summary['position']} {summary['call_id']} | {summary['kind']} {summary['name']}"
-        if summary["agent_id"]:
-            label += f" (agent: {summary['agent_id']})"
+        """How the agent should cite a step: a description, its span and its id."""
+        ids = f"span {summary['span_id']}, id {summary['call_id']}" if summary["span_id"] else f"id {summary['call_id']}"
+        label = f"{summary['description']} ({ids})"
+        if summary["kind"] == "llm" and summary["name"] and summary["name"] != summary["agent_id"]:  # the model
+            label += f" [{summary['name']}]"
         if summary["success"] is False:
             label += " [FAILED]"
-        return f"{label} | in {summary['input_chars']} chars, out {summary['output_chars']} chars"
+        return label
 
     def list_steps(self, offset: int = 0, limit: int = 50) -> str:
-        """One line per step: position, id, kind, name, agent, sizes and the start of its input."""
+        """One line per step: how to cite it, sizes and the start of its input."""
         offset, limit = max(0, int(offset)), max(1, min(int(limit), 200))
         rows = self._index[offset : offset + limit]
         if not rows:
             return f"No step at offset {offset}: the trace has {len(self)} steps."
-        lines = [f"{self._label(s)} | {s['preview']!r}" for *_, s in rows]
+        lines = [
+            f"{self._label(s)} | in {s['input_chars']} chars, out {s['output_chars']} chars | {s['preview']!r}"
+            for *_, s in rows
+        ]
         end = offset + len(rows)
         if end < len(self):
             lines.append(f"[steps {offset}-{end - 1} of {len(self)}; next offset {end}]")
@@ -214,7 +241,8 @@ class TraceFile:
                             break
                         start, end = max(0, match.start() - context), min(len(text), match.end() + context)
                         snippet = " ".join(text[start:end].split())
-                        found.append(f"{record['call_id']} {name} @{match.start()}: …{snippet}…")
+                        label = self._label(self._index[self._by_id[record["call_id"]]][3])
+                        found.append(f"{label} {name} @{match.start()}: …{snippet}…")
                     if more:
                         break
                 if more:

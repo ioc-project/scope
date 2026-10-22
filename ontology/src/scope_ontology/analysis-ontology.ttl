@@ -376,10 +376,10 @@ mas:metricCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
 
 mas:reportedAt rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:reportedAt ;
-    sh:targetClass mas:CognitionProtocolReport, mas:CognitionProtocolExecutionReport, mas:CognitiveFailureReport ;
+    sh:targetClass mas:CognitionProtocolReport, mas:CognitionProtocolExecutionReport ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
-    rdfs:domain [ owl:unionOf ( mas:CognitionProtocolReport mas:CognitionProtocolExecutionReport mas:CognitiveFailureReport ) ] ;
+    rdfs:domain [ owl:unionOf ( mas:CognitionProtocolReport mas:CognitionProtocolExecutionReport ) ] ;
     rdfs:range xsd:dateTime ;
     rdfs:comment "When this report was last written." .
 

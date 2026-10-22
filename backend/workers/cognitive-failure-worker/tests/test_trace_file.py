@@ -76,15 +76,43 @@ def test_a_huge_text_is_cut_when_written(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- what the agent can ask
 
 
-def test_list_steps_shows_ids_agents_failures_and_sizes():
+def test_list_steps_describes_each_step_with_its_span_and_id_not_a_position():
     with TraceFile(LONG) as trace:
         text = trace.list_steps()
 
         assert trace.step_ids == {"llmcall:1", "toolcall:2", "llmcall:3"} and len(trace) == 3
 
-    assert "#0 llmcall:1 | llm gpt-4o (agent: planner)" in text
-    assert "#1 toolcall:2 | tool search [FAILED]" in text and "agent:" not in text.splitlines()[1]
-    assert "out 20000 chars" in text and "'Book a train to Paris'" in text
+    first, second, third = text.splitlines()[:3]
+    assert first.startswith("the 1st planner LLM call (span span-1, id llmcall:1)")
+    assert second.startswith("the 1st search tool call (span span-2, id toolcall:2) [FAILED]")
+    assert third.startswith("the 2nd planner LLM call (span span-3, id llmcall:3) [gpt-4o]")
+    assert "#" not in text and "out 20000 chars" in text and "'Book a train to Paris'" in text
+
+
+def test_the_ordinal_counts_per_actor_and_kind():
+    steps = [
+        step("llmcall:1", agent="moderator"),
+        step("llmcall:2", agent="planner"),
+        step("llmcall:3", agent="moderator"),
+        step("toolcall:4", "tool", "search", agent="moderator"),
+        step("llmcall:5", agent="moderator"),
+    ]
+
+    with TraceFile({"steps": steps}) as trace:
+        lines = trace.list_steps().splitlines()
+
+    assert [line.split(" (span")[0] for line in lines] == [
+        "the 1st moderator LLM call",
+        "the 1st planner LLM call",
+        "the 2nd moderator LLM call",
+        "the 1st search tool call",
+        "the 3rd moderator LLM call",
+    ]
+
+
+def test_a_step_without_a_span_is_cited_by_its_id():
+    with TraceFile({"steps": [{**step("llmcall:1"), "span_id": ""}]}) as trace:
+        assert "(id llmcall:1)" in trace.list_steps() and "span" not in trace.list_steps()
 
 
 def test_list_steps_pages():
@@ -119,7 +147,7 @@ def test_grep_finds_text_with_its_step_field_and_context():
     with TraceFile(LONG) as trace:
         text = trace.grep("needle", context=10)
 
-    assert text.startswith("llmcall:3 input @51:") and "NEEDLE" in text
+    assert text.startswith("the 2nd planner LLM call (span span-3, id llmcall:3) [gpt-4o] input @51:") and "NEEDLE" in text
 
 
 def test_grep_limits_its_matches_and_says_so():

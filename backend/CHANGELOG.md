@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `grep` tools and answers through a schema-enforced `submit_detections` tool. Opt-in: list the failures to look for in `cognitive_failure_config.yaml`
   (`workers.cognitive-failure.config` in the Helm chart). It is fed from the embedding worker's output, next to
   the stateful-eval worker. The Cypher is in `scope.query_builders.failure_graph`, the writer in
-  `scope.client.failures`. Requires an `scope-ontology` release with `CognitiveFailureReport`.
+  `scope.client.failures`. Requires a `scope-ontology` release with `CognitiveFailureReport` without `reportedAt`.
+  A report's `name` is the failure's taxonomy name, its reasoning is a developed explanation that cites steps by
+  description and span, and `get_session_trajectory` steps now carry the OTel `span_id`.
 - **Cognition protocol reports.** `scope.providers.SCOPECognitionProtocolReportProvider` writes, through the ontology models, an
   `CognitionProtocolReport` per session (`protocolsEnabled` / `protocolsActivated`: which Cognition protocols were available and
   which were used) and a `CognitionProtocolExecutionReport` per session and protocol (the agents and skills that had

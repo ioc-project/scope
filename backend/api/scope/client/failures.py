@@ -23,7 +23,8 @@ def write_cognitive_failure_reports(
     """Write the cognitive failure reports of a session.
 
     Each detection has a failure ``code``, a ``confidence`` (``low``, ``medium`` or ``high``),
-    a ``reasoning`` and, when the failure happened in one call, that call's ``call_id``.
+    a ``reasoning``, the failure's ``name`` (optional, defaults to the code) and, when the failure
+    happened in one call, that call's ``call_id``.
     A report is keyed by session, failure and call, so writing the same detection again
     overwrites it; reports of earlier runs that are not detected again stay. Every detection is
     validated against the ontology before anything is written.
@@ -43,6 +44,7 @@ def write_cognitive_failure_reports(
             detection["confidence"],
             detection["reasoning"],
             call_id,
+            detection.get("name"),
         )
         if (
             props["id"] not in seen

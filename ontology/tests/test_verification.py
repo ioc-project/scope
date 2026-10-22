@@ -323,6 +323,25 @@ class TestCognitionProtocolReports:
         )
         assert result.conforms, [v.message for v in result.errors]
 
+    def test_cognitive_failure_report_conforms_without_a_timestamp(self):
+        from scope_ontology.models.edges.reports_on import reportsOn
+        from scope_ontology.models.nodes.cognitive_failure_report import (
+            CognitiveFailureReport,
+        )
+
+        report = CognitiveFailureReport(
+            id="failurereport:1",
+            name="Incomplete Synthesis",
+            code="CC-3",
+            confidence="high",
+            reasoning="Two sub-agents disagreed and the conflict was never reconciled.",
+        )
+        result = verify_kg_object(
+            report, edges=[reportsOn(source_id=report.id, target_id="s1")]
+        )
+        assert result.conforms, [v.message for v in result.errors]
+        assert "reportedAt" not in report.model_dump()
+
 
 class TestOntologyValidationError:
     def test_raised_from_a_failing_report_carries_the_report(self):

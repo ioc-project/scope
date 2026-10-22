@@ -46,11 +46,18 @@ def test_properties_are_the_ontology_model():
         "code",
         "confidence",
         "reasoning",
-        "reportedAt",
     }
     assert props["code"] == "IC-2" and props["name"] == "IC-2"
     assert props["confidence"] == "high"
     assert props["id"].startswith("failurereport:")
+
+
+def test_the_name_is_the_failure_name_or_the_code():
+    named = cg.failure_report_properties("s1", "CC-3", "low", "why", None, "Incomplete Synthesis")
+    unnamed = cg.failure_report_properties("s1", "CC-3", "low", "why")
+
+    assert (named["name"], named["code"]) == ("Incomplete Synthesis", "CC-3")
+    assert unnamed["name"] == "CC-3"
 
 
 def test_the_id_depends_on_session_failure_and_call():

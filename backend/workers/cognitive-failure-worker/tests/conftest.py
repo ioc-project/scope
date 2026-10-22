@@ -12,6 +12,7 @@ def step(call_id, kind="llm", name="gpt-4o", agent="planner", success=True, text
     return {
         "transition_id": call_id.replace("call", "transition"),
         "call_id": call_id,
+        "span_id": "span-" + call_id.split(":")[-1],
         "kind": kind,
         "name": name,
         "agent_id": agent,

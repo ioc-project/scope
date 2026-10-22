@@ -24,6 +24,7 @@ group "backend" {
     "intelligence-worker",
     "stateful-eval-worker",
     "cognitive-failure-worker",
+    "cognition-protocols-worker",
   ]
 }
 
@@ -134,4 +135,11 @@ target "cognitive-failure-worker" {
   context    = "backend"
   dockerfile = "workers/cognitive-failure-worker/deploy/docker/Dockerfile"
   platforms  = ["linux/amd64"]
+}
+target "cognition-protocols-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  dockerfile = "workers/cognition-protocols-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64"]
+  ssh        = ["default"]
 }

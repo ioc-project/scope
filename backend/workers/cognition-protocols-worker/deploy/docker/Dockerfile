@@ -33,6 +33,7 @@ COPY workers/cognition-protocols-worker /opt/workers/cognition-protocols-worker
 COPY worker-base /opt/worker-base
 COPY mce /opt/mce
 COPY api /opt/api
+COPY --from=ontology . /ontology
 
 RUN --mount=type=ssh \
     uv sync --package cognition-protocols-worker --frozen --no-editable --no-dev

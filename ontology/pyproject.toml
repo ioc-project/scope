@@ -53,11 +53,21 @@ packages = ["src/scope_ontology"]
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
 
+# The build hook's outputs are gitignored, so uv must rebuild the editable install
+# (re-running the hook) whenever one of its inputs changes.
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "hatch_build.py" },
+    { file = "scripts/*.py" },
+    { file = "src/scope_ontology/*.ttl" },
+]
+
 [dependency-groups]
 dev = [
     "pydantic>=2.13.5",
     "pytest>=8.4.2",
-    "ruff>=0.16.7",
+    "ruff<=0.15.22",
 ]
 
 [tool.hatch.build]

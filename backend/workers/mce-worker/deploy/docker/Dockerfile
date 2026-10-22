@@ -28,6 +28,7 @@ COPY workers/mce-worker /app/workers/mce-worker
 COPY worker-base /app/worker-base
 COPY mce /app/mce
 COPY api /app/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package mce-worker --frozen --no-editable \
     --no-install-package numba \

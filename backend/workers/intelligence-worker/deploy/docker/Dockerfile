@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PATH="/root/.local/bin:${PATH}"
 
 COPY . /app
+COPY --from=ontology . /ontology
 
 RUN uv sync --package intelligence-worker --frozen
 
@@ -42,6 +43,7 @@ COPY --from=builder /app/workers/intelligence-worker /app/workers/intelligence-w
 COPY --from=builder /app/worker-base /app/worker-base
 COPY --from=builder /app/api /app/api
 COPY --from=builder /app/dem /app/dem
+COPY --from=builder /ontology /ontology
 COPY --from=builder /app/intelligence-catalog /app/intelligence-catalog
 
 COPY workers/intelligence-worker/deploy/docker/entrypoint.sh /entrypoint.sh

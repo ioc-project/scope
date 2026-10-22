@@ -24,6 +24,7 @@ COPY pyproject.toml uv.lock /opt/
 COPY workers/cognitive-failure-worker /opt/workers/cognitive-failure-worker
 COPY worker-base /opt/worker-base
 COPY api /opt/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package cognitive-failure-worker --frozen --no-editable
 

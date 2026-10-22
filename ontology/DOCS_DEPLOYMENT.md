@@ -18,9 +18,9 @@ For each of `mas`, `metrics`, `semantic`, `analysis`, and `insight`, three forma
 - **Path**: `/mas/lode/`, `/metrics/lode/`, `/semantic/lode/`, `/analysis/lode/`, `/insight/lode/`
 - Lightweight HTML via `scripts/generate_lode_html.py` (a local generator, not the w3id.org LODE web service). The step is best-effort — it's allowed to fail without failing the build (`|| echo "LODE generation skipped"`)
 
-A landing page at `docs/index.html` (generated inline in the workflow) links to all five ontologies' Widoco/WebVOWL/LODE pages and shows the deployed version.
+A page at `/ontologies.html` (generated inline in the workflow) links to all five ontologies' Widoco/WebVOWL/LODE pages and shows the deployed version. The root of the site, `/`, is the SCOPE documentation (built from `docs/` with `mkdocs.yml`), and the ontology folders are merged into it.
 
-There is currently no "comprehensive"/custom documentation format and no single merged doc site — each ontology gets its own Widoco/WebVOWL/LODE set under its own path prefix.
+There is currently no "comprehensive"/custom documentation format: each ontology gets its own Widoco/WebVOWL/LODE set under its own path prefix, next to the SCOPE documentation.
 
 ## 🚀 Deployment
 
@@ -36,8 +36,9 @@ Steps:
   3. Resolve the version to embed (task-equivalent: scripts/version_manager.py get / get-full)
   4. Generate docs for each of mas, metrics, semantic, analysis, insight: Widoco, WebVOWL JSON (generate_webvowl_json_generic.py), LODE
   5. Build one shared WebVOWL instance from source and copy+patch it into each ontology's docs/<ontology>/webvowl/
-  6. Write docs/index.html (landing page, inline in the workflow)
-  7. Upload the docs/ directory as a Pages artifact and deploy
+  6. Build the SCOPE documentation (MkDocs, docs/ + mkdocs.yml) and merge it into the output directory, as the root of the site
+  7. Write ontologies.html (inline in the workflow)
+  8. Upload the output directory as a Pages artifact and deploy
 ```
 
 ### Prerequisites

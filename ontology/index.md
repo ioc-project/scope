@@ -1,6 +1,6 @@
 # SCOPE Ontology Documentation
 
-🌐 **Live Documentation**: [https://ioc-project.github.io/scope/](https://ioc-project.github.io/scope/)
+🌐 **Live Documentation**: [https://ioc-project.github.io/scope/ontologies.html](https://ioc-project.github.io/scope/ontologies.html)
 
 The deployed site covers all five bundled ontologies — **MAS**, **Metrics**, **Semantic**, **Analysis**, and **Insight** — each with three documentation formats, plus the [backend documentation](https://ioc-project.github.io/scope/backend/).
 

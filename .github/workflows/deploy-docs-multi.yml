@@ -147,7 +147,6 @@ jobs:
       - name: Build SCOPE Documentation (MkDocs)
         run: |
           echo "📚 Building SCOPE documentation..."
-          pip install -r docs/requirements.txt
           mkdocs build -f mkdocs.yml -d ontology-docs/docs
 
       - name: Create documentation landing pages

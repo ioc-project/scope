@@ -190,7 +190,9 @@ def _build_instance_graph(
         target_id = getattr(edge, "target_id", None)
         if prop_uri is None or not target_id:
             continue
-        graph.add((subject, prop_uri, URIRef(f"urn:scope-ontology:instance:{target_id}")))
+        graph.add(
+            (subject, prop_uri, URIRef(f"urn:scope-ontology:instance:{target_id}"))
+        )
 
     return graph, subject
 

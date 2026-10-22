@@ -177,7 +177,9 @@ def mock_scope_provider():
     mock_scope.providers = mock_providers
 
     # Patch sys.modules
-    with patch.dict(sys.modules, {"scope": mock_scope, "scope.providers": mock_providers}):
+    with patch.dict(
+        sys.modules, {"scope": mock_scope, "scope.providers": mock_providers}
+    ):
         yield
 
 

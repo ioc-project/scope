@@ -1,6 +1,5 @@
 """The detectors are pluggable: a protocol is one ProtocolDetector, found in a registry or an entry point."""
 
-import json
 from importlib.metadata import EntryPoint
 
 import pytest
@@ -29,7 +28,9 @@ class ToolProtocol(ProtocolDetector):
         found = ProtocolFinding(self.name)
         for span in spans.tools:
             if span.get("toolName") == "tooly_handshake":
-                found.activated_by_agent.setdefault(spans.agent_of(span), []).append("tooly_handshake")
+                found.activated_by_agent.setdefault(spans.agent_of(span), []).append(
+                    "tooly_handshake"
+                )
         found.activated = bool(found.activated_by_agent)
         found.enabled, found.enabled_evidence = found.activated, "activation"
         return found
@@ -42,7 +43,13 @@ class Broken(ProtocolDetector):
         raise RuntimeError("boom")
 
 
-CTX = {"agent_spans": AGENTS, "llm_spans": [], "tool_spans": [{"parentSpanId": "a2", "toolName": "tooly_handshake", "toolArguments": "{}"}]}
+CTX = {
+    "agent_spans": AGENTS,
+    "llm_spans": [],
+    "tool_spans": [
+        {"parentSpanId": "a2", "toolName": "tooly_handshake", "toolArguments": "{}"}
+    ],
+}
 
 
 def test_accord_and_concord_are_built_in():
@@ -59,7 +66,9 @@ def test_registry_rejects_a_second_detector_for_the_same_protocol():
     registry = DetectorRegistry(builtin_detectors())
     with pytest.raises(ValueError):
         registry.register(SkillProtocolDetector("accord", "x-"))
-    registry.register(SkillProtocolDetector("accord", "x-"), replace=True)  # unless asked to
+    registry.register(
+        SkillProtocolDetector("accord", "x-"), replace=True
+    )  # unless asked to
     with pytest.raises(TypeError):
         registry.register(object())
 
@@ -70,7 +79,9 @@ def test_a_failing_detector_does_not_take_the_others_down():
 
 
 def _entry_points(monkeypatch, *entries):
-    monkeypatch.setattr(plugins, "entry_points", lambda group: [e for e in entries if e.group == group])
+    monkeypatch.setattr(
+        plugins, "entry_points", lambda group: [e for e in entries if e.group == group]
+    )
 
 
 def _entry(name, value):
@@ -87,7 +98,13 @@ def test_installed_packages_add_detectors_through_entry_points(monkeypatch):
     )
     registry = DetectorRegistry(builtin_detectors())
     registry.load_entry_points()
-    assert registry.names() == ["accord", "concord", "factory-made", "instance-made", "tooly"]
+    assert registry.names() == [
+        "accord",
+        "concord",
+        "factory-made",
+        "instance-made",
+        "tooly",
+    ]
 
 
 def test_a_broken_or_clashing_entry_point_is_skipped_not_fatal(monkeypatch):
@@ -101,7 +118,9 @@ def test_a_broken_or_clashing_entry_point_is_skipped_not_fatal(monkeypatch):
     registry = DetectorRegistry(builtin_detectors())
     registry.load_entry_points()
     assert registry.names() == ["accord", "concord", "tooly"]
-    assert registry.get("accord").prefixes == ("l9-accord-",)  # the clash did not replace the built-in
+    assert registry.get("accord").prefixes == (
+        "l9-accord-",
+    )  # the clash did not replace the built-in
 
 
 def test_the_skill_worker_default_is_every_registered_protocol(monkeypatch):

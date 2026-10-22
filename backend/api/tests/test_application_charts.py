@@ -46,7 +46,9 @@ CONNECTOR_TYPE = os.environ.get("CONNECTOR_TYPE", "SQLITE").upper()
 # ── Module-scoped connector (shared across all tests) ────────────────────────
 
 _tmp_dir = tempfile.mkdtemp(prefix="scope_test_")
-_DB_PATH = os.path.join(_tmp_dir, "scope_test.db") if CONNECTOR_TYPE == "SQLITE" else None
+_DB_PATH = (
+    os.path.join(_tmp_dir, "scope_test.db") if CONNECTOR_TYPE == "SQLITE" else None
+)
 _connector: ClickHouseConnector | SQLAlchemyConnector | None = None
 
 

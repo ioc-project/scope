@@ -269,5 +269,6 @@ def test_provider_reports_call_write_failures():
 
     metric = MetricResult(metric_id="a", resource_id="c", provider="p", value=1.0)
     assert (
-        SCOPEMetricsProvider(db=Failing()).save_call_metrics("s", "c", [metric]) is False
+        SCOPEMetricsProvider(db=Failing()).save_call_metrics("s", "c", [metric])
+        is False
     )

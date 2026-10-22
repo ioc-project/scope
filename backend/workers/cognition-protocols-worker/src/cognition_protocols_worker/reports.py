@@ -10,7 +10,9 @@ from .detectors import ProtocolFinding
 logger = logging.getLogger(__name__)
 
 
-def record_findings(writer: Any, session_id: str, findings: dict[str, ProtocolFinding]) -> bool:
+def record_findings(
+    writer: Any, session_id: str, findings: dict[str, ProtocolFinding]
+) -> bool:
     """Store a session's ``CognitionProtocolReport`` and, for each *activated* protocol, who had it and who used it.
 
     The ``CognitionProtocolReport`` lists the protocols that were enabled and those that were activated. A protocol

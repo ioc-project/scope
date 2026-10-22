@@ -16,6 +16,7 @@ from cognitive_failure_worker.trace_file import sweep_stale
 
 logger = logging.getLogger(__name__)
 
+
 class CognitiveFailureWorker(BaseWorker):
     """Worker that detects cognitive failures in a session.
 

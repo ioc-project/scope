@@ -21,7 +21,13 @@ from .base import ProtocolDetector, ProtocolFinding, SessionSpans
 
 
 def _text(value: Any) -> str:
-    return value if isinstance(value, str) else json.dumps(value, default=str) if value is not None else ""
+    return (
+        value
+        if isinstance(value, str)
+        else json.dumps(value, default=str)
+        if value is not None
+        else ""
+    )
 
 
 def _system_text(prompt: Any) -> str:
@@ -32,7 +38,11 @@ def _system_text(prompt: Any) -> str:
         except ValueError:
             return prompt
     if isinstance(prompt, list):
-        return "\n".join(_text(m.get("content")) for m in prompt if isinstance(m, dict) and m.get("role") == "system")
+        return "\n".join(
+            _text(m.get("content"))
+            for m in prompt
+            if isinstance(m, dict) and m.get("role") == "system"
+        )
     return _text(prompt)
 
 
@@ -45,24 +55,42 @@ class SkillProtocolDetector(ProtocolDetector):
         self.name = name
         self.prefixes = prefixes
         skill = "(?:" + "|".join(re.escape(p) for p in prefixes) + r")[\w.-]+"
-        self._listed = re.compile(rf"^\s*[-*]\s*\*\*({skill})\*\*", re.MULTILINE)  # in a system prompt's skill list
-        self._activated = re.compile(rf'"name"\s*:\s*"({skill})"')  # activate_skill arguments
-        self._scripted = re.compile(rf'"skill"\s*:\s*"({skill})"')  # run_skill_script arguments
+        self._listed = re.compile(
+            rf"^\s*[-*]\s*\*\*({skill})\*\*", re.MULTILINE
+        )  # in a system prompt's skill list
+        self._activated = re.compile(
+            rf'"name"\s*:\s*"({skill})"'
+        )  # activate_skill arguments
+        self._scripted = re.compile(
+            rf'"skill"\s*:\s*"({skill})"'
+        )  # run_skill_script arguments
 
     def detect(self, context: dict[str, Any]) -> ProtocolFinding:
         spans = SessionSpans.of(context)
         found = ProtocolFinding(self.name)
 
         for span in spans.llms:
-            listed = self._listed.findall(_system_text(span.get("prompt") or span.get("inputContent")))
+            listed = self._listed.findall(
+                _system_text(span.get("prompt") or span.get("inputContent"))
+            )
             if listed:
                 bucket = found.enabled_by_agent.setdefault(spans.agent_of(span), [])
                 bucket.extend(s for s in listed if s not in bucket)
 
         for span in spans.tools:
             tool = str(span.get("toolName") or span.get("name") or "")
-            arguments = _text(span.get("toolArguments") or span.get("inputContent") or span.get("inputParams"))
-            pattern = self._activated if tool == "activate_skill" else self._scripted if tool == "run_skill_script" else None
+            arguments = _text(
+                span.get("toolArguments")
+                or span.get("inputContent")
+                or span.get("inputParams")
+            )
+            pattern = (
+                self._activated
+                if tool == "activate_skill"
+                else self._scripted
+                if tool == "run_skill_script"
+                else None
+            )
             match = pattern.search(arguments) if pattern else None
             if match:
                 bucket = found.activated_by_agent.setdefault(spans.agent_of(span), [])

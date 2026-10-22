@@ -44,9 +44,7 @@ def write_cognitive_failure_reports(
             detection["reasoning"],
             call_id,
         )
-        if (
-            props["id"] not in seen
-        ):  # the same failure twice in one place is one report
+        if props["id"] not in seen:  # the same failure twice in one place is one report
             seen.add(props["id"])
             prepared.append((props, call_id))
 
@@ -54,9 +52,7 @@ def write_cognitive_failure_reports(
         written = 0
         for props, call_id in prepared:
             rows = db.execute(
-                *failure_graph.write_failure_report_query(
-                    session_id, props, call_id
-                )
+                *failure_graph.write_failure_report_query(session_id, props, call_id)
             )
             written += 1 if rows else 0
     except Exception as exc:

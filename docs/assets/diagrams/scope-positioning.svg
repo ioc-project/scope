@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1480 820" width="1480" height="820" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <rect width="1480" height="820" fill="#0B0B12"/>
+
+  <!-- ===== COGNITION ENGINES ===== -->
+  <rect x="300" y="56" width="26" height="22" rx="6" fill="#8E3FB0"/>
+  <text x="340" y="73" font-size="17" font-weight="700" fill="#EAD2F5" letter-spacing="1.4">COGNITION ENGINES</text>
+  <rect x="300" y="90" width="880" height="110" rx="14" fill="#1C0F26" stroke="#A04BC0" stroke-width="2.5"/>
+  <text x="740" y="134" font-size="26" font-weight="600" fill="#EAD2F5" text-anchor="middle">COGs · GATs</text>
+  <text x="740" y="170" font-size="19" fill="#98A2B4" text-anchor="middle">consume SCOPE output through the fabric, never directly</text>
+
+  <!-- CE <-> CF -->
+  <path d="M740 262 L740 212" stroke="#A04BC0" stroke-width="2.5" marker-end="url(#upP)"/>
+  <text x="766" y="244" font-size="18" font-style="italic" fill="#B562D0">insights · trajectories · metrics, via the CF APIs</text>
+
+  <!-- ===== COGNITION FABRIC ===== -->
+  <rect x="300" y="286" width="26" height="22" rx="6" fill="#D8920E"/>
+  <text x="340" y="303" font-size="17" font-weight="700" fill="#F7DCAE" letter-spacing="1.4">COGNITION FABRIC</text>
+  <rect x="300" y="320" width="880" height="296" rx="14" fill="#2A2012" stroke="#E8A020" stroke-width="2.5"/>
+
+  <rect x="332" y="348" width="816" height="58" rx="10" fill="#15120A" stroke="#F0A020" stroke-width="1.8"/>
+  <text x="740" y="385" font-size="21" fill="#F7DCAE" text-anchor="middle">CF APIs — the contract the engines bind</text>
+
+  <rect x="332" y="428" width="816" height="156" rx="12" fill="#0B1B2E" stroke="#3C86E4" stroke-width="2.5"/>
+  <text x="740" y="474" font-size="27" font-weight="600" fill="#CFE2FA" text-anchor="middle">SCOPE</text>
+  <text x="740" y="508" font-size="19" fill="#98A2B4" text-anchor="middle">the comprehension layer, inside the fabric</text>
+  <text x="740" y="552" font-size="19" fill="#9FC3EE" text-anchor="middle">ingestion · normalization · knowledge graph · analysis · insight</text>
+
+  <!-- MAS -> SCOPE -->
+  <path d="M740 676 L740 628" stroke="#3C86E4" stroke-width="2.5" marker-end="url(#upB)"/>
+  <text x="766" y="658" font-size="18" font-style="italic" fill="#9FC3EE">OpenTelemetry traces</text>
+
+  <!-- ===== MAS ===== -->
+  <rect x="300" y="700" width="880" height="86" rx="14" fill="#15171C" stroke="#4A5263" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="740" y="751" font-size="23" fill="#C9D1DC" text-anchor="middle">Multi-agent system</text>
+
+  <!-- ===== STANDALONE CALLOUT ===== -->
+  <path d="M1180 506 L1260 506" stroke="#5BA84A" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <rect x="1262" y="432" width="196" height="148" rx="12" fill="#121B10" stroke="#5BA84A" stroke-width="2.5" stroke-dasharray="6 5"/>
+  <text x="1360" y="474" font-size="20" font-weight="600" fill="#9FD48C" text-anchor="middle">Standalone</text>
+  <text x="1360" y="508" font-size="16" fill="#98A2B4" text-anchor="middle">SCOPE also runs</text>
+  <text x="1360" y="530" font-size="16" fill="#98A2B4" text-anchor="middle">without the fabric,</text>
+  <text x="1360" y="552" font-size="16" fill="#98A2B4" text-anchor="middle">against any OTel MAS</text>
+
+  <defs>
+    <marker id="upP" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="14" refX="19" refY="7" orient="auto"><path d="M1,1 L19,7 L1,13 Z" fill="#A04BC0"/></marker>
+    <marker id="upB" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="14" refX="19" refY="7" orient="auto"><path d="M1,1 L19,7 L1,13 Z" fill="#3C86E4"/></marker>
+  </defs>
+</svg>

@@ -9,7 +9,7 @@ The lifecycle of one MAS session within SCOPE is the following:
 4. Through the enrichment of each session of a MAS, SCOPE is able to provide explainability and insights about the inner workings of the MAS.
 
 The current analysis offers semantic grouping of the sessions, along with anomaly detection, consistency checking, and stateful evaluation of one session trajectory.
-A detailed description of each analysis feature is provided in the [documentation](docs/index.md).
+A detailed description of each analysis feature is provided in the [documentation](../docs/analysis/index.md).
 
 ## Structure of the repository
 

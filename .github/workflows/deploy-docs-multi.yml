@@ -144,47 +144,11 @@ jobs:
           
           rm -rf WebVOWL-1.1.6 1.1.6.tar.gz
 
-      - name: Build Backend Documentation (MkDocs)
+      - name: Build SCOPE Documentation (MkDocs)
         run: |
-          echo "📚 Building backend documentation..."
-          cat > mkdocs.yml << 'EOF'
-          site_name: SCOPE Backend Documentation
-          site_url: ${{ env.DOCS_BASE_URL }}/backend/
-          docs_dir: backend/docs
-          site_dir: ontology-docs/backend
-          theme:
-            name: material
-          nav:
-            - Home: index.md
-            - Architecture:
-                - Overview: architecture/overview.md
-                - Pipelines: architecture/pipelines.md
-            - Components:
-                - Overview: components/index.md
-                - API: components/api.md
-                - Analysis: components/analysis.md
-                - MCE: components/mce.md
-                - Norm: components/norm.md
-                - Worker Base: components/worker-base.md
-                - Intelligence Catalog: components/intelligence-catalog.md
-                - Stateful Evals: components/stateful-evals.md
-            - Workers:
-                - Overview: workers/index.md
-                - Analysis Worker: workers/analysis-worker.md
-                - Anomaly Detection Worker: workers/anomaly-detection-worker.md
-                - Consistency Worker: workers/consistency-worker.md
-                - Embedding Worker: workers/embedding-worker.md
-                - Grouping Worker: workers/grouping-worker.md
-                - Hierarchical Grouping Worker: workers/hierarchical-grouping-worker.md
-                - Intelligence Worker: workers/intelligence-worker.md
-                - MCE Worker: workers/mce-worker.md
-                - Norm Worker: workers/norm-worker.md
-                - Normal Behaviour Worker: workers/normal-behaviour-worker.md
-                - Stateful Eval Worker: workers/stateful-eval-worker.md
-                - Cognitive Failure Worker: workers/cognitive-failure-worker.md
-          EOF
-          mkdocs build -f mkdocs.yml
-          rm -f mkdocs.yml
+          echo "📚 Building SCOPE documentation..."
+          pip install -r docs/requirements.txt
+          mkdocs build -f mkdocs.yml -d ontology-docs/docs
 
       - name: Create documentation landing pages
         run: |
@@ -291,6 +255,18 @@ jobs:
 
                   <div class="section-grid">
                       <div class="section-card">
+                          <h2>Documentation <span class="badge">Overview</span></h2>
+                          <div class="description">
+                              What SCOPE is and how it works: instrumentation and ingestion, analysis,
+                              the platform (API and UI), and tutorials to instrument an application
+                              and deploy SCOPE.
+                          </div>
+                          <div class="doc-links">
+                              <a href="docs/" class="doc-link">📖 SCOPE Documentation</a>
+                          </div>
+                      </div>
+
+                      <div class="section-card">
                           <h2>Ontology <span class="badge">5 ontologies</span></h2>
                           <div class="description">
                               RDF/OWL vocabulary for MAS telemetry: MAS, Metrics, Semantic, Analysis, and
@@ -299,17 +275,6 @@ jobs:
                           </div>
                           <div class="doc-links">
                               <a href="ontologies.html" class="doc-link">📚 Explore Ontologies</a>
-                          </div>
-                      </div>
-
-                      <div class="section-card">
-                          <h2>Backend <span class="badge">Architecture</span></h2>
-                          <div class="description">
-                              Architecture overview, core components (API, Analysis, MCE, Norm, ...), and the
-                              RabbitMQ-driven analysis workers that make up the SCOPE backend.
-                          </div>
-                          <div class="doc-links">
-                              <a href="backend/" class="doc-link">📘 Backend Documentation</a>
                           </div>
                       </div>
                   </div>

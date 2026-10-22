@@ -35,9 +35,9 @@ All five bundled ontologies share a single namespace — there's no separate pre
 
 ## Repository Structure
 
-- **[src/scope_ontology/](src/scope_ontology/)**: Ontology source files (Turtle) and the `scope-ontology` Python package
-- **[docs/](docs/)**: Versioning and release-process documentation
-- **[scripts/](scripts/)**: Doc/model/shape generation and versioning utilities
+- **[src/scope_ontology/](src/scope_ontology)**: Ontology source files (Turtle) and the `scope-ontology` Python package
+- **[docs/](docs)**: Versioning and release-process documentation
+- **[scripts/](scripts)**: Doc/model/shape generation and versioning utilities
 
 See [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) for the full file-by-file breakdown.
 

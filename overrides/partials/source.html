@@ -1,0 +1,20 @@
+{#-
+  Override of Material's partials/source.html (mkdocs-material 9.7.7): shows the repository
+  license under the repository name. Material only fills this widget with live GitHub facts
+  (stars, forks, ...), so the license, which is a static fact of this repo, is added here.
+  Re-copy the upstream file if mkdocs-material is upgraded.
+-#}
+<a href="{{ config.repo_url }}" title="{{ lang.t('source') }}" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    {% set icon = config.theme.icon.repo or "fontawesome/brands/git-alt" %}
+    {% include ".icons/" ~ icon ~ ".svg" %}
+  </div>
+  <div class="md-source__repository">
+    {{ config.repo_name }}
+    {% if config.extra.repo_license %}
+    <ul class="md-source__facts md-source__facts--license">
+      <li class="md-source__fact">{{ config.extra.repo_license }}</li>
+    </ul>
+    {% endif %}
+  </div>
+</a>

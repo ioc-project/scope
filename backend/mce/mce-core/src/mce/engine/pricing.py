@@ -76,7 +76,7 @@ def _packaged_table() -> dict[str, _Price]:
 def _fetched_table(url: str) -> dict[str, _Price]:
     """The table at ``url``; raises ``ValueError`` unless it looks like LiteLLM's."""
     request = urllib.request.Request(
-        url, headers={"User-Agent": "oxp-mce-model-prices"}
+        url, headers={"User-Agent": "scope-mce-model-prices"}
     )
     with urllib.request.urlopen(request, timeout=_FETCH_TIMEOUT_SECONDS) as response:
         table = _parse(json.loads(response.read().decode("utf-8")))

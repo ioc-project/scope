@@ -5,9 +5,9 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp.client.dal import ingest_normalized_kg as oxp_api_ingest_normalized_kg
-from oxp.connectors.base import Connector
-from oxp.dependencies import get_neo4j_connector
+from scope.client.dal import ingest_normalized_kg as scope_api_ingest_normalized_kg
+from scope.connectors.base import Connector
+from scope.dependencies import get_neo4j_connector
 from worker_base import queue_message
 from worker_base.base_worker import BaseWorker
 
@@ -16,7 +16,7 @@ from norm_worker.wrapper.norm_wrapper import NormWrapper
 logger = logging.getLogger(__name__)
 
 
-class OXPApiNormDALAdapter:
+class SCOPEApiNormDALAdapter:
     def __init__(self, connector: Connector):
         self._connector = connector
 
@@ -31,7 +31,7 @@ class OXPApiNormDALAdapter:
         override: bool,
         batch_size: int = 200,
     ) -> bool:
-        return oxp_api_ingest_normalized_kg(
+        return scope_api_ingest_normalized_kg(
             db=self._connector,
             nodes=nodes,
             edges=edges,
@@ -70,7 +70,7 @@ class NormWorker(BaseWorker):
         self.kg_output = kg_output
 
         try:
-            self.db_handler = OXPApiNormDALAdapter(get_neo4j_connector())
+            self.db_handler = SCOPEApiNormDALAdapter(get_neo4j_connector())
         except Exception as exc:
             logger.warning(
                 "Failed to initialize API-managed Neo4j connector; DB operations disabled: %s",

@@ -9,7 +9,7 @@ import { Box, Typography } from '@mui/material';
 import { TooltipProps } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { formatMetricValueLineChartTooltip } from '@/utils/metrics.tsx';
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 
 const TOOLTIP_MARGIN = 12;
 

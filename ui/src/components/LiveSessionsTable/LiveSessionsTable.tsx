@@ -22,7 +22,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
 import { useTheme } from '@mui/material/styles';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
-import type { LiveSession } from '@/types/oxpApi.type';
+import type { LiveSession } from '@/types/scopeApi.type';
 
 type MRT_ColumnDefList = TableProps<LiveSession>['columns'];
 

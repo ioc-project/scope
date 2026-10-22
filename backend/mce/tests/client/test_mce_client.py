@@ -51,7 +51,7 @@ def test_build_api_graph_provider_forwards_kg_connection_config():
         kg_database="neo4j",
     )
 
-    with patch("oxp.providers.Neo4jGraphProvider") as mock_provider:
+    with patch("scope.providers.Neo4jGraphProvider") as mock_provider:
         _build_api_graph_provider(cfg)
 
     _, kwargs = mock_provider.call_args
@@ -132,7 +132,7 @@ def test_client_close_is_idempotent():
     client.close()  # second close must not raise
 
 
-def test_client_builds_oxp_api_provider_from_explicit_config():
+def test_client_builds_scope_api_provider_from_explicit_config():
     from mce.client import MCEClient, MCEClientConfig
 
     cfg = MCEClientConfig(

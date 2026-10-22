@@ -1,7 +1,7 @@
 """What a protocol detector is, and what it reports.
 
 A detector answers two questions about one Cognition protocol in one session, from the
-session's spans (what ``OXPKGProvider.fetch`` returns):
+session's spans (what ``SCOPEKGProvider.fetch`` returns):
 
   enabled    was the protocol available to the session's agents?
   activated  did the agents actually use it?

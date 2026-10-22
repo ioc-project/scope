@@ -6,7 +6,7 @@
 import type {
   CognitiveFailure,
   SessionWithCognitiveObservability
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 
 // All the failures of a session, highest confidence first.
 export const getSortedFailures = (

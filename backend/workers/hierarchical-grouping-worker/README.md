@@ -27,7 +27,7 @@ hierarchical-grouping-worker-cli \
 
 All options can be set via CLI flags or environment variables. See `.env.template` for common variables.
 
-Neo4j connection settings are resolved by the API layer (`oxp.dependencies`) from environment variables. The hierarchical-grouping worker does not expose Neo4j CLI flags.
+Neo4j connection settings are resolved by the API layer (`scope.dependencies`) from environment variables. The hierarchical-grouping worker does not expose Neo4j CLI flags.
 
 | Env var | Default | Description |
 |---|---|---|

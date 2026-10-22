@@ -18,7 +18,7 @@ import { Tooltip } from '@open-ui-kit/core';
 import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PATHS } from '@/routes/routes';
-import { SessionWithCognitionProtocols } from '@/types/oxp.type';
+import { SessionWithCognitionProtocols } from '@/types/scope.type';
 import {
   NotAvailable,
   StatusTag,

@@ -5,7 +5,7 @@
 
 import { Stack, Typography } from '@mui/material';
 import { ACCORD_PHASE_ORDER } from '@/common/cognitionProtocols';
-import { CognitionAccordProtocol } from '@/types/oxp.type';
+import { CognitionAccordProtocol } from '@/types/scope.type';
 import { UsageSummaryTable } from './UsageTables';
 import {
   BlockTitle,

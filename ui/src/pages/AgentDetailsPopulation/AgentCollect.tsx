@@ -11,7 +11,7 @@ import {
 } from '@/components';
 
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Session } from '@/types/oxp.type';
+import type { Session } from '@/types/scope.type';
 import { Stack, Typography, useTheme } from '@mui/material';
 import { PATHS } from '@/routes/routes';
 import { useTimeRangeStore } from '@/store';
@@ -22,7 +22,7 @@ import {
 } from '@/utils';
 import { Spinner } from '@open-ui-kit/core';
 import { useDebouncedValue } from '@/utils';
-import { useApplicationAgents, useApplicationSessions } from '@/api/oxpApi';
+import { useApplicationAgents, useApplicationSessions } from '@/api/scopeApi';
 import { useMemo } from 'react';
 import { DEFAULT_END_DATE, DEFAULT_START_DATE } from '@/common/constants';
 import { TAB_NAMES } from '@/pages/ApplicationDetails/MonitorTab';

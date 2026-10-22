@@ -16,11 +16,11 @@ from pathlib import Path
 import pytest
 import fakeredis
 from dotenv import load_dotenv
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.connectors.neo4j import Neo4JConnector
+from scope.dependencies import get_db, get_redis
 from fastapi.testclient import TestClient
 
 # Load API .env for test-only environment defaults.
@@ -28,7 +28,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Path to CSV data shipped with the repo
@@ -104,9 +104,9 @@ def client(local_db):
 
 
 # sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-# from oxp.db.database import init_oxp_db
-# from oxp.scripts.seed import seed_database_test
-# import oxp.ui
+# from scope.db.database import init_scope_db
+# from scope.scripts.seed import seed_database_test
+# import scope.ui
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

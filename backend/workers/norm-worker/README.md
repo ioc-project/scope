@@ -11,7 +11,7 @@ RabbitMQ input queue
         ↓
 NormWorker (extends BaseWorker)
         ↓
-_fetch_spans()              — direct oxp LocalClient.get_session_spans() by session_id
+_fetch_spans()              — direct scope LocalClient.get_session_spans() by session_id
         ↓
 _inject_mas_boundaries()    — maps ioa_observe / traceloop attrs → mas.* attrs
         ↓
@@ -37,8 +37,8 @@ RabbitMQ output queues
 norm-worker
 ├── mas-library-kg       OTel → events → KG normalization + Neo4j push
 ├── worker-base          RabbitMQ worker lifecycle and message handling
-├── oxp-api           LocalClient + DAL helpers (shared API access layer)
-├── oxp-ontology      TTL files for MAS ontology (optional, preferred)
+├── scope-api           LocalClient + DAL helpers (shared API access layer)
+├── scope-ontology      TTL files for MAS ontology (optional, preferred)
 ├── pydantic             Data validation
 ├── python-dotenv        Environment configuration
 ├── click                CLI framework

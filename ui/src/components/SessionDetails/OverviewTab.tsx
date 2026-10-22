@@ -18,8 +18,8 @@ import {
   getDisplayedResultsCount,
   formatTwoDecimals
 } from '@/utils';
-import { useApplicationSessionsWithStatefulEval } from '@/api/oxpApi';
-import { Session } from '@/types/oxp.type';
+import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
+import { Session } from '@/types/scope.type';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 
 interface OverviewTabProps {

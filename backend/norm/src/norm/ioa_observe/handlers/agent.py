@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from oxp_ontology.models.edges import (
+from scope_ontology.models.edges import (
     belongsToMAS,
     executesAgent,
     executesMAS,
@@ -14,7 +14,7 @@ from oxp_ontology.models.edges import (
     hasAgentCall,
     hasMASCall,
 )
-from oxp_ontology.models.nodes import MAS, Agent, AgentCall, MASCall, Session
+from scope_ontology.models.nodes import MAS, Agent, AgentCall, MASCall, Session
 
 from ..fields import (
     _hash_id,

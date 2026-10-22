@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCS_BASE_URL: https://outshift-open.github.io/observe-and-explain-platform
+  DOCS_BASE_URL: https://ioc-project.github.io/scope
 
 jobs:
   build:
@@ -98,20 +98,20 @@ jobs:
             echo "📚 Generating ${ONTOLOGY_TITLES[$ont]} docs..."
 
             # Widoco
-            java -jar widoco.jar -ontFile ontology/src/oxp_ontology/${ont}-ontology.ttl \
+            java -jar widoco.jar -ontFile ontology/src/scope_ontology/${ont}-ontology.ttl \
               -outFolder ontology-docs/$ont/widoco -rewriteAll \
               -includeAnnotationProperties -htaccess -webVowl -licensius
             echo '<meta http-equiv="refresh" content="0; url=index-en.html">' > ontology-docs/$ont/widoco/index.html
 
             # WebVOWL
             python3 ontology/scripts/generate_webvowl_json_generic.py \
-              ontology/src/oxp_ontology/${ont}-ontology.ttl \
+              ontology/src/scope_ontology/${ont}-ontology.ttl \
               ontology-docs/$ont/webvowl/data/${ont}-ontology.json \
               "${ONTOLOGY_TITLES[$ont]}" \
               "${{ env.DOCS_BASE_URL }}/$ont"
 
             # LODE
-            python3 ontology/scripts/generate_lode_html.py ontology/src/oxp_ontology/${ont}-ontology.ttl ontology-docs/$ont/lode/index.html || echo "LODE generation skipped"
+            python3 ontology/scripts/generate_lode_html.py ontology/src/scope_ontology/${ont}-ontology.ttl ontology-docs/$ont/lode/index.html || echo "LODE generation skipped"
           done
       
       - name: Setup WebVOWL (shared instance)
@@ -148,7 +148,7 @@ jobs:
         run: |
           echo "📚 Building backend documentation..."
           cat > mkdocs.yml << 'EOF'
-          site_name: OXP Backend Documentation
+          site_name: SCOPE Backend Documentation
           site_url: ${{ env.DOCS_BASE_URL }}/backend/
           docs_dir: backend/docs
           site_dir: ontology-docs/backend
@@ -194,7 +194,7 @@ jobs:
           <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Observe and eXplain Platform (OXP)</title>
+              <title>System for Cognitive Observability Provenance and Explainability (SCOPE)</title>
               <style>
                   * { margin: 0; padding: 0; box-sizing: border-box; }
                   body {
@@ -280,9 +280,9 @@ jobs:
           </head>
           <body>
               <div class="container">
-                  <h1>Observe and eXplain Platform</h1>
+                  <h1>SCOPE — System for Cognitive Observability Provenance and Explainability</h1>
                   <div class="subtitle">
-                      The Observe and eXplain Platform (OXP) is a modular platform for agentic systems,
+                      The System for Cognitive Observability Provenance and Explainability (SCOPE) is a modular platform for agentic systems,
                       designed to provide observability, analysis and explainability on how agentic systems behave.
                       <br>
                       It relies on a Multi-Agents System (MAS) execution ontology, that allows to model the execution of a MAS
@@ -306,7 +306,7 @@ jobs:
                           <h2>Backend <span class="badge">Architecture</span></h2>
                           <div class="description">
                               Architecture overview, core components (API, Analysis, MCE, Norm, ...), and the
-                              RabbitMQ-driven analysis workers that make up the OXP backend.
+                              RabbitMQ-driven analysis workers that make up the SCOPE backend.
                           </div>
                           <div class="doc-links">
                               <a href="backend/" class="doc-link">📘 Backend Documentation</a>
@@ -328,7 +328,7 @@ jobs:
           <head>
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>OXP MAS Execution Ontology</title>
+              <title>SCOPE MAS Execution Ontology</title>
               <style>
                   * { margin: 0; padding: 0; box-sizing: border-box; }
                   body {
@@ -422,8 +422,8 @@ jobs:
           </head>
           <body>
               <div class="container">
-                  <a href="index.html" class="back-link">← Back to OXP Documentation</a>
-                  <h1>OXP MAS Execution Ontology</h1>
+                  <a href="index.html" class="back-link">← Back to SCOPE Documentation</a>
+                  <h1>SCOPE MAS Execution Ontology</h1>
                   <div class="subtitle">
                       Multi-Agent System execution ontology for observability and explainability.
                   </div>

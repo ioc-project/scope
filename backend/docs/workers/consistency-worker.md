@@ -3,7 +3,7 @@
 Standalone consistency analysis worker: measures how alike the sessions inside one semantic group
 are, on three layers (text, execution graph, metrics), and writes a `ConsistencyReport` per layer.
 
-**Source:** [`workers/consistency-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/consistency-worker)
+**Source:** [`workers/consistency-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/consistency-worker)
 
 !!! info "Relationship to the analysis worker"
     The default `docker-compose` deployment runs the combined
@@ -114,7 +114,7 @@ grouping-worker / hierarchical-grouping-worker
     combined [analysis worker](analysis-worker.md) consumes. Running this worker means either
     repointing a producer at `new_session_to_consistency` or driving it in run-once mode.
 
-Downstream, the API reads these reports back: `oxp/query_builders/ui.py` folds the per-layer means
+Downstream, the API reads these reports back: `scope/query_builders/ui.py` folds the per-layer means
 into the group's `overallReliability` as `(sum of consistency means + completionRate) /
 (number of consistency entries + 1)`, and maps `dataType` to the UI fields `TextConsistency`,
 `GraphConsistency` and `MetricConsistency`.
@@ -196,7 +196,7 @@ text:
 
 ## Methodology
 
-Source: [`dem/src/dem/consistency/`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/dem/src/dem/consistency).
+Source: [`dem/src/dem/consistency/`](https://github.com/ioc-project/scope/tree/main/backend/dem/src/dem/consistency).
 
 Every layer follows the same three-stage shape. Only the middle stage — the dispersion statistic —
 differs between text, graph and metric.

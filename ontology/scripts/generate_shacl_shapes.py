@@ -24,11 +24,11 @@ tests/build, exactly like the Pydantic models under models/nodes|edges/ --
 never hand-edit it, changes will be silently overwritten. Anything needing
 logic this generator can't produce (sh:sparql conditional/multi-hop
 constraints, sh:class checks on a property's subjects/objects) belongs in
-the separate hand-maintained src/oxp_ontology/mas-shapes-custom.ttl,
+the separate hand-maintained src/scope_ontology/mas-shapes-custom.ttl,
 which this script never touches and which stays committed.
 
 Usage: python scripts/generate_shacl_shapes.py [output.ttl]
-Run from the oxp-ontology repo root, with rdflib installed.
+Run from the scope-ontology repo root, with rdflib installed.
 """
 
 import os
@@ -37,7 +37,7 @@ import sys
 from rdflib import OWL, RDF, RDFS, Graph, URIRef
 
 PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(PACKAGE_ROOT, "src", "oxp_ontology")
+SRC = os.path.join(PACKAGE_ROOT, "src", "scope_ontology")
 
 # Source ontology files -- NOT including mas-shapes.ttl itself, since this
 # script generates that file.
@@ -50,9 +50,9 @@ ONTOLOGY_FILES = [
 ]
 
 PREFIXES = {
-    "https://outshift-open.github.io/oxp-ontology/mas#": "mas",
-    "https://outshift-open.github.io/oxp-ontology/metrics#": "metrics",
-    "https://outshift-open.github.io/oxp-ontology/analysis#": "analysis",
+    "https://ioc-project.github.io/scope-ontology/mas#": "mas",
+    "https://ioc-project.github.io/scope-ontology/metrics#": "metrics",
+    "https://ioc-project.github.io/scope-ontology/analysis#": "analysis",
     "http://www.w3.org/2001/XMLSchema#": "xsd",
 }
 
@@ -131,12 +131,12 @@ def main():
 
     lines = []
     lines.append("@prefix sh: <http://www.w3.org/ns/shacl#> .")
-    lines.append("@prefix mas: <https://outshift-open.github.io/oxp-ontology/mas#> .")
+    lines.append("@prefix mas: <https://ioc-project.github.io/scope-ontology/mas#> .")
     lines.append(
-        "@prefix metrics: <https://outshift-open.github.io/oxp-ontology/metrics#> ."
+        "@prefix metrics: <https://ioc-project.github.io/scope-ontology/metrics#> ."
     )
     lines.append(
-        "@prefix analysis: <https://outshift-open.github.io/oxp-ontology/analysis#> ."
+        "@prefix analysis: <https://ioc-project.github.io/scope-ontology/analysis#> ."
     )
     lines.append("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .")
     lines.append("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .")

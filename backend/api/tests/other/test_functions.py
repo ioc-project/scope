@@ -15,9 +15,9 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import oxp.ui
-from oxp.db.database import init_oxp_db
-from oxp.scripts.seed import seed_database_test
+import scope.ui
+from scope.db.database import init_scope_db
+from scope.scripts.seed import seed_database_test
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,37 +39,37 @@ def to_epoch(timestamp: str) -> str:
 
 @pytest.fixture(autouse=True, scope="module")
 def _bootstrap():
-    """Initialise the oxp DB and seed OTEL data once for the module."""
+    """Initialise the scope DB and seed OTEL data once for the module."""
     # When running in SQLite mode, use a sandbox file so threads can
     # share the database (SQLite :memory: is per-connection).
-    if os.getenv("OXP_LOCAL", "true").lower() in ("true", "1", "yes"):
+    if os.getenv("SCOPE_LOCAL", "true").lower() in ("true", "1", "yes"):
         sandbox = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sandbox")
         os.makedirs(sandbox, exist_ok=True)
-        os.environ["OXP_DB_PATH"] = os.path.join(sandbox, "oxp_test.db")
-    init_oxp_db()
+        os.environ["SCOPE_DB_PATH"] = os.path.join(sandbox, "scope_test.db")
+    init_scope_db()
     seed_database_test()
-    oxp.ui.reset_instance()  # re-create singleton with the correct DB path
+    scope.ui.reset_instance()  # re-create singleton with the correct DB path
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 
 def test_get_sessions_no_params():
-    result = oxp.ui.get_sessions()
+    result = scope.ui.get_sessions()
     print("\n── get_sessions (no params) ──")
     print(json.dumps(result.model_dump(), indent=2))
 
 
 def test_get_sessions_start_only():
     start = to_epoch("2025-10-06 15:04:28.000000000")
-    result = oxp.ui.get_sessions(start_time=start)
+    result = scope.ui.get_sessions(start_time=start)
     print(f"\n── get_sessions (start_time={start}) ──")
     print(json.dumps(result.model_dump(), indent=2))
 
 
 def test_get_sessions_end_only():
     end = to_epoch("2025-10-06 16:00:00.000000000")
-    result = oxp.ui.get_sessions(end_time=end)
+    result = scope.ui.get_sessions(end_time=end)
     print(f"\n── get_sessions (end_time={end}) ──")
     print(json.dumps(result.model_dump(), indent=2))
 
@@ -77,7 +77,7 @@ def test_get_sessions_end_only():
 def test_get_sessions_both_params():
     start = to_epoch("2025-10-06 14:00:00.000000000")
     end = to_epoch("2025-10-06 16:00:00.000000000")
-    result = oxp.ui.get_sessions(start_time=start, end_time=end)
+    result = scope.ui.get_sessions(start_time=start, end_time=end)
     print(f"\n── get_sessions (start_time={start}, end_time={end}) ──")
     print(json.dumps(result.model_dump(), indent=2))
 
@@ -86,7 +86,7 @@ def test_get_sessions_both_params():
 
 
 def test_get_applications_no_params():
-    result = oxp.ui.get_applications()
+    result = scope.ui.get_applications()
     print("\n── get_applications (no params) ──")
     print(json.dumps(result.model_dump(), indent=2))
     assert isinstance(result.applications, list)
@@ -94,7 +94,7 @@ def test_get_applications_no_params():
 
 def test_get_applications_start_only():
     start = to_epoch("2025-10-06 15:04:28.000000000")
-    result = oxp.ui.get_applications(start_time=start)
+    result = scope.ui.get_applications(start_time=start)
     print(f"\n── get_applications (start_time={start}) ──")
     print(json.dumps(result.model_dump(), indent=2))
     assert isinstance(result.applications, list)
@@ -102,7 +102,7 @@ def test_get_applications_start_only():
 
 def test_get_applications_end_only():
     end = to_epoch("2025-10-06 16:00:00.000000000")
-    result = oxp.ui.get_applications(end_time=end)
+    result = scope.ui.get_applications(end_time=end)
     print(f"\n── get_applications (end_time={end}) ──")
     print(json.dumps(result.model_dump(), indent=2))
     assert isinstance(result.applications, list)
@@ -111,7 +111,7 @@ def test_get_applications_end_only():
 def test_get_applications_both_params():
     start = to_epoch("2025-10-06 14:00:00.000000000")
     end = to_epoch("2025-10-06 16:00:00.000000000")
-    result = oxp.ui.get_applications(start_time=start, end_time=end)
+    result = scope.ui.get_applications(start_time=start, end_time=end)
     print(f"\n── get_applications (start_time={start}, end_time={end}) ──")
     print(json.dumps(result.model_dump(), indent=2))
     assert isinstance(result.applications, list)

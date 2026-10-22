@@ -2,8 +2,8 @@
 
 `norm` turns `ioa_observe`/observe-sdk OTel spans into ontology-backed KG
 documents and validates them against
-[oxp-ontology](https://outshift-open.github.io/observe-and-explain-platform/) (namespace
-`https://outshift-open.github.io/oxp-ontology/mas#`).
+[scope-ontology](https://ioc-project.github.io/scope/) (namespace
+`https://ioc-project.github.io/scope-ontology/mas#`).
 
 ## Install
 
@@ -12,8 +12,8 @@ cd norm
 uv pip install -e ".[all]"
 ```
 
-Requires Python >= 3.10. `oxp-ontology` (which provides the generated
-`oxp_ontology.models.*` Pydantic classes) is a base dependency — always
+Requires Python >= 3.10. `scope-ontology` (which provides the generated
+`scope_ontology.models.*` Pydantic classes) is a base dependency — always
 installed, not optional. The `[graph]` extra adds `rdflib`/`pyshacl`, needed
 for `verify_kg()`'s SHACL pass; `[dev]`/`[all]` install those plus the
 test/lint tooling.
@@ -44,10 +44,10 @@ span just gets no `MAS` node.
 ## Where spans come from
 
 `load_otel_export(path)` covers offline traces/CI fixtures. A live caller
-(e.g. norm-worker, fetching from oxp-api) is responsible for adapting its own
+(e.g. norm-worker, fetching from scope-api) is responsible for adapting its own
 span representation into the same raw-dict shape — see
 `norm_worker.wrapper.norm_wrapper._to_otel_span_dict` for the reference
-mapping from oxp-api's `SpanMetadataItem` (itself sourced from the same
+mapping from scope-api's `SpanMetadataItem` (itself sourced from the same
 ClickHouse columns, so it's a straight field rename, no reformatting).
 
 ## What `normalize()` builds
@@ -78,7 +78,7 @@ State across agent handoffs, sibling capability calls, and container
 ```
 
 SHACL validation runs `mas-ontology.ttl` + `mas-shapes.ttl` +
-`mas-shapes-custom.ttl` (resolved from the installed `oxp-ontology` package)
+`mas-shapes-custom.ttl` (resolved from the installed `scope-ontology` package)
 against a JSON-LD projection of the KG via `pyshacl`. It's reported as
 `{"skipped": True, "reason": ...}` (never a silent pass) when `rdflib`/
 `pyshacl` aren't installed. Pass `strict=True` to treat SHACL warnings as

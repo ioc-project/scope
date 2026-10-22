@@ -4,7 +4,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp_ontology.models.nodes.consistency_report import ConsistencyReport
+from scope_ontology.models.nodes.consistency_report import ConsistencyReport
 from pydantic import Field
 from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import BaseQueueMessage, SessionDetail

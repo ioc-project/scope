@@ -1,6 +1,6 @@
 # Versioning Strategy
 
-This document explains the versioning strategy for `oxp-ontology`.
+This document explains the versioning strategy for `scope-ontology`.
 
 ## Per-Component Versioning
 

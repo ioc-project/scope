@@ -16,7 +16,7 @@ import { PerformanceTab } from '@/pages/AgentDetailsPopulation/MetricsTabs/Perfo
 import { QualityReasoningTab } from '@/pages/AgentDetailsPopulation/MetricsTabs/QualityReasoningTab.tsx';
 import { CostTab } from '@/pages/AgentDetailsPopulation/MetricsTabs/CostTab.tsx';
 import { ToolsTab } from './ToolsTab.tsx';
-import { AgentMetricType } from '@/types/oxp.type.ts';
+import { AgentMetricType } from '@/types/scope.type.ts';
 
 interface MetricsTabsProps {
   agentId: string;

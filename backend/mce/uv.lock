@@ -12,16 +12,16 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "oxp-mce",
-    "oxp-mce-client",
-    "oxp-mce-core",
-    "oxp-mce-helper",
-    "oxp-mce-legacy",
-    "oxp-mce-provider-deepeval",
-    "oxp-mce-provider-native",
-    "oxp-mce-provider-opik",
-    "oxp-mce-provider-ragas",
-    "oxp-mce-provider-sdk",
+    "scope-mce",
+    "scope-mce-client",
+    "scope-mce-core",
+    "scope-mce-helper",
+    "scope-mce-legacy",
+    "scope-mce-provider-deepeval",
+    "scope-mce-provider-native",
+    "scope-mce-provider-opik",
+    "scope-mce-provider-ragas",
+    "scope-mce-provider-sdk",
 ]
 
 [manifest.dependency-groups]
@@ -2115,7 +2115,7 @@ wheels = [
 ]
 
 [[package]]
-name = "oxp-api"
+name = "scope-api"
 version = "1.0.0"
 source = { editable = "../api" }
 dependencies = [
@@ -2125,7 +2125,7 @@ dependencies = [
     { name = "neo4j" },
     { name = "numba" },
     { name = "numpy" },
-    { name = "oxp-ontology", extra = ["models", "verify"] },
+    { name = "scope-ontology", extra = ["models", "verify"] },
     { name = "packaging" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -2145,7 +2145,7 @@ requires-dist = [
     { name = "neo4j", specifier = ">=6.1.0" },
     { name = "numba", specifier = ">=0.60.0" },
     { name = "numpy", specifier = ">=2.3.5" },
-    { name = "oxp-ontology", extras = ["models", "verify"], specifier = ">=1.0.6" },
+    { name = "scope-ontology", extras = ["models", "verify"], specifier = ">=1.0.6" },
     { name = "packaging", specifier = ">=26.0" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
@@ -2161,50 +2161,50 @@ requires-dist = [
 dev = [
     { name = "fakeredis", specifier = ">=2.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "oxp-mce-provider-native", editable = "mce-provider-native" },
-    { name = "oxp-mce-provider-sdk", editable = "mce-provider-sdk" },
+    { name = "scope-mce-provider-native", editable = "mce-provider-native" },
+    { name = "scope-mce-provider-sdk", editable = "mce-provider-sdk" },
     { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]
-name = "oxp-mce"
+name = "scope-mce"
 version = "2.0.0rc1"
 source = { editable = "mce-meta" }
 dependencies = [
-    { name = "oxp-mce-client" },
-    { name = "oxp-mce-core" },
-    { name = "oxp-mce-helper" },
-    { name = "oxp-mce-legacy" },
-    { name = "oxp-mce-provider-deepeval" },
-    { name = "oxp-mce-provider-native" },
-    { name = "oxp-mce-provider-opik" },
-    { name = "oxp-mce-provider-ragas" },
-    { name = "oxp-mce-provider-sdk" },
+    { name = "scope-mce-client" },
+    { name = "scope-mce-core" },
+    { name = "scope-mce-helper" },
+    { name = "scope-mce-legacy" },
+    { name = "scope-mce-provider-deepeval" },
+    { name = "scope-mce-provider-native" },
+    { name = "scope-mce-provider-opik" },
+    { name = "scope-mce-provider-ragas" },
+    { name = "scope-mce-provider-sdk" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "oxp-mce-client", editable = "mce-client" },
-    { name = "oxp-mce-core", editable = "mce-core" },
-    { name = "oxp-mce-helper", editable = "mce-helper" },
-    { name = "oxp-mce-legacy", editable = "mce-legacy" },
-    { name = "oxp-mce-provider-deepeval", editable = "mce-provider-deepeval" },
-    { name = "oxp-mce-provider-native", editable = "mce-provider-native" },
-    { name = "oxp-mce-provider-opik", editable = "mce-provider-opik" },
-    { name = "oxp-mce-provider-ragas", editable = "mce-provider-ragas" },
-    { name = "oxp-mce-provider-sdk", editable = "mce-provider-sdk" },
+    { name = "scope-mce-client", editable = "mce-client" },
+    { name = "scope-mce-core", editable = "mce-core" },
+    { name = "scope-mce-helper", editable = "mce-helper" },
+    { name = "scope-mce-legacy", editable = "mce-legacy" },
+    { name = "scope-mce-provider-deepeval", editable = "mce-provider-deepeval" },
+    { name = "scope-mce-provider-native", editable = "mce-provider-native" },
+    { name = "scope-mce-provider-opik", editable = "mce-provider-opik" },
+    { name = "scope-mce-provider-ragas", editable = "mce-provider-ragas" },
+    { name = "scope-mce-provider-sdk", editable = "mce-provider-sdk" },
 ]
 
 [[package]]
-name = "oxp-mce-client"
+name = "scope-mce-client"
 version = "0.1.0"
 source = { editable = "mce-client" }
 dependencies = [
     { name = "click" },
     { name = "fastapi" },
-    { name = "oxp-api" },
-    { name = "oxp-mce-core" },
-    { name = "oxp-mce-helper" },
+    { name = "scope-api" },
+    { name = "scope-mce-core" },
+    { name = "scope-mce-helper" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
@@ -2221,9 +2221,9 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
     { name = "fastapi", specifier = ">=0.111.0" },
-    { name = "oxp-api", editable = "../api" },
-    { name = "oxp-mce-core", editable = "mce-core" },
-    { name = "oxp-mce-helper", editable = "mce-helper" },
+    { name = "scope-api", editable = "../api" },
+    { name = "scope-mce-core", editable = "mce-core" },
+    { name = "scope-mce-helper", editable = "mce-helper" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },
@@ -2234,13 +2234,13 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [[package]]
-name = "oxp-mce-core"
+name = "scope-mce-core"
 version = "2.0.0rc1"
 source = { editable = "mce-core" }
 dependencies = [
     { name = "click" },
     { name = "networkx" },
-    { name = "oxp-ontology" },
+    { name = "scope-ontology" },
     { name = "packaging" },
     { name = "pandas" },
     { name = "pydantic" },
@@ -2255,15 +2255,15 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "fastapi" },
-    { name = "oxp-mce-provider-deepeval" },
-    { name = "oxp-mce-provider-native" },
-    { name = "oxp-mce-provider-opik" },
-    { name = "oxp-mce-provider-ragas" },
-    { name = "oxp-mce-provider-sdk" },
+    { name = "scope-mce-provider-deepeval" },
+    { name = "scope-mce-provider-native" },
+    { name = "scope-mce-provider-opik" },
+    { name = "scope-mce-provider-ragas" },
+    { name = "scope-mce-provider-sdk" },
     { name = "uvicorn" },
 ]
 deepeval = [
-    { name = "oxp-mce-provider-deepeval" },
+    { name = "scope-mce-provider-deepeval" },
 ]
 dev = [
     { name = "black" },
@@ -2274,16 +2274,16 @@ dev = [
     { name = "pytest-asyncio" },
 ]
 llm = [
-    { name = "oxp-mce-provider-native" },
+    { name = "scope-mce-provider-native" },
 ]
 neo4j = [
     { name = "neo4j" },
 ]
 opik = [
-    { name = "oxp-mce-provider-opik" },
+    { name = "scope-mce-provider-opik" },
 ]
 ragas = [
-    { name = "oxp-mce-provider-ragas" },
+    { name = "scope-mce-provider-ragas" },
 ]
 server = [
     { name = "fastapi" },
@@ -2301,16 +2301,16 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "neo4j", marker = "extra == 'neo4j'", specifier = ">=6.1.0" },
     { name = "networkx", specifier = ">=3.0.0" },
-    { name = "oxp-mce-provider-deepeval", marker = "extra == 'all'", editable = "mce-provider-deepeval" },
-    { name = "oxp-mce-provider-deepeval", marker = "extra == 'deepeval'", editable = "mce-provider-deepeval" },
-    { name = "oxp-mce-provider-native", marker = "extra == 'all'", editable = "mce-provider-native" },
-    { name = "oxp-mce-provider-native", marker = "extra == 'llm'", editable = "mce-provider-native" },
-    { name = "oxp-mce-provider-opik", marker = "extra == 'all'", editable = "mce-provider-opik" },
-    { name = "oxp-mce-provider-opik", marker = "extra == 'opik'", editable = "mce-provider-opik" },
-    { name = "oxp-mce-provider-ragas", marker = "extra == 'all'", editable = "mce-provider-ragas" },
-    { name = "oxp-mce-provider-ragas", marker = "extra == 'ragas'", editable = "mce-provider-ragas" },
-    { name = "oxp-mce-provider-sdk", marker = "extra == 'all'", editable = "mce-provider-sdk" },
-    { name = "oxp-ontology" },
+    { name = "scope-mce-provider-deepeval", marker = "extra == 'all'", editable = "mce-provider-deepeval" },
+    { name = "scope-mce-provider-deepeval", marker = "extra == 'deepeval'", editable = "mce-provider-deepeval" },
+    { name = "scope-mce-provider-native", marker = "extra == 'all'", editable = "mce-provider-native" },
+    { name = "scope-mce-provider-native", marker = "extra == 'llm'", editable = "mce-provider-native" },
+    { name = "scope-mce-provider-opik", marker = "extra == 'all'", editable = "mce-provider-opik" },
+    { name = "scope-mce-provider-opik", marker = "extra == 'opik'", editable = "mce-provider-opik" },
+    { name = "scope-mce-provider-ragas", marker = "extra == 'all'", editable = "mce-provider-ragas" },
+    { name = "scope-mce-provider-ragas", marker = "extra == 'ragas'", editable = "mce-provider-ragas" },
+    { name = "scope-mce-provider-sdk", marker = "extra == 'all'", editable = "mce-provider-sdk" },
+    { name = "scope-ontology" },
     { name = "packaging", specifier = ">=23.0" },
     { name = "pandas", specifier = ">=1.5.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2328,46 +2328,46 @@ requires-dist = [
 provides-extras = ["dev", "neo4j", "deepeval", "llm", "opik", "ragas", "server", "all"]
 
 [[package]]
-name = "oxp-mce-helper"
+name = "scope-mce-helper"
 version = "0.1.0"
 source = { editable = "mce-helper" }
 dependencies = [
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "oxp-mce-core", editable = "mce-core" }]
+requires-dist = [{ name = "scope-mce-core", editable = "mce-core" }]
 
 [[package]]
-name = "oxp-mce-legacy"
+name = "scope-mce-legacy"
 version = "0.1.0"
 source = { editable = "mce-legacy" }
 dependencies = [
     { name = "click" },
-    { name = "oxp-mce-core" },
-    { name = "oxp-mce-provider-native" },
-    { name = "oxp-mce-provider-sdk" },
+    { name = "scope-mce-core" },
+    { name = "scope-mce-provider-native" },
+    { name = "scope-mce-provider-sdk" },
     { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
-    { name = "oxp-mce-core", editable = "mce-core" },
-    { name = "oxp-mce-provider-native", editable = "mce-provider-native" },
-    { name = "oxp-mce-provider-sdk", editable = "mce-provider-sdk" },
+    { name = "scope-mce-core", editable = "mce-core" },
+    { name = "scope-mce-provider-native", editable = "mce-provider-native" },
+    { name = "scope-mce-provider-sdk", editable = "mce-provider-sdk" },
     { name = "requests", specifier = ">=2.28.0" },
 ]
 
 [[package]]
-name = "oxp-mce-provider-deepeval"
+name = "scope-mce-provider-deepeval"
 version = "0.1.0"
 source = { editable = "mce-provider-deepeval" }
 dependencies = [
     { name = "deepeval" },
     { name = "instructor" },
     { name = "openai" },
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
 ]
 
 [package.metadata]
@@ -2375,32 +2375,32 @@ requires-dist = [
     { name = "deepeval", specifier = ">=3.3.9" },
     { name = "instructor", specifier = ">=1.11.3" },
     { name = "openai", specifier = ">=1.0.0" },
-    { name = "oxp-mce-core", editable = "mce-core" },
+    { name = "scope-mce-core", editable = "mce-core" },
 ]
 
 [[package]]
-name = "oxp-mce-provider-native"
+name = "scope-mce-provider-native"
 version = "0.1.0"
 source = { editable = "mce-provider-native" }
 dependencies = [
     { name = "openai" },
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "openai", specifier = ">=1.0.0" },
-    { name = "oxp-mce-core", editable = "mce-core" },
+    { name = "scope-mce-core", editable = "mce-core" },
 ]
 
 [[package]]
-name = "oxp-mce-provider-opik"
+name = "scope-mce-provider-opik"
 version = "0.1.0"
 source = { editable = "mce-provider-opik" }
 dependencies = [
     { name = "nltk" },
     { name = "opik" },
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
     { name = "rouge-score" },
 ]
 
@@ -2408,18 +2408,18 @@ dependencies = [
 requires-dist = [
     { name = "nltk" },
     { name = "opik", specifier = ">=1.8.27" },
-    { name = "oxp-mce-core", editable = "mce-core" },
+    { name = "scope-mce-core", editable = "mce-core" },
     { name = "rouge-score" },
 ]
 
 [[package]]
-name = "oxp-mce-provider-ragas"
+name = "scope-mce-provider-ragas"
 version = "0.1.0"
 source = { editable = "mce-provider-ragas" }
 dependencies = [
     { name = "langchain-openai" },
     { name = "numpy" },
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
     { name = "ragas" },
     { name = "scikit-learn" },
     { name = "scipy" },
@@ -2429,33 +2429,33 @@ dependencies = [
 requires-dist = [
     { name = "langchain-openai" },
     { name = "numpy", specifier = ">=1.26.0" },
-    { name = "oxp-mce-core", editable = "mce-core" },
+    { name = "scope-mce-core", editable = "mce-core" },
     { name = "ragas", specifier = ">=0.2.0,<0.3.0" },
     { name = "scikit-learn", specifier = ">=1.0.0" },
     { name = "scipy", specifier = ">=1.7.0" },
 ]
 
 [[package]]
-name = "oxp-mce-provider-sdk"
+name = "scope-mce-provider-sdk"
 version = "0.1.0"
 source = { editable = "mce-provider-sdk" }
 dependencies = [
-    { name = "oxp-mce-core" },
+    { name = "scope-mce-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "oxp-mce-core", editable = "mce-core" }]
+requires-dist = [{ name = "scope-mce-core", editable = "mce-core" }]
 
 [[package]]
-name = "oxp-ontology"
+name = "scope-ontology"
 version = "1.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rdflib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/90/2cf36dc4d2f49d4eef2a5721782b30f1747ec8047f68cb906f58a3bb591e/oxp_ontology-1.0.6.tar.gz", hash = "sha256:74ea6d4697101ba0e916c86dd9cb2e07c309743b3867bcec3cdc9a150f99ab52", size = 39381, upload-time = "2026-10-20T09:54:55.336Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/90/2cf36dc4d2f49d4eef2a5721782b30f1747ec8047f68cb906f58a3bb591e/scope_ontology-1.0.6.tar.gz", hash = "sha256:74ea6d4697101ba0e916c86dd9cb2e07c309743b3867bcec3cdc9a150f99ab52", size = 39381, upload-time = "2026-10-20T09:54:55.336Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/0e/ca844c2bc7f1786cd6e93aaf16a4fdcfba32284076e00cbee7f2ec04f170/oxp_ontology-1.0.6-py3-none-any.whl", hash = "sha256:8184d6243dcc987ffb751e936873638fbfb49964f953c9e5519979848630b9b9", size = 69327, upload-time = "2026-10-20T09:54:53.967Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/0e/ca844c2bc7f1786cd6e93aaf16a4fdcfba32284076e00cbee7f2ec04f170/scope_ontology-1.0.6-py3-none-any.whl", hash = "sha256:8184d6243dcc987ffb751e936873638fbfb49964f953c9e5519979848630b9b9", size = 69327, upload-time = "2026-10-20T09:54:53.967Z" },
 ]
 
 [package.optional-dependencies]

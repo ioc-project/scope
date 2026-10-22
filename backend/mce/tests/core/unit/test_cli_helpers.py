@@ -408,11 +408,11 @@ def test_select_and_resolve_templated():
 
 
 class TestOntologyLoader:
-    def test_returns_empty_when_oxp_ontology_missing(self):
+    def test_returns_empty_when_scope_ontology_missing(self):
         from mce.cli.helpers.ontology_loader import load_ontology_hierarchy
 
-        # oxp_ontology may not be installed in test env
-        with patch.dict("sys.modules", {"oxp_ontology": None}):
+        # scope_ontology may not be installed in test env
+        with patch.dict("sys.modules", {"scope_ontology": None}):
             result = load_ontology_hierarchy()
         # Returns {} when import fails
         assert isinstance(result, dict)
@@ -427,7 +427,7 @@ class TestOntologyLoader:
         assert isinstance(result, dict)
 
     def test_roots_in_hierarchy_when_ontology_loads(self):
-        """When oxp_ontology is available, hierarchy includes known roots."""
+        """When scope_ontology is available, hierarchy includes known roots."""
         try:
             from mce.cli.helpers.ontology_loader import load_ontology_hierarchy
 
@@ -435,4 +435,4 @@ class TestOntologyLoader:
             # At minimum, the function should return a dict (may be empty if load fails)
             assert isinstance(result, dict)
         except (ImportError, Exception):
-            pytest.skip("oxp_ontology not installed")
+            pytest.skip("scope_ontology not installed")

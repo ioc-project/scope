@@ -1,6 +1,6 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Tests for DAL functions in oxp/client/dal.py.
+"""Tests for DAL functions in scope/client/dal.py.
 
 Run with:
     pytest tests/test_dal.py -v -s
@@ -24,15 +24,15 @@ import sys
 import pytest
 from dotenv import load_dotenv
 
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client.dal import get_session_io, get_state_content
-from oxp.connectors.neo4j import Neo4JConnector
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client.dal import get_session_io, get_state_content
+from scope.connectors.neo4j import Neo4JConnector
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # ── Module-scoped connector ───────────────────────────────────────────────────

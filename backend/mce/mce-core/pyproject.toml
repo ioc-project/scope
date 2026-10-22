@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oxp-mce-core"
+name = "scope-mce-core"
 version = "2.0.0rc1"
 authors = [
     { name = "Outshift Open", email = "oss@cisco.com" }
@@ -23,7 +23,7 @@ dependencies = [
     "typer>=0.9.0",
     "rdflib>=7.0.0",
     "pyyaml>=6.0.0",
-    "oxp-ontology",
+    "scope-ontology",
 ]
 
 [project.optional-dependencies]
@@ -39,27 +39,27 @@ neo4j = [
     "neo4j>=6.1.0",
 ]
 deepeval = [
-    "oxp-mce-provider-deepeval>=0.1.0",
+    "scope-mce-provider-deepeval>=0.1.0",
 ]
 llm = [
-    "oxp-mce-provider-native>=0.1.0",
+    "scope-mce-provider-native>=0.1.0",
 ]
 opik = [
-    "oxp-mce-provider-opik>=0.1.0",
+    "scope-mce-provider-opik>=0.1.0",
 ]
 ragas = [
-    "oxp-mce-provider-ragas>=0.1.0",
+    "scope-mce-provider-ragas>=0.1.0",
 ]
 server = [
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]
 all = [
-    "oxp-mce-provider-native>=0.1.0",
-    "oxp-mce-provider-sdk>=0.1.0",
-    "oxp-mce-provider-deepeval>=0.1.0",
-    "oxp-mce-provider-opik>=0.1.0",
-    "oxp-mce-provider-ragas>=0.1.0",
+    "scope-mce-provider-native>=0.1.0",
+    "scope-mce-provider-sdk>=0.1.0",
+    "scope-mce-provider-deepeval>=0.1.0",
+    "scope-mce-provider-opik>=0.1.0",
+    "scope-mce-provider-ragas>=0.1.0",
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]
@@ -71,9 +71,9 @@ where = ["src"]
 "mce.engine" = ["data/*.json"]
 
 [tool.uv.sources]
-oxp-mce-provider-native = { workspace = true }
-oxp-mce-provider-sdk = { workspace = true }
-oxp-mce-provider-deepeval = { workspace = true }
-oxp-mce-provider-opik = { workspace = true }
-oxp-mce-provider-ragas = { workspace = true }
+scope-mce-provider-native = { workspace = true }
+scope-mce-provider-sdk = { workspace = true }
+scope-mce-provider-deepeval = { workspace = true }
+scope-mce-provider-opik = { workspace = true }
+scope-mce-provider-ragas = { workspace = true }
 

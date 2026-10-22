@@ -10,9 +10,9 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.dependencies import get_neo4j_db
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.dependencies import get_neo4j_db
 
 logger = logging.getLogger(__name__)
 

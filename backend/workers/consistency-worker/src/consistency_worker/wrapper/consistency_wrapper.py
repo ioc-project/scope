@@ -11,7 +11,7 @@ from dem.consistency.graph_consistency import GraphConsistency
 from dem.consistency.metric_consistency import MetricConsistency
 from dem.consistency.textual_consistency import TextualConsistency
 from dem.utils.graph_utils import execution_graph_to_nx_graph
-from oxp_ontology.models.nodes.consistency_report import ConsistencyReport
+from scope_ontology.models.nodes.consistency_report import ConsistencyReport
 from worker_base.queue_message import SessionDetail
 
 logger = logging.getLogger(__name__)

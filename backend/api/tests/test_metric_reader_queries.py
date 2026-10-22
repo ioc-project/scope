@@ -6,8 +6,8 @@ import re
 
 import pytest
 
-from oxp.query_builders import kg, ui
-from oxp.query_builders.types import Dialect
+from scope.query_builders import kg, ui
+from scope.query_builders.types import Dialect
 
 _FORBIDDEN = (
     "hasMetric",

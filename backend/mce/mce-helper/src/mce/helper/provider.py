@@ -7,7 +7,7 @@ continues to work.
 
 Ownership:
   mce-helper owns MetricsProvider (metric CRUD contracts).
-  DataProvider (KG-specific: resolve_session_id + fetch) lives in oxp-api.
+  DataProvider (KG-specific: resolve_session_id + fetch) lives in scope-api.
 """
 
 from __future__ import annotations

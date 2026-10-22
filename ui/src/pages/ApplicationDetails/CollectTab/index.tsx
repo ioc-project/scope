@@ -17,15 +17,15 @@ import { Box, Stack, Typography, useTheme } from '@mui/material';
 import { TabPanel } from '@/components/TabPanel';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useEffect, type SyntheticEvent } from 'react';
-import type { Session } from '@/types/oxp.type';
-import type { LiveSession } from '@/types/oxpApi.type';
+import type { Session } from '@/types/scope.type';
+import type { LiveSession } from '@/types/scopeApi.type';
 import { useTimeRangeStore } from '@/store';
 import {
   formatDurationMs,
   getDisplayedResultsCount,
   formatTwoDecimals
 } from '@/utils';
-import { useApplicationSessionsWithStatefulEval } from '@/api/oxpApi';
+import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
 import { useDebouncedValue } from '@/utils';
 import { PATHS } from '@/routes/routes';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';

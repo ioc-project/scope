@@ -11,7 +11,7 @@ from .utils import ConsistencyResult
 
 class Consistency(ABC):
     """
-    Abstract Base Class for all consistency methods in the oxp library.
+    Abstract Base Class for all consistency methods in the scope library.
 
     This class provides common utilities for consistency calculations, including
     bootstrap sampling for confidence intervals and result formatting.

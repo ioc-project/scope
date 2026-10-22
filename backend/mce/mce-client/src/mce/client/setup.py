@@ -12,21 +12,21 @@ from .adapters.json_provider import JsonDataProvider
 logger = logging.getLogger(__name__)
 
 
-def build_oxp_kg_provider(
+def build_scope_kg_provider(
     client_config: MCEClientConfig | None = None,
     *,
     combined: bool = False,
 ):
-    """Build a oxp-api KG provider from explicit MCE client config."""
+    """Build a scope-api KG provider from explicit MCE client config."""
     cfg = client_config or MCEClientConfig.from_env()
 
     try:
-        from oxp.providers import OXPKGProvider, Neo4jGraphProvider  # type: ignore[import]
+        from scope.providers import SCOPEKGProvider, Neo4jGraphProvider  # type: ignore[import]
     except ImportError:
-        logger.error("OXP API not found. Use oxp-api, --file, or --legacy.")
+        logger.error("SCOPE API not found. Use scope-api, --file, or --legacy.")
         return None
 
-    provider_cls = Neo4jGraphProvider if combined else OXPKGProvider
+    provider_cls = Neo4jGraphProvider if combined else SCOPEKGProvider
     return provider_cls(
         host=cfg.kg_host,
         username=cfg.kg_user,
@@ -43,17 +43,17 @@ def setup_data_provider(
     client_config: MCEClientConfig | None = None,
 ) -> Optional[DataProvider]:
     """
-    Initialize appropriate data provider (JSON/Legacy/OXP).
+    Initialize appropriate data provider (JSON/Legacy/SCOPE).
 
     This function lives in mce-client because it orchestrates dependencies
-    (legacy, file io, oxp-api) that mce-core must not know about.
+    (legacy, file io, scope-api) that mce-core must not know about.
 
     Args:
         file: Path to JSON file (if using file-based provider)
         legacy: Use legacy ClickHouse API provider
         log_info: Log provider initialization info
         kg_provider: Optional pre-initialized provider to return directly
-        client_config: Optional explicit MCE client config for oxp-api provider construction
+        client_config: Optional explicit MCE client config for scope-api provider construction
 
     Returns:
         DataProvider instance or None on error
@@ -87,9 +87,9 @@ def setup_data_provider(
             logger.error("mce-legacy package not found")
             return None
 
-    # Default: oxp-api provider. mce-client does not own any Neo4j adapter.
+    # Default: scope-api provider. mce-client does not own any Neo4j adapter.
 
-    provider = build_oxp_kg_provider(client_config)
+    provider = build_scope_kg_provider(client_config)
     if provider and log_info:
-        logger.info("Using OXPKGProvider (oxp-api)")
+        logger.info("Using SCOPEKGProvider (scope-api)")
     return provider

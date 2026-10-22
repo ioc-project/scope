@@ -20,10 +20,10 @@ def build_worker(mocker, monkeypatch):
 
 
 def test_the_config_file_flag_reaches_the_worker(build_worker):
-    result = CliRunner().invoke(cli.main, ["--config-file", "/oxp/cognitive_failure_config.yaml"])
+    result = CliRunner().invoke(cli.main, ["--config-file", "/scope/cognitive_failure_config.yaml"])
 
     assert result.exit_code == 0, result.output
-    assert build_worker.call_args.kwargs["config_path"] == "/oxp/cognitive_failure_config.yaml"
+    assert build_worker.call_args.kwargs["config_path"] == "/scope/cognitive_failure_config.yaml"
 
 
 def test_the_config_path_falls_back_to_the_environment(build_worker, monkeypatch):

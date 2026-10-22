@@ -1,8 +1,8 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-from oxp.client._sessions import SessionsClient
-from oxp.query_builders.sessions import session_spans_query
-from oxp.query_builders.types import Dialect
+from scope.client._sessions import SessionsClient
+from scope.query_builders.sessions import session_spans_query
+from scope.query_builders.types import Dialect
 
 
 class _RowsConnector:

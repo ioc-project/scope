@@ -7,10 +7,10 @@ from __future__ import annotations
 import json
 
 import pytest
-from oxp.client.dal import get_session_trajectory, write_transition_context
-from oxp.core.exceptions import DatabaseError
-from oxp.interfaces.models import MetricResult
-from oxp.providers import OXPMetricsProvider
+from scope.client.dal import get_session_trajectory, write_transition_context
+from scope.core.exceptions import DatabaseError
+from scope.interfaces.models import MetricResult
+from scope.providers import SCOPEMetricsProvider
 
 
 def step_row(
@@ -236,7 +236,7 @@ def test_provider_saves_call_metrics():
     )
 
     assert (
-        OXPMetricsProvider(db=db).save_call_metrics("s1", "toolcall:c2", [metric])
+        SCOPEMetricsProvider(db=db).save_call_metrics("s1", "toolcall:c2", [metric])
         is True
     )
 
@@ -258,7 +258,7 @@ def test_provider_skips_errored_or_valueless_call_metrics():
             metric_id="b", resource_id="c", provider="p", value=1.0, error="boom"
         ),
     ]
-    assert OXPMetricsProvider(db=db).save_call_metrics("s", "c", metrics) is True
+    assert SCOPEMetricsProvider(db=db).save_call_metrics("s", "c", metrics) is True
     assert db.commands == []
 
 
@@ -269,5 +269,5 @@ def test_provider_reports_call_write_failures():
 
     metric = MetricResult(metric_id="a", resource_id="c", provider="p", value=1.0)
     assert (
-        OXPMetricsProvider(db=Failing()).save_call_metrics("s", "c", [metric]) is False
+        SCOPEMetricsProvider(db=Failing()).save_call_metrics("s", "c", [metric]) is False
     )

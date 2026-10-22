@@ -38,7 +38,7 @@ from typing import Any, Dict, List, Tuple
 
 # ---------------------------------------------------------------------------
 # Ontology index — derives all validation constants from mas-ontology.ttl via
-# the oxp_ontology package.  No intermediate JSON schema file required.
+# the scope_ontology package.  No intermediate JSON schema file required.
 # ---------------------------------------------------------------------------
 
 logger = logging.getLogger(__name__)
@@ -47,14 +47,14 @@ logger = logging.getLogger(__name__)
 class _OntologyIndex:
     """Loads all validation constants from ``mas-ontology.ttl``.
 
-    From the ``oxp_ontology`` package (see ``norm.ontology``). Every
+    From the ``scope_ontology`` package (see ``norm.ontology``). Every
     constant is derived from the ontology graph. Nothing is hardcoded.
 
     Recognised namespace (used to filter triples to the MAS vocabulary):
-    ``mas:`` ``https://outshift-open.github.io/oxp-ontology/mas#``
+    ``mas:`` ``https://ioc-project.github.io/scope-ontology/mas#``
     """
 
-    _NS = "https://outshift-open.github.io/oxp-ontology/mas#"
+    _NS = "https://ioc-project.github.io/scope-ontology/mas#"
 
     def __init__(self) -> None:
         self.known_node_types: frozenset[str] = frozenset()
@@ -81,7 +81,7 @@ class _OntologyIndex:
         except ImportError as exc:  # pragma: no cover
             logger.warning(
                 (
-                    "oxp_ontology not available — _OntologyIndex empty "
+                    "scope_ontology not available — _OntologyIndex empty "
                     "(validation will block ingest): %s"
                 ),
                 exc,
@@ -442,7 +442,7 @@ def run_shacl_validation(
     ``sh:property`` references to inline ``sh:PropertyShape``s declared on
     properties in ``mas-ontology.ttl`` itself, so the ontology file must be
     in the same graph or those references never resolve (same reasoning as
-    ``oxp_ontology.verification._shapes_graph()``).
+    ``scope_ontology.verification._shapes_graph()``).
 
     Returns ``(passed, violations, warnings)`` where SHACL warnings remain
     warnings unless ``strict=True``.
@@ -477,12 +477,12 @@ def run_shacl_validation(
         ]
     except ImportError as exc:
         raise KGCheckSkipped(
-            "shacl check requires oxp_ontology to resolve mas-shapes.ttl "
+            "shacl check requires scope_ontology to resolve mas-shapes.ttl "
             "(pip install 'norm[graph]')"
         ) from exc
     if not shapes_files:
         raise KGCheckSkipped(
-            "shacl check requires oxp_ontology to resolve mas-ontology.ttl/"
+            "shacl check requires scope_ontology to resolve mas-ontology.ttl/"
             "mas-shapes.ttl/mas-shapes-custom.ttl"
         )
 
@@ -577,10 +577,10 @@ def nodes_edges_to_jsonld(
     there is no more per-type identity field (``callId``/``stateNodeId``/
     ``transitionId``/etc.) to branch on.
     """
-    MAS = "https://outshift-open.github.io/oxp-ontology/mas#"
+    MAS = "https://ioc-project.github.io/scope-ontology/mas#"
 
     # Maps camelCase node dict keys → MAS camelCase property IRIs. Kept to
-    # the ontology's actual current field set (see oxp_ontology.models.nodes).
+    # the ontology's actual current field set (see scope_ontology.models.nodes).
     _PROP_MAP = [
         ("name", "name"),
         ("sessionId", "sessionId"),
@@ -626,7 +626,7 @@ def nodes_edges_to_jsonld(
             # mas:id is Element's own mandatory (sh:minCount 1) PropertyShape,
             # not just the URN-building input -- it must be asserted as a
             # triple too, or every instance spuriously fails on a phantom
-            # missing id (see oxp_ontology.verification._build_instance_graph).
+            # missing id (see scope_ontology.verification._build_instance_graph).
             f"{MAS}id": {"@value": local_id, "@type": "xsd:string"},
         }
         node_iri_by_local_id[local_id] = entry["@id"]

@@ -24,7 +24,7 @@ on:
         required: false
         type: string
         description: "Image repo to use."
-        default: "ghcr.io/outshift-open/oxp"
+        default: "ghcr.io/ioc-project/container-images/scope"
     secrets:
       github-token:
         description: "github token"

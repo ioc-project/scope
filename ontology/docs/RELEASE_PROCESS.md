@@ -41,7 +41,7 @@ Release Candidates are for testing iterations before stable release.
 ### 1. Verify Current State
 
 ```bash
-cd observe-and-explain-platform/ontology
+cd scope/ontology
 git checkout feat/metrics-ontology  # or your feature branch
 git pull origin feat/metrics-ontology
 
@@ -82,7 +82,7 @@ After merge, GitHub Actions automatically:
   - Adds commit SHA to version: `1.0.0-rc0+g<sha>`
   - Deploys to GitHub Pages with version in footer
 
-**Result**: Docs available at `https://outshift-open.github.io/observe-and-explain-platform/`
+**Result**: Docs available at `https://ioc-project.github.io/scope/`
 
 ### 5. (Optional) Publish RC Package
 
@@ -125,7 +125,7 @@ Use this process when RC testing is complete and you're ready for a stable relea
 ### 2. Finalize Version
 
 ```bash
-cd observe-and-explain-platform/ontology
+cd scope/ontology
 git checkout main
 git pull origin main
 
@@ -158,7 +158,7 @@ Edit `CHANGELOG.md`:
 ### Fixed
 - TTL validation integrated into CI/CD
 
-[1.1.0]: https://github.com/outshift-open/observe-and-explain-platform/ontology/compare/v1.0.0...v1.1.0
+[1.1.0]: https://github.com/ioc-project/scope/ontology/compare/v1.0.0...v1.1.0
 ```
 
 ### 4. Commit and Push
@@ -184,9 +184,9 @@ git push origin v1.1.0
 
 ### 6. Verify Release
 
-1. Check GitHub Releases: `https://github.com/outshift-open/observe-and-explain-platform/releases`
+1. Check GitHub Releases: `https://github.com/ioc-project/scope/releases`
 2. Verify artifacts are attached
-3. Check GitHub Pages docs have clean version: `https://outshift-open.github.io/observe-and-explain-platform/`
+3. Check GitHub Pages docs have clean version: `https://ioc-project.github.io/scope/`
 
 ### 7. (Optional) Publish to PyPI
 
@@ -299,8 +299,8 @@ git tag -d v1.1.0
 After a final release:
 
 - [ ] Update downstream repositories:
-  - [ ] `oxp-lib/mce`: Update `oxp-ontology` dependency in `pyproject.toml`
-  - [ ] `oxp-backend`: Update if using ontology directly
+  - [ ] `scope-lib/mce`: Update `scope-ontology` dependency in `pyproject.toml`
+  - [ ] `scope-backend`: Update if using ontology directly
 - [ ] Announce release in team channels
 - [ ] Update documentation if ontology structure changed significantly
 - [ ] Archive old RC documentation (if needed)

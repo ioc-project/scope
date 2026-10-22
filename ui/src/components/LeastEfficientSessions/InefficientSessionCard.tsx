@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { WastefulSession } from '@/types/oxp.type';
+import { WastefulSession } from '@/types/scope.type';
 import { Box, Stack, Typography } from '@mui/material';
 import { colorTokens } from '@/theme/colors';
 import { GeneralSize, Tag } from '@open-ui-kit/core';

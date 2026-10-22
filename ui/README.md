@@ -1,6 +1,6 @@
-# OXP UI
+# SCOPE UI
 
-The web frontend for **OXP** — an observability and analysis dashboard for multi-agent systems (MAS). It lets you browse applications, inspect individual sessions (execution graphs, agent conversations, reasoning paths, cost/latency metrics), and monitor live topology and semantic groups across agents.
+The web frontend for **SCOPE** — an observability and analysis dashboard for multi-agent systems (MAS). It lets you browse applications, inspect individual sessions (execution graphs, agent conversations, reasoning paths, cost/latency metrics), and monitor live topology and semantic groups across agents.
 
 ## Tech stack
 
@@ -17,7 +17,7 @@ The web frontend for **OXP** — an observability and analysis dashboard for mul
 
 - Node.js `lts/iron` (Node 20.x) — see [`.nvmrc`](.nvmrc). If you use `nvm`, run `nvm use`.
 - Yarn `4.5.0`, managed via the `packageManager` field / Corepack — no separate install needed if Corepack is enabled (`corepack enable`).
-- A running instance of the OXP REST API (see the sibling `api` service) to point the UI at.
+- A running instance of the SCOPE REST API (see the sibling `api` service) to point the UI at.
 
 ## Getting started
 
@@ -40,7 +40,7 @@ All frontend env vars are consumed at build/dev time via `import.meta.env` and m
 
 | Variable             | Description                                                                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_REST_API_URL`  | Base URL of the OXP REST API (e.g. `http://localhost:8000/api/v1`). Used directly by API modules in `src/api/*`.                                              |
+| `VITE_REST_API_URL`  | Base URL of the SCOPE REST API (e.g. `http://localhost:8000/api/v1`). Used directly by API modules in `src/api/*`.                                              |
 | `VITE_API_PROXY_URL` | Upstream URL the nginx container proxies `/rest` to in production (see [Docker / production build](#docker--production-build)). Not used in local `yarn dev`. |
 | `VITE_FF_*`          | Feature flags — see below.                                                                                                                                    |
 

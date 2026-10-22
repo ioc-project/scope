@@ -25,7 +25,7 @@ class StatefulEvalWorker(BaseWorker):
     """Worker that runs temporal metric evaluation directly in-process.
 
     Reads a session's normalized trajectory (Transition/State chain and the
-    LLM, tool and agent calls it represents) from the KG through the OXP API
+    LLM, tool and agent calls it represents) from the KG through the SCOPE API
     library's DAL, invokes the Stateful Evals library on it, and writes the
     results back onto the Transition nodes. The KG connection is the shared
     Neo4j connector every worker uses; no OTel store is involved.
@@ -100,7 +100,7 @@ class StatefulEvalWorker(BaseWorker):
 
     def _get_kg(self):
         """The shared Neo4j connector (owned and closed by the base worker)."""
-        from oxp.dependencies import get_neo4j_connector
+        from scope.dependencies import get_neo4j_connector
 
         return get_neo4j_connector()
 
@@ -139,7 +139,7 @@ class StatefulEvalWorker(BaseWorker):
 
     @staticmethod
     def _fetch_trajectory(kg, session_id: str) -> dict:
-        from oxp.client.dal import get_session_trajectory
+        from scope.client.dal import get_session_trajectory
 
         trajectory = get_session_trajectory(kg, session_id)
         logger.info("Read %d trajectory steps for session %s", len(trajectory["steps"]), session_id)
@@ -191,7 +191,7 @@ class StatefulEvalWorker(BaseWorker):
 
         A metric that was not applicable or could not be judged has no score and is not written.
         """
-        from oxp.interfaces.models import MetricResult
+        from scope.interfaces.models import MetricResult
         from stateful_evals_be.evaluation.cost_estimator import estimate_usage_cost_usd
 
         results = []
@@ -225,11 +225,11 @@ class StatefulEvalWorker(BaseWorker):
 
     def _push_metrics_to_kg(self, kg, result) -> None:
         """Write step metrics, trajectory context and the session score to the KG."""
-        from oxp.client.dal import write_transition_context
-        from oxp.interfaces.models import MetricResult
-        from oxp.providers import OXPMetricsProvider
+        from scope.client.dal import write_transition_context
+        from scope.interfaces.models import MetricResult
+        from scope.providers import SCOPEMetricsProvider
 
-        provider = OXPMetricsProvider(db=kg)
+        provider = SCOPEMetricsProvider(db=kg)
 
         # A step's span id is the id of its call node, which the metrics measure.
         grouped: dict = {}

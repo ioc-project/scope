@@ -6,8 +6,8 @@
 import { Spinner, Stack } from '@open-ui-kit/core';
 import MetricsGrid from '../MetricsGrid';
 import { useParams } from 'react-router';
-import { AgentConversationMetrics, AgentMetricType } from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
+import { AgentConversationMetrics, AgentMetricType } from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
 
 interface ConversationTabProps {
   agentId: string;

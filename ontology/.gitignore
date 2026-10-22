@@ -10,9 +10,9 @@ dist/
 build/
 *.egg-info/
 
-src/oxp_ontology/models/nodes/
-src/oxp_ontology/models/edges/
-src/oxp_ontology/mas-shapes.ttl
+src/scope_ontology/models/nodes/
+src/scope_ontology/models/edges/
+src/scope_ontology/mas-shapes.ttl
 
 # Python
 __pycache__/

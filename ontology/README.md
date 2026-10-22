@@ -1,18 +1,18 @@
-# OXP Ontology
+# SCOPE Ontology
 
 **Multi-Agent System (MAS) Execution Ontology** for observability and governance of multi-agent systems.
 
 ## 📖 Documentation
 
-The complete documentation for the OXP Ontology Collection is available at: **[https://outshift-open.github.io/observe-and-explain-platform/](https://outshift-open.github.io/observe-and-explain-platform/)**
+The complete documentation for the SCOPE Ontology Collection is available at: **[https://ioc-project.github.io/scope/](https://ioc-project.github.io/scope/)**
 
 | Ontology | Description | Documentation | Visualization |
 |----------|-------------|---------------|----------------|
-| **MAS** | Core execution schema: structural types (MAS, Agent, LLM, Tool, Processing), their execution instances, and the normalized State/Transition trajectory | [Widoco](https://outshift-open.github.io/observe-and-explain-platform/mas/widoco/) | [WebVOWL](https://outshift-open.github.io/observe-and-explain-platform/mas/webvowl/) |
-| **Metrics** | Metric/MetricResult definition-observation split, score nodes, templates | [Widoco](https://outshift-open.github.io/observe-and-explain-platform/metrics/widoco/) | [WebVOWL](https://outshift-open.github.io/observe-and-explain-platform/metrics/webvowl/) |
-| **Semantic** | Embedding layer linking State/Execution nodes to embeddings | [Widoco](https://outshift-open.github.io/observe-and-explain-platform/semantic/widoco/) | [WebVOWL](https://outshift-open.github.io/observe-and-explain-platform/semantic/webvowl/) |
-| **Analysis** | Group-scoped analysis reports (consistency, anomaly, normal behaviour) | [Widoco](https://outshift-open.github.io/observe-and-explain-platform/analysis/widoco/) | [WebVOWL](https://outshift-open.github.io/observe-and-explain-platform/analysis/webvowl/) |
-| **Insight** | Rendered, catalog-templated insights attached to a target KG node | [Widoco](https://outshift-open.github.io/observe-and-explain-platform/insight/widoco/) | [WebVOWL](https://outshift-open.github.io/observe-and-explain-platform/insight/webvowl/) |
+| **MAS** | Core execution schema: structural types (MAS, Agent, LLM, Tool, Processing), their execution instances, and the normalized State/Transition trajectory | [Widoco](https://ioc-project.github.io/scope/mas/widoco/) | [WebVOWL](https://ioc-project.github.io/scope/mas/webvowl/) |
+| **Metrics** | Metric/MetricResult definition-observation split, score nodes, templates | [Widoco](https://ioc-project.github.io/scope/metrics/widoco/) | [WebVOWL](https://ioc-project.github.io/scope/metrics/webvowl/) |
+| **Semantic** | Embedding layer linking State/Execution nodes to embeddings | [Widoco](https://ioc-project.github.io/scope/semantic/widoco/) | [WebVOWL](https://ioc-project.github.io/scope/semantic/webvowl/) |
+| **Analysis** | Group-scoped analysis reports (consistency, anomaly, normal behaviour) | [Widoco](https://ioc-project.github.io/scope/analysis/widoco/) | [WebVOWL](https://ioc-project.github.io/scope/analysis/webvowl/) |
+| **Insight** | Rendered, catalog-templated insights attached to a target KG node | [Widoco](https://ioc-project.github.io/scope/insight/widoco/) | [WebVOWL](https://ioc-project.github.io/scope/insight/webvowl/) |
 
 See [DOCS_DEPLOYMENT.md](DOCS_DEPLOYMENT.md) for how these are built and deployed.
 
@@ -21,21 +21,21 @@ See [DOCS_DEPLOYMENT.md](DOCS_DEPLOYMENT.md) for how these are built and deploye
 All five bundled ontologies share a single namespace — there's no separate prefix per file:
 
 ```turtle
-@prefix mas: <https://outshift-open.github.io/oxp-ontology/mas#> .
+@prefix mas: <https://ioc-project.github.io/scope-ontology/mas#> .
 ```
 
 ## 📥 Download
 
-- **MAS**: [mas-ontology.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/mas-ontology.ttl)
-- **Semantic (embedding layer)**: [semantic-ontology.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/semantic-ontology.ttl)
-- **Metrics**: [metrics-ontology.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/metrics-ontology.ttl)
-- **Analysis**: [analysis-ontology.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/analysis-ontology.ttl)
-- **Insight**: [insight-ontology.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/insight-ontology.ttl)
-- **Custom SHACL shapes**: [mas-shapes-custom.ttl](https://raw.githubusercontent.com/outshift-open/observe-and-explain-platform/main/ontology/src/oxp_ontology/mas-shapes-custom.ttl) — the auto-generated `mas-shapes.ttl` is not committed (see [Development](#️-development))
+- **MAS**: [mas-ontology.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/mas-ontology.ttl)
+- **Semantic (embedding layer)**: [semantic-ontology.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/semantic-ontology.ttl)
+- **Metrics**: [metrics-ontology.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/metrics-ontology.ttl)
+- **Analysis**: [analysis-ontology.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/analysis-ontology.ttl)
+- **Insight**: [insight-ontology.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/insight-ontology.ttl)
+- **Custom SHACL shapes**: [mas-shapes-custom.ttl](https://raw.githubusercontent.com/ioc-project/scope/main/ontology/src/scope_ontology/mas-shapes-custom.ttl) — the auto-generated `mas-shapes.ttl` is not committed (see [Development](#️-development))
 
 ## Repository Structure
 
-- **[src/oxp_ontology/](src/oxp_ontology/)**: Ontology source files (Turtle) and the `oxp-ontology` Python package
+- **[src/scope_ontology/](src/scope_ontology/)**: Ontology source files (Turtle) and the `scope-ontology` Python package
 - **[docs/](docs/)**: Versioning and release-process documentation
 - **[scripts/](scripts/)**: Doc/model/shape generation and versioning utilities
 
@@ -73,17 +73,17 @@ Catalog-templated insights attached to a target KG node (MAS, Agent, Session, Se
 
 ```bash
 # Clone the repository
-git clone https://github.com/outshift-open/observe-and-explain-platform.git
-cd observe-and-explain-platform/ontology
+git clone https://github.com/ioc-project/scope.git
+cd scope/ontology
 
 # Install the Python package
-pip install oxp-ontology
+pip install scope-ontology
 ```
 
 ### Import in your own ontology
 
 ```turtle
-@prefix mas: <https://outshift-open.github.io/oxp-ontology/mas#> .
+@prefix mas: <https://ioc-project.github.io/scope-ontology/mas#> .
 @prefix ex: <http://example.org/myproject#> .
 
 ex:myAgent a mas:Agent ;
@@ -96,7 +96,7 @@ ex:myMAS a mas:MAS ;
 ### Query with SPARQL
 
 ```sparql
-PREFIX mas: <https://outshift-open.github.io/oxp-ontology/mas#>
+PREFIX mas: <https://ioc-project.github.io/scope-ontology/mas#>
 
 SELECT ?agent ?task WHERE {
     ?agent a mas:Agent ;
@@ -109,13 +109,13 @@ SELECT ?agent ?task WHERE {
 ### Python Package
 
 ```bash
-pip install oxp-ontology
+pip install scope-ontology
 ```
 
 Access ontologies programmatically:
 
 ```python
-from oxp_ontology import get_ontology_path, load_graph
+from scope_ontology import get_ontology_path, load_graph
 
 # Get file path (valid names: mas, semantic, metrics, analysis, insight,
 # mas-shapes, mas-shapes-custom)
@@ -129,7 +129,7 @@ g = load_graph("mas")
 The package also exposes validation and SHACL-verification helpers:
 
 ```python
-from oxp_ontology import validate_bundled_ontologies, verify_kg_object
+from scope_ontology import validate_bundled_ontologies, verify_kg_object
 
 # Structural validation of the bundled TTL files
 report = validate_bundled_ontologies()
@@ -140,7 +140,7 @@ verify_kg_object(my_kg_dict)
 
 ### Generate KG models and SHACL shapes
 
-The Pydantic KG node/edge models (`src/oxp_ontology/models/nodes/`, `models/edges/`) and `mas-shapes.ttl` are generated from the ontology, not committed:
+The Pydantic KG node/edge models (`src/scope_ontology/models/nodes/`, `models/edges/`) and `mas-shapes.ttl` are generated from the ontology, not committed:
 
 ```bash
 task build-models          # or: make generate-models
@@ -178,7 +178,7 @@ See [docs/VERSIONING.md](docs/VERSIONING.md) for the complete strategy.
 
 ```bash
 task validate-ttl                                    # rdflib-based structural validation
-rapper -i turtle src/oxp_ontology/mas-ontology.ttl > /dev/null   # Raptor RDF parser
+rapper -i turtle src/scope_ontology/mas-ontology.ttl > /dev/null   # Raptor RDF parser
 ```
 
 ### Generate documentation locally

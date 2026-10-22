@@ -3,22 +3,22 @@
 """mce.helper.interfaces — Abstract interfaces owned by MCE.
 
 ``MetricsProvider`` defines the contract for metric CRUD operations.
-Implementations live in oxp-api (``OXPMetricsProvider``).
+Implementations live in scope-api (``SCOPEMetricsProvider``).
 
 ``DataProvider`` is intentionally **not** defined here.  MCE's compute
 engine uses ``mce.core.provider.DataProvider`` (a ``typing.Protocol`` with
-``fetch`` only — no KG-specific methods).  oxp-api owns its own
+``fetch`` only — no KG-specific methods).  scope-api owns its own
 ``DataProvider`` ABC (with ``resolve_session_id``) in
-``oxp.interfaces.data_provider``.
+``scope.interfaces.data_provider``.
 
 Dependency direction::
 
     mce-core       → DataProvider Protocol (fetch only)
                    → MetricResult, MetricRequirements
     mce-helper     → MetricsProvider ABC            ← this file
-    oxp-api     → DataProvider ABC (resolve_session_id + fetch)
-                   → OXPKGProvider(DataProvider)
-                   → OXPMetricsProvider(MetricsProvider)
+    scope-api     → DataProvider ABC (resolve_session_id + fetch)
+                   → SCOPEKGProvider(DataProvider)
+                   → SCOPEMetricsProvider(MetricsProvider)
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ class MetricsProvider(ABC):
     Implementations handle storing and retrieving pre-computed metric results,
     cleaning stale metric nodes, and serving time-series aggregations.
 
-    Implementations live in oxp-api (``OXPMetricsProvider``).
+    Implementations live in scope-api (``SCOPEMetricsProvider``).
     """
 
     # ── metric retrieval ──────────────────────────────────────────────────

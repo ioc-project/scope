@@ -2,7 +2,7 @@
 
 Shared RabbitMQ worker framework: every standalone worker in [`workers/`](../workers/index.md) subclasses its `BaseWorker`.
 
-**Source:** [`worker-base`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/worker-base)
+**Source:** [`worker-base`](https://github.com/ioc-project/scope/tree/main/backend/worker-base)
 
 ## Overview
 
@@ -41,7 +41,7 @@ BaseWorker(
 ```
 
 On construction it also tries to obtain a Neo4j connector via
-`oxp.dependencies.get_neo4j_connector()` and wraps it in an `OXPApiDALAdapter` as
+`scope.dependencies.get_neo4j_connector()` and wraps it in an `SCOPEApiDALAdapter` as
 `self.db_handler`; if that fails (e.g. no DB configured), `db_handler` is left `None` and a
 warning is logged instead of raising.
 
@@ -88,14 +88,14 @@ optional) with `write_message()` (publish to a channel/queue, persistent deliver
 (`start`/`complete`/`error`), `workflow`, `workflow_id`, `queue_name` and is what `BaseWorker`
 publishes to `feedback_queue` around each `handle_message()` call.
 
-### DAL adapter (`worker_base.dal_adapter.OXPApiDALAdapter`)
+### DAL adapter (`worker_base.dal_adapter.SCOPEApiDALAdapter`)
 
 A compatibility adapter that exposes the knowledge-graph operations workers need
 (`ingest_anomaly_report`, `ingest_consistency_report`, `ingest_normal_behaviour_report`,
 `ingest_insights`, `get_analysis_data_for_semantic_group`, `get_semantic_group_hierarchy`,
 `get_session_io_embeddings`, `get_mas_name`, `get_all_application_ids`,
 `generate_insights_from_query`, `wait_for_hierarchical_grouping_unlock`, `analysis_pre_check`),
-delegating to the stateless functions in `oxp.client.dal` (from the [`api`](api.md) library)
+delegating to the stateless functions in `scope.client.dal` (from the [`api`](api.md) library)
 against an injected `Connector`. Accessed as `self.db_handler` on a worker instance.
 
 ### Utilities (`worker_base.utils`)

@@ -21,15 +21,15 @@ services:
   #     retries: 5
   #     start_period: 10s
 
-  # oxp-api:
+  # scope-api:
   #   build:
   #     context: ..
   #     dockerfile: Dockerfile
-  #   container_name: oxp-api
+  #   container_name: scope-api
   #   env_file:
   #     - ../.env
   #   environment:
-  #     OXP_RELOAD: "false"
+  #     SCOPE_RELOAD: "false"
   #   ports:
   #     - "8000:8000"
   #   restart: unless-stopped
@@ -46,11 +46,11 @@ services:
 #       - postgres-data:/var/lib/postgresql
 #       - ./data/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
 #     environment:
-#       POSTGRES_USER: oxppostgresuser
-#       POSTGRES_PASSWORD: oxppostgrespassword
-#       POSTGRES_DB: oxp
+#       POSTGRES_USER: scopepostgresuser
+#       POSTGRES_PASSWORD: scopepostgrespassword
+#       POSTGRES_DB: scope
 #     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U oxppostgresuser -d oxp"]
+#       test: ["CMD-SHELL", "pg_isready -U scopepostgresuser -d scope"]
 #       interval: 10s
 #       timeout: 5s
 #       retries: 5

@@ -27,7 +27,7 @@ async def _fake_to_thread(fn, *args, **kwargs):
 def no_external_services(mocker):
     kg = mocker.Mock(spec=["execute", "execute_command", "ensure_connected"])
     mocker.patch.object(StatefulEvalWorker, "_get_kg", return_value=kg)
-    mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
     return kg
 
 
@@ -195,7 +195,7 @@ async def test_handle_message_output_preserves_input_fields(rabbit_url, session_
 @pytest.mark.asyncio
 async def test_handle_message_evaluates_the_kg_trajectory(rabbit_url, session_message, mocker, no_external_services):
     fake_result = make_session_result()
-    get_trajectory = mocker.patch("oxp.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    get_trajectory = mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
 
     mock_processor = mocker.Mock()
     mock_processor.evaluate_trajectory.return_value = fake_result
@@ -278,9 +278,9 @@ async def test_worker_persists_metrics_context_and_session_score(
     processor = mocker.Mock()
     processor.evaluate_trajectory.return_value = result
     mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
-    save_call = mocker.patch("oxp.providers.OXPMetricsProvider.save_call_metrics", return_value=True)
-    save_session = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
-    write_context = mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
+    save_call = mocker.patch("scope.providers.SCOPEMetricsProvider.save_call_metrics", return_value=True)
+    save_session = mocker.patch("scope.providers.SCOPEMetricsProvider.save_metrics", return_value=True)
+    write_context = mocker.patch("scope.client.dal.write_transition_context", return_value=True)
     worker = _make_worker(rabbit_url)
     worker.push_metrics = True
 
@@ -310,8 +310,8 @@ async def test_worker_skips_context_when_disabled(rabbit_url, session_message, m
     processor = mocker.Mock()
     processor.evaluate_trajectory.return_value = result
     mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
-    write_context = mocker.patch("oxp.client.dal.write_transition_context")
-    mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
+    write_context = mocker.patch("scope.client.dal.write_transition_context")
+    mocker.patch("scope.providers.SCOPEMetricsProvider.save_metrics", return_value=True)
     worker = _make_worker(rabbit_url)
     worker.push_metrics = True
     worker.push_context = False
@@ -373,9 +373,9 @@ async def test_worker_persists_session_and_span_evaluation_cost(
     mocker.patch.object(StatefulEvalWorker, "_build_processor", return_value=processor)
     worker = _make_worker(rabbit_url, llm_model_name="gpt-4o")
     worker.push_metrics = True
-    save_call = mocker.patch("oxp.providers.OXPMetricsProvider.save_call_metrics", return_value=True)
-    save_session = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
-    mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
+    save_call = mocker.patch("scope.providers.SCOPEMetricsProvider.save_call_metrics", return_value=True)
+    save_session = mocker.patch("scope.providers.SCOPEMetricsProvider.save_metrics", return_value=True)
+    mocker.patch("scope.client.dal.write_transition_context", return_value=True)
 
     await worker.handle_message(session_message)
 
@@ -537,8 +537,8 @@ def test_trajectory_metrics_are_written_to_the_session(rabbit_url, mocker):
         ]
     )
     worker = _make_worker(rabbit_url)
-    save = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
-    mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
+    save = mocker.patch("scope.providers.SCOPEMetricsProvider.save_metrics", return_value=True)
+    mocker.patch("scope.client.dal.write_transition_context", return_value=True)
 
     worker._push_metrics_to_kg(mocker.Mock(), result)
 
@@ -556,8 +556,8 @@ def test_trajectory_metrics_are_written_to_the_session(rabbit_url, mocker):
 
 def test_nothing_is_written_for_trajectory_metrics_when_none_ran(rabbit_url, mocker):
     worker = _make_worker(rabbit_url)
-    save = mocker.patch("oxp.providers.OXPMetricsProvider.save_metrics", return_value=True)
-    mocker.patch("oxp.client.dal.write_transition_context", return_value=True)
+    save = mocker.patch("scope.providers.SCOPEMetricsProvider.save_metrics", return_value=True)
+    mocker.patch("scope.client.dal.write_transition_context", return_value=True)
 
     worker._push_metrics_to_kg(mocker.Mock(), make_session_result())
 

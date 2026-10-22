@@ -11,7 +11,7 @@ Convention
 ----------
 This module only repairs already-fetched context for workflow metrics. It must
 not perform its own KG lookup. If a fallback requires a second ontology-versus-
-legacy Neo4j query, that fallback belongs at the oxp-api provider boundary.
+legacy Neo4j query, that fallback belongs at the scope-api provider boundary.
 """
 
 

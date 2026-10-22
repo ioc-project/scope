@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Graph } from '@antv/g6';
 import { Box, Stack, Typography, useTheme, Theme, FormControlLabel, Switch } from '@mui/material';
-import type { LatentSpaceNode, LatentSpaceEdge, SessionLatentSpaceData } from '@/types/oxp.type';
+import type { LatentSpaceNode, LatentSpaceEdge, SessionLatentSpaceData } from '@/types/scope.type';
 
 interface SemanticTypeColors {
   initial: { fill: string; stroke: string };

@@ -2,7 +2,7 @@
 
 Standalone embedding worker for processing telemetry sessions with vector embeddings.
 
-**Source:** [`workers/embedding-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/embedding-worker)
+**Source:** [`workers/embedding-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/embedding-worker)
 
 ## Overview
 
@@ -21,13 +21,13 @@ docs), running in parallel with [mce-worker](mce-worker.md):
 
 Internally, `EmbeddingWorker` (`workers/embedding-worker/src/embedding_worker/worker.py`)
 subclasses the shared [`worker-base`](../components/worker-base.md) `BaseWorker`. On each message
-it fetches the session's state content from the knowledge graph (via `oxp.client.dal`), delegates
+it fetches the session's state content from the knowledge graph (via `scope.client.dal`), delegates
 to `EmbeddingWrapper.process_session()`
 (`workers/embedding-worker/src/embedding_worker/wrapper/embedding_wrapper.py`), and ingests the
 resulting vectors back through the same DAL. `EmbeddingWrapper` is a thin adapter around the
 [`dem.embedding`](../components/analysis.md) submodule's `SentenceTransformerEmbedder` /
 `OpenAIEmbedder` classes: it builds the selected embedder, encodes each state's content (falling
-back to a placeholder string `OXP_EMPTY_STATE` for empty content), and attaches the model name and
+back to a placeholder string `SCOPE_EMPTY_STATE` for empty content), and attaches the model name and
 vector to each record before ingestion.
 
 ## Usage

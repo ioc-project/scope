@@ -3,7 +3,7 @@
 """Tests for the centralized exception handling.
 
 Verifies that:
-1. OXPError subclasses produce the correct HTTP status + JSON body.
+1. SCOPEError subclasses produce the correct HTTP status + JSON body.
 2. Unhandled exceptions produce a generic 500 without leaking internals.
 3. Stack traces are logged for all error categories.
 
@@ -18,9 +18,9 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from oxp.api import app
-from oxp.core.exceptions import (
-    OXPError,
+from scope.api import app
+from scope.core.exceptions import (
+    SCOPEError,
     ConnectorError,
     DatabaseError,
     ExternalServiceError,
@@ -63,7 +63,7 @@ def raise_external():
 
 @_test_router.get("/generic")
 def raise_generic():
-    raise OXPError("something went wrong")
+    raise SCOPEError("something went wrong")
 
 
 @_test_router.get("/unhandled")
@@ -85,8 +85,8 @@ client = TestClient(app, raise_server_exceptions=False)
 # ── Exception → status code tests ───────────────────────────────────────────
 
 
-class TestOXPErrorResponses:
-    """Each OXPError subclass should return its mapped status code."""
+class TestSCOPEErrorResponses:
+    """Each SCOPEError subclass should return its mapped status code."""
 
     def test_not_found_returns_404(self):
         resp = client.get("/test-errors/not-found")
@@ -113,7 +113,7 @@ class TestOXPErrorResponses:
         assert resp.status_code == 502
         assert resp.json() == {"detail": "Neo4j timed out after 30s"}
 
-    def test_base_oxp_error_returns_500(self):
+    def test_base_scope_error_returns_500(self):
         resp = client.get("/test-errors/generic")
         assert resp.status_code == 500
         assert resp.json() == {"detail": "something went wrong"}
@@ -142,8 +142,8 @@ class TestUnhandledExceptions:
 class TestErrorLogging:
     """Verify that errors are logged with stack traces."""
 
-    def test_oxp_error_is_logged(self, caplog):
-        with caplog.at_level(logging.ERROR, logger="oxp.api"):
+    def test_scope_error_is_logged(self, caplog):
+        with caplog.at_level(logging.ERROR, logger="scope.api"):
             client.get("/test-errors/not-found")
         assert "NotFoundError" in caplog.text
         assert "Widget 42 does not exist" in caplog.text
@@ -151,7 +151,7 @@ class TestErrorLogging:
         assert "Traceback" in caplog.text
 
     def test_unhandled_error_is_logged(self, caplog):
-        with caplog.at_level(logging.ERROR, logger="oxp.api"):
+        with caplog.at_level(logging.ERROR, logger="scope.api"):
             client.get("/test-errors/unhandled")
         assert "RuntimeError" in caplog.text
         assert "unexpected null pointer" in caplog.text
@@ -159,7 +159,7 @@ class TestErrorLogging:
 
     def test_unhandled_error_does_not_leak_details(self, caplog):
         """The JSON body must NOT contain the real error message."""
-        with caplog.at_level(logging.ERROR, logger="oxp.api"):
+        with caplog.at_level(logging.ERROR, logger="scope.api"):
             resp = client.get("/test-errors/unhandled")
         # Logged internally
         assert "unexpected null pointer" in caplog.text
@@ -173,7 +173,7 @@ class TestErrorLogging:
 class TestExceptionClasses:
     """Basic sanity checks on the exception hierarchy."""
 
-    def test_all_subclass_oxp_error(self):
+    def test_all_subclass_scope_error(self):
         for cls in (
             NotFoundError,
             ValidationError,
@@ -181,7 +181,7 @@ class TestExceptionClasses:
             ConnectorError,
             ExternalServiceError,
         ):
-            assert issubclass(cls, OXPError)
+            assert issubclass(cls, SCOPEError)
 
     def test_default_messages(self):
         assert NotFoundError().message == "Resource not found"
@@ -189,7 +189,7 @@ class TestExceptionClasses:
         assert DatabaseError().message == "Database error"
         assert ConnectorError().message == "Service unavailable"
         assert ExternalServiceError().message == "External service error"
-        assert OXPError().message == "Internal server error"
+        assert SCOPEError().message == "Internal server error"
 
     def test_custom_messages(self):
         e = DatabaseError("timeout after 5s")
@@ -203,4 +203,4 @@ class TestExceptionClasses:
         assert DatabaseError.status_code == 500
         assert ConnectorError.status_code == 503
         assert ExternalServiceError.status_code == 502
-        assert OXPError.status_code == 500
+        assert SCOPEError.status_code == 500

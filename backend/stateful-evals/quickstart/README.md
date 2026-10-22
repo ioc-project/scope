@@ -58,10 +58,10 @@ and output from `ioa_observe.entity.*` ([`span_normalization.py`](../stateful_ev
 
 How spans reach Stateful Evals: the SDK exports them over OTLP to `api_endpoint`.
 The SDK's [collector config](https://github.com/agntcy/observe/blob/main/deploy/otel-collector-config.yaml)
-receives OTLP on ports 4317 and 4318 and writes to ClickHouse. The OXP API reads
+receives OTLP on ports 4317 and 4318 and writes to ClickHouse. The SCOPE API reads
 the `otel_traces` table ([schema](../../api/data/clickhouse/otel_traces.sql)), and
 the [Stateful Eval worker](../../workers/stateful-eval-worker/README.md)
-reads a session's trajectory through the OXP API (`get_session_trajectory`) and
+reads a session's trajectory through the SCOPE API (`get_session_trajectory`) and
 evaluates it with `evaluate_trajectory`. Without a database,
 export the spans to a file and call `evaluate_file`, as `evaluate_trajectories.py` does.
 

@@ -67,10 +67,10 @@ def convert_csv_to_sql(csv_path: str, sql_path: str) -> None:
     lines: list[str] = []
 
     # Database
-    lines.append("CREATE DATABASE IF NOT EXISTS oxp;\n")
+    lines.append("CREATE DATABASE IF NOT EXISTS scope;\n")
 
     # CREATE TABLE
-    lines.append(f"CREATE TABLE IF NOT EXISTS oxp.{table_name}")
+    lines.append(f"CREATE TABLE IF NOT EXISTS scope.{table_name}")
     lines.append("(")
     col_defs = []
     for col, ctype in zip(columns, col_types):
@@ -90,7 +90,7 @@ def convert_csv_to_sql(csv_path: str, sql_path: str) -> None:
                 _format_value(val, ctype) for val, ctype in zip(row, col_types)
             )
             lines.append(
-                f"INSERT INTO oxp.{table_name} ({col_list}) VALUES ({values});"
+                f"INSERT INTO scope.{table_name} ({col_list}) VALUES ({values});"
             )
 
     lines.append("")  # trailing newline

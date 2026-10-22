@@ -6,7 +6,7 @@
 import { useParams } from 'react-router';
 import { Stack } from '@mui/material';
 import { Banner, EmptyState, Skeleton } from '@open-ui-kit/core';
-import { useSessionCognitionProtocols } from '@/api/oxpApi';
+import { useSessionCognitionProtocols } from '@/api/scopeApi';
 import { CognitionProtocols, hasListedProtocols } from '../CognitionProtocols';
 
 export const CognitionProtocolsTab = () => {

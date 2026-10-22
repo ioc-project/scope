@@ -5,10 +5,10 @@ repository:
   # See https://developer.github.com/v3/repos/#edit for all available settings.
 
   # The name of the repository. Changing this will rename the repository
-  name: observe-and-explain-platform
+  name: scope
 
   # A short description of the repository that will show up on GitHub
-  description: The Observe and eXplain Platform (OXP) is a modular platform for agentic systems designed to provide observability, analysis and explainability on how agentic systems behave across different runs.
+  description: The System for Cognitive Observability Provenance and Explainability (SCOPE) is a modular platform for agentic systems designed to provide observability, analysis and explainability on how agentic systems behave across different runs.
 
   # A URL with more information about the repository
   #homepage: https://example.github.io/

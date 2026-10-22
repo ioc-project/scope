@@ -5,32 +5,32 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp.client.dal import (
-    acquire_hierarchical_grouping_lock as oxp_api_acquire_hierarchical_grouping_lock,
+from scope.client.dal import (
+    acquire_hierarchical_grouping_lock as scope_api_acquire_hierarchical_grouping_lock,
 )
-from oxp.client.dal import (
-    get_all_application_ids as oxp_api_get_all_application_ids,
+from scope.client.dal import (
+    get_all_application_ids as scope_api_get_all_application_ids,
 )
-from oxp.client.dal import (
-    get_all_session_input_embeddings as oxp_api_get_all_session_input_embeddings,
+from scope.client.dal import (
+    get_all_session_input_embeddings as scope_api_get_all_session_input_embeddings,
 )
-from oxp.client.dal import (
-    get_semantic_group_hierarchy as oxp_api_get_semantic_group_hierarchy,
+from scope.client.dal import (
+    get_semantic_group_hierarchy as scope_api_get_semantic_group_hierarchy,
 )
-from oxp.client.dal import (
-    get_semantic_groups_needing_analysis as oxp_api_get_semantic_groups_needing_analysis,
+from scope.client.dal import (
+    get_semantic_groups_needing_analysis as scope_api_get_semantic_groups_needing_analysis,
 )
-from oxp.client.dal import (
-    ingest_semantic_groups as oxp_api_ingest_semantic_groups,
+from scope.client.dal import (
+    ingest_semantic_groups as scope_api_ingest_semantic_groups,
 )
-from oxp.client.dal import (
-    release_hierarchical_grouping_lock as oxp_api_release_hierarchical_grouping_lock,
+from scope.client.dal import (
+    release_hierarchical_grouping_lock as scope_api_release_hierarchical_grouping_lock,
 )
-from oxp.client.dal import (
-    update_semantic_group_names_and_summaries as oxp_api_update_semantic_group_names_and_summaries,
+from scope.client.dal import (
+    update_semantic_group_names_and_summaries as scope_api_update_semantic_group_names_and_summaries,
 )
-from oxp.connectors.base import Connector
-from oxp.dependencies import get_neo4j_connector
+from scope.connectors.base import Connector
+from scope.dependencies import get_neo4j_connector
 from worker_base import queue_message
 from worker_base.base_worker import BaseWorker
 
@@ -41,7 +41,7 @@ from hierarchical_grouping_worker.wrapper.hierarchical_grouping_wrapper import (
 logger = logging.getLogger(__name__)
 
 
-class OXPApiHierarchicalGroupingDALAdapter:
+class SCOPEApiHierarchicalGroupingDALAdapter:
     def __init__(self, connector: Connector):
         self._connector = connector
 
@@ -53,14 +53,14 @@ class OXPApiHierarchicalGroupingDALAdapter:
         owner: str,
         ttl_seconds: int = 300,
     ) -> bool:
-        return oxp_api_acquire_hierarchical_grouping_lock(
+        return scope_api_acquire_hierarchical_grouping_lock(
             db=self._connector,
             owner=owner,
             ttl_seconds=ttl_seconds,
         )
 
     def release_hierarchical_grouping_lock(self, owner: str) -> bool:
-        return oxp_api_release_hierarchical_grouping_lock(
+        return scope_api_release_hierarchical_grouping_lock(
             db=self._connector,
             owner=owner,
         )
@@ -70,7 +70,7 @@ class OXPApiHierarchicalGroupingDALAdapter:
         application_id: str,
         embedding_model: str,
     ) -> List[Dict[str, Any]]:
-        return oxp_api_get_all_session_input_embeddings(
+        return scope_api_get_all_session_input_embeddings(
             db=self._connector,
             application_id=application_id,
             embedding_model=embedding_model,
@@ -81,7 +81,7 @@ class OXPApiHierarchicalGroupingDALAdapter:
         embedding_model: str,
         application_id: str,
     ) -> List[Dict[str, Any]]:
-        return oxp_api_get_semantic_group_hierarchy(
+        return scope_api_get_semantic_group_hierarchy(
             db=self._connector,
             embedding_model=embedding_model,
             application_id=application_id,
@@ -93,7 +93,7 @@ class OXPApiHierarchicalGroupingDALAdapter:
         delta: Dict[str, List[str]],
         application_id: str,
     ) -> None:
-        oxp_api_ingest_semantic_groups(
+        scope_api_ingest_semantic_groups(
             db=self._connector,
             group_hierarchy=group_hierarchy,
             delta=delta,
@@ -110,7 +110,7 @@ class OXPApiHierarchicalGroupingDALAdapter:
         group_nodes = [group for group in group_hierarchy if group.get("id") in update_ids]
         if not group_nodes:
             return
-        oxp_api_update_semantic_group_names_and_summaries(
+        scope_api_update_semantic_group_names_and_summaries(
             db=self._connector,
             group_nodes=group_nodes,
         )
@@ -119,13 +119,13 @@ class OXPApiHierarchicalGroupingDALAdapter:
         self,
         embedding_model: str,
     ) -> List[tuple[str, str]]:
-        return oxp_api_get_semantic_groups_needing_analysis(
+        return scope_api_get_semantic_groups_needing_analysis(
             db=self._connector,
             embedding_model=embedding_model,
         )
 
     def get_all_application_ids(self) -> List[str]:
-        return oxp_api_get_all_application_ids(db=self._connector)
+        return scope_api_get_all_application_ids(db=self._connector)
 
 
 class HierarchicalGroupingWorker(BaseWorker):
@@ -166,7 +166,7 @@ class HierarchicalGroupingWorker(BaseWorker):
             raise ValueError("Missing embedding model name.")
 
         try:
-            db_handler = OXPApiHierarchicalGroupingDALAdapter(get_neo4j_connector())
+            db_handler = SCOPEApiHierarchicalGroupingDALAdapter(get_neo4j_connector())
         except Exception as exc:
             logger.warning(
                 "Failed to initialize API-managed Neo4j connector; DB operations disabled: %s",

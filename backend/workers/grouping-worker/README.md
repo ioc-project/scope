@@ -15,7 +15,7 @@ grouping-worker-cli --run-once --input /tmp/input-message.json --output /tmp/gro
 
 All settings can be provided via `.env` (copy `.env.template`) or environment variables.
 
-Neo4j connection settings are resolved by the API layer (`oxp.dependencies`) from environment variables. The grouping worker does not expose Neo4j CLI flags.
+Neo4j connection settings are resolved by the API layer (`scope.dependencies`) from environment variables. The grouping worker does not expose Neo4j CLI flags.
 
 | Env var | Default | Description |
 |---|---|---|

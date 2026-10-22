@@ -39,7 +39,7 @@ _DISCOVERY_LOCK = threading.Lock()
 
 # Optional imports — not available in all environments
 try:
-    from oxp_ontology import OntologyService
+    from scope_ontology import OntologyService
 except ImportError:
     OntologyService = None
 

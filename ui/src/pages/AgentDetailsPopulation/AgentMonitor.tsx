@@ -16,7 +16,7 @@ import MetricsTabs from './MetricsTabs';
 import { DEFAULT_END_DATE, DEFAULT_START_DATE } from '@/common/constants';
 import AgentTasksDrawer from './AgentTasksDrawer';
 import { useTimeRangeStore } from '@/store';
-import { useApplicationAgents } from '@/api/oxpApi';
+import { useApplicationAgents } from '@/api/scopeApi';
 import { TAB_NAMES } from '@/pages/ApplicationDetails/MonitorTab';
 
 export const AgentMonitor = () => {

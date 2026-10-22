@@ -8,12 +8,12 @@ from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 
 import fakeredis
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client.utils import timestamp_to_epoch
-from oxp.connectors.clickhouse import ClickHouseConnector
-from oxp.core.config import settings
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client.utils import timestamp_to_epoch
+from scope.connectors.clickhouse import ClickHouseConnector
+from scope.core.config import settings
+from scope.dependencies import get_db, get_redis
 
 load_dotenv()
 

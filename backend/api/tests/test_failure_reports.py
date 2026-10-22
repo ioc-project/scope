@@ -4,9 +4,9 @@
 
 import pytest
 
-from oxp.client.failures import write_cognitive_failure_reports
-from oxp.core.exceptions import DatabaseError
-from oxp.query_builders import failure_graph as cg
+from scope.client.failures import write_cognitive_failure_reports
+from scope.core.exceptions import DatabaseError
+from scope.query_builders import failure_graph as cg
 
 
 class _Db:

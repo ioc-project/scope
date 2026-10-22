@@ -2,7 +2,7 @@ import { isConcordProtocol } from '@/common/cognitionProtocols';
 import {
   SessionsWithCognitionProtocols,
   SessionWithCognitionProtocols
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import { mockSessionsWithCognitiveObservability } from './sessionsWithCognitiveObservability';
 import { mockSessionCognitionProtocols } from './sessionCognitionProtocols';
 

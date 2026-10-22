@@ -4,7 +4,7 @@
  */
 
 import { Stack } from '@open-ui-kit/core';
-import { Task } from '@/types/oxp.type';
+import { Task } from '@/types/scope.type';
 import { TasksTable } from '@/components/TasksTable';
 
 interface DrawerContentProps {

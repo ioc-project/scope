@@ -25,7 +25,7 @@ def load_ontology_hierarchy() -> dict:
     import rdflib
 
     try:
-        from oxp_ontology import load_graph
+        from scope_ontology import load_graph
     except ImportError:
         logger.error("ontology package not found. Install it via pip/uv.")
         return {}

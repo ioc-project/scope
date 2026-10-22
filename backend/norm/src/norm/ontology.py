@@ -4,7 +4,7 @@
 
 Resolution order for each TTL:
 1. Explicit ``config_path`` argument (user override).
-2. External ``oxp_ontology`` package (canonical source).
+2. External ``scope_ontology`` package (canonical source).
 
 This module intentionally avoids local/vendored ontology copies so there is a
 single ontology source of truth.
@@ -20,19 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 def _get_ontology_path(name: str) -> str:
-    """Resolve an ontology TTL path from the oxp_ontology package."""
+    """Resolve an ontology TTL path from the scope_ontology package."""
     try:
-        from oxp_ontology import get_ontology_path  # type: ignore[import]
+        from scope_ontology import get_ontology_path  # type: ignore[import]
 
         return get_ontology_path(name)
     except ImportError as exc:
-        raise ImportError("oxp_ontology is required by norm to resolve ontology TTL files") from exc
+        raise ImportError("scope_ontology is required by norm to resolve ontology TTL files") from exc
 
 
 def resolve_mas_ontology_path(config_path: Optional[str] = None) -> Path:
     """Return the path to ``mas-ontology.ttl``.
 
-    Tries: explicit config_path → external oxp_ontology.
+    Tries: explicit config_path → external scope_ontology.
     """
     if config_path:
         path = Path(config_path).expanduser().resolve()
@@ -48,7 +48,7 @@ def resolve_mas_shapes_path() -> Optional[Path]:
     try:
         return Path(_get_ontology_path("mas-shapes"))
     except FileNotFoundError:
-        logger.warning("mas-shapes.ttl not found in oxp_ontology")
+        logger.warning("mas-shapes.ttl not found in scope_ontology")
         return None
 
 
@@ -64,7 +64,7 @@ def resolve_mas_shapes_custom_path() -> Optional[Path]:
     try:
         return Path(_get_ontology_path("mas-shapes-custom"))
     except FileNotFoundError:
-        logger.warning("mas-shapes-custom.ttl not found in oxp_ontology")
+        logger.warning("mas-shapes-custom.ttl not found in scope_ontology")
         return None
 
 
@@ -91,18 +91,18 @@ def resolve_all_ontology_paths() -> List[Path]:
     ``mas-ontology.ttl`` leaves those references unresolved, which pyshacl
     rejects as "not a well-formed SHACL PropertyShape" while compiling the
     shapes graph — before it even reaches norm's own data. Mirrors
-    ``oxp_ontology.verification._shapes_graph()``, which loads the same set
+    ``scope_ontology.verification._shapes_graph()``, which loads the same set
     for the same reason.
     """
     try:
-        from oxp_ontology import ONTOLOGY_FILES  # type: ignore[import]
+        from scope_ontology import ONTOLOGY_FILES  # type: ignore[import]
     except ImportError as exc:
-        raise ImportError("oxp_ontology is required by norm to resolve ontology TTL files") from exc
+        raise ImportError("scope_ontology is required by norm to resolve ontology TTL files") from exc
 
     paths: List[Path] = []
     for name in ONTOLOGY_FILES:
         try:
             paths.append(Path(_get_ontology_path(name)))
         except FileNotFoundError:
-            logger.warning("Ontology TTL %s not found in oxp_ontology", name)
+            logger.warning("Ontology TTL %s not found in scope_ontology", name)
     return paths

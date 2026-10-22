@@ -79,8 +79,8 @@ def test_compute_metrics_mock():
         instance.compute_session.return_value = [mock_res]
 
         # 'mock' param no longer supported, but if we provide session_ids,
-        # it will try to use OXPDataProvider unless file is provided.
-        # Since OXPDataProvider might fail if not available, we should probably mock it too.
+        # it will try to use SCOPEDataProvider unless file is provided.
+        # Since SCOPEDataProvider might fail if not available, we should probably mock it too.
         with patch("mce.api.app._get_kg_provider") as MockProvider:
             MockProvider.return_value._available = True
 

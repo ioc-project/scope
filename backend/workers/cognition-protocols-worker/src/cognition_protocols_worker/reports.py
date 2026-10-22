@@ -18,7 +18,7 @@ def record_findings(writer: Any, session_id: str, findings: dict[str, ProtocolFi
     The ``CognitionProtocolReport`` is written even when no protocol was enabled or activated (two empty lists): it
     records that the session was checked.
 
-    ``writer`` is an ``OXPCognitionProtocolReportProvider``. False if the session is not in the graph.
+    ``writer`` is an ``SCOPECognitionProtocolReportProvider``. False if the session is not in the graph.
     """
     enabled = [name for name, f in findings.items() if f.enabled]
     activated = [name for name, f in findings.items() if f.activated]

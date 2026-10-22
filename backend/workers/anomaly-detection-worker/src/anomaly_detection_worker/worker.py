@@ -4,7 +4,7 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp_ontology.models.nodes.anomaly_report import AnomalyReport
+from scope_ontology.models.nodes.anomaly_report import AnomalyReport
 from pydantic import Field
 from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import BaseQueueMessage, SessionDetail

@@ -4,7 +4,7 @@
  */
 
 /**
- * OXP UI feature flags.
+ * SCOPE UI feature flags.
  *
  * Nine flags gate optional pages/sub-views on top of the always-on core
  * features (Applications, Sessions, Metrics, Execution Graph, Latent Space).

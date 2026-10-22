@@ -24,7 +24,7 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "oxp-api",
+    "scope-api",
     "dem[grouping,llm]",
     "worker-base",
     "pydantic>=2.0.0",
@@ -48,7 +48,7 @@ dev = [
 hierarchical-grouping-worker-cli = "hierarchical_grouping_worker.cli:main"
 
 [tool.uv.sources]
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 dem = { workspace = true }
 worker-base = { workspace = true }
 

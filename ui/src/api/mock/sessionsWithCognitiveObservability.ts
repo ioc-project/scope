@@ -1,4 +1,4 @@
-import { SessionsWithCognitiveObservability, Unit } from '@/types/oxp.type';
+import { SessionsWithCognitiveObservability, Unit } from '@/types/scope.type';
 
 export const mockSessionsWithCognitiveObservability: SessionsWithCognitiveObservability =
   {

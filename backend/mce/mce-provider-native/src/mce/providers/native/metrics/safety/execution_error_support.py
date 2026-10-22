@@ -8,7 +8,7 @@ from typing import Any
 
 ``contains_error`` is the one signal the provider layer derives from a call
 node's ``success`` field (``contains_error = success is False``; no signal
-recorded is not a failure) -- see ``OXPKGProvider._normalize_tool_call``/
+recorded is not a failure) -- see ``SCOPEKGProvider._normalize_tool_call``/
 ``_normalize_llm_call``. There is no raw ``status``/``error`` KG field to read
 instead; ``success`` is the only execution-outcome signal the ontology
 carries.

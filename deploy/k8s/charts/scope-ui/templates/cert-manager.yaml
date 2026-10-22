@@ -1,0 +1,39 @@
+{{- if .Values.certManagerCert.enabled }}
+# Certificate for scope server
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: scope-ui-certificate
+spec:
+  secretName: scope-ui-certificate-secret
+  dnsNames:
+    - {{ include "scope-ui.fullname" . }}
+    - {{ include "scope-ui.fullname" . }}.{{ .Release.Namespace }}
+    - {{ include "scope-ui.fullname" . }}.{{ .Release.Namespace }}.svc
+    - {{ include "scope-ui.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    name: scope-ui-root-ca-issuer
+  duration: 2160h0m0s # 90d
+  renewBefore: 360h0m0s # 15d
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: scope-ui-client-certificate
+spec:
+  secretName: scope-ui-client-certificate-secret
+  issuerRef:
+    name: scope-ui-root-ca-issuer
+  duration: 2160h0m0s # 90d
+  emailAddresses:
+    - scope-ui@scope.org
+  renewBefore: 360h0m0s # 15d
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+{{- end }}

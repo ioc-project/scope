@@ -11,7 +11,7 @@ from mce.engine.engine import MetricEngine
 from mce.engine.llm import LLMService
 from mce.core.registry import get_default_metrics
 from mce.client.config import MCEClientConfig
-from mce.client.setup import build_oxp_kg_provider
+from mce.client.setup import build_scope_kg_provider
 # from mce.adapters.json_provider import JsonDataProvider
 
 # FastAPI service exposing MCE compute and metadata endpoints.
@@ -32,10 +32,10 @@ class MetricsRequest(BaseModel):
 
 
 def _get_kg_provider():
-    """Instantiate a OXPKGProvider (oxp-api). Patchable in tests."""
-    provider = build_oxp_kg_provider(MCEClientConfig.from_env())
+    """Instantiate a SCOPEKGProvider (scope-api). Patchable in tests."""
+    provider = build_scope_kg_provider(MCEClientConfig.from_env())
     if provider is None:
-        raise RuntimeError("oxp-api is required to build the KG provider")
+        raise RuntimeError("scope-api is required to build the KG provider")
     return provider
 
 

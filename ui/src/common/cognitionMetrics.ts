@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CognitionMetric } from '@/types/oxp.type';
+import { CognitionMetric } from '@/types/scope.type';
 
 // How the numeric result of a metric is displayed.
 // - boolean: 1 / 0 as Yes / No

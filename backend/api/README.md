@@ -1,6 +1,6 @@
-# OXP API
+# SCOPE API
 
-Unified DB access layer across OXP. It consolidates the fragmented data access patterns currently spread across oxp-backend, DAL, and workflow components into one single library and provides an optional REST API, for use by the downstream components.
+Unified DB access layer across SCOPE. It consolidates the fragmented data access patterns currently spread across scope-backend, DAL, and workflow components into one single library and provides an optional REST API, for use by the downstream components.
 
 ## Tech stack
 
@@ -22,9 +22,9 @@ uv sync
 ```bash
 export CLICKHOUSE_HOST=localhost
 export CLICKHOUSE_PORT=8123
-export CLICKHOUSE_USERNAME=oxpclickhouseuser
-export CLICKHOUSE_PASSWORD=oxpclickhousepassword
-export CLICKHOUSE_DATABASE=oxp
+export CLICKHOUSE_USERNAME=scopeclickhouseuser
+export CLICKHOUSE_PASSWORD=scopeclickhousepassword
+export CLICKHOUSE_DATABASE=scope
 uv run dev
 ```
 
@@ -78,13 +78,13 @@ uv lock --project ./api
 ### Build the image
 
 ```bash
-docker build -t oxp-api -f Dockerfile .
+docker build -t scope-api -f Dockerfile .
 ```
 
 or use `docker compose` to build as part of the full stack:
 
 ```bash
-docker compose -f deploy/docker-compose.yml --build oxp-api
+docker compose -f deploy/docker-compose.yml --build scope-api
 ```
 
 ### Run the container standalone
@@ -93,16 +93,16 @@ docker compose -f deploy/docker-compose.yml --build oxp-api
 docker run --rm -p 8000:8000 \
   -e CLICKHOUSE_HOST=host.docker.internal \
   -e CLICKHOUSE_PORT=8123 \
-  -e CLICKHOUSE_USERNAME=oxpclickhouseuser \
-  -e CLICKHOUSE_PASSWORD=oxpclickhousepassword \
+  -e CLICKHOUSE_USERNAME=scopeclickhouseuser \
+  -e CLICKHOUSE_PASSWORD=scopeclickhousepassword \
   -e CLICKHOUSE_DATABASE=default \
-  oxp-api
+  scope-api
 ```
-The init script ([data/clickhouse/otel_traces.sql](data/clickhouse/otel_traces.sql)) runs automatically on first startup, creating the `oxp` database.
+The init script ([data/clickhouse/otel_traces.sql](data/clickhouse/otel_traces.sql)) runs automatically on first startup, creating the `scope` database.
 
 | Service | URL |
 |---------|-----|
-| OXP API | `http://localhost:8000` |
+| SCOPE API | `http://localhost:8000` |
 | ClickHouse HTTP | `http://localhost:8123` |
 | ClickHouse TCP | `localhost:9000` |
 
@@ -114,12 +114,12 @@ make test-rest-api
 
 ## Using as a Python library
 
-Besides running as a REST server, `oxp-api` can be imported directly into any Python project as a library.
+Besides running as a REST server, `scope-api` can be imported directly into any Python project as a library.
 
 ### Quick example
 
 ```python
-from oxp import LocalClient
+from scope import LocalClient
 
 with LocalClient() as client:
     apps     = client.get_application_names()
@@ -130,21 +130,21 @@ with LocalClient() as client:
 
 `LocalClient` accepts an optional `db` argument — a **Connector** instance that
 you configure with explicit credentials. When `db` is omitted, the backend is
-chosen automatically through the `OXP_LOCAL` environment variable (see
+chosen automatically through the `SCOPE_LOCAL` environment variable (see
 [Environment-variable mode](#environment-variable-mode) below).
 
 #### Option A — ClickHouse (via `clickhouse-connect`)
 
 ```python
-from oxp import LocalClient
-from oxp.connectors.clickhouse import ClickHouseConnector
+from scope import LocalClient
+from scope.connectors.clickhouse import ClickHouseConnector
 
 db = ClickHouseConnector(
     host="clickhouse.example.com",
     port=8123,
-    username="oxp_user",
+    username="scope_user",
     password="s3cret",
-    database="oxp",
+    database="scope",
 )
 
 with LocalClient(db=db) as client:
@@ -154,11 +154,11 @@ with LocalClient(db=db) as client:
 #### Option B —  PostgreSQL (via SQLAlchemy)
 
 ```python
-from oxp import LocalClient
-from oxp.connectors.sqlalchemy import SQLAlchemyConnector
+from scope import LocalClient
+from scope.connectors.sqlalchemy import SQLAlchemyConnector
 
 # PostgreSQL
-db = SQLAlchemyConnector(url="postgresql://user:pass@host:5432/oxp")
+db = SQLAlchemyConnector(url="postgresql://user:pass@host:5432/scope")
 
 with LocalClient(db=db) as client:
     sessions = client.list_sessions(limit=20)
@@ -169,8 +169,8 @@ with LocalClient(db=db) as client:
 KG, metrics, and concepts methods require a Neo4j-backed connector:
 
 ```python
-from oxp import LocalClient
-from oxp.connectors.neo4j import Neo4JConnector
+from scope import LocalClient
+from scope.connectors.neo4j import Neo4JConnector
 
 db = Neo4JConnector(
     host="neo4j.example.com",
@@ -189,11 +189,11 @@ with LocalClient(db=db) as client:
 #### Environment-variable mode
 
 When you create `LocalClient()` **without** a `db` argument, the backend is
-selected by the `OXP_LOCAL` environment variable:
+selected by the `SCOPE_LOCAL` environment variable:
 
-| `OXP_LOCAL`             | Backend    | Credentials read from             |
+| `SCOPE_LOCAL`             | Backend    | Credentials read from             |
 |----------------------------|------------|-----------------------------------|
-| `true` / `1` / `yes` *(default)* | SQLite     | Uses `oxp.db` in the working directory |
+| `true` / `1` / `yes` *(default)* | SQLite     | Uses `scope.db` in the working directory |
 | Any other value            | ClickHouse | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_USERNAME`, `CLICKHOUSE_PASSWORD`, `CLICKHOUSE_DATABASE` |
 
 Neo4j settings (used by the REST server's dependency injection) are read from:
@@ -209,16 +209,16 @@ Neo4j settings (used by the REST server's dependency injection) are read from:
 Example:
 
 ```bash
-export OXP_LOCAL=false
+export SCOPE_LOCAL=false
 export CLICKHOUSE_HOST=clickhouse.example.com
 export CLICKHOUSE_PORT=8123
-export CLICKHOUSE_USERNAME=oxp_user
+export CLICKHOUSE_USERNAME=scope_user
 export CLICKHOUSE_PASSWORD=s3cret
-export CLICKHOUSE_DATABASE=oxp
+export CLICKHOUSE_DATABASE=scope
 ```
 
 ```python
-from oxp import LocalClient
+from scope import LocalClient
 
 # Automatically connects to the ClickHouse instance above
 client = LocalClient()
@@ -251,10 +251,10 @@ client = LocalClient()
 
 All methods return **Pydantic models** (e.g. `TracesResponse`,
 `ApplicationsResponse`, `SpanDetailsResponse`) defined in
-`oxp.models.otel_traces`. Results are fully typed and serializable:
+`scope.models.otel_traces`. Results are fully typed and serializable:
 
 ```python
-from oxp import LocalClient
+from scope import LocalClient
 
 with LocalClient() as client:
     resp = client.get_applications()
@@ -268,9 +268,9 @@ with LocalClient() as client:
 For dependency injection or testing, type-hint against the abstract base class:
 
 ```python
-from oxp import OXPAPIClient, LocalClient
+from scope import SCOPEAPIClient, LocalClient
 
-def analyze(client: OXPAPIClient):
+def analyze(client: SCOPEAPIClient):
     ...
 
 analyze(LocalClient())

@@ -6,7 +6,7 @@
 import { Box, Stack, Typography, useTheme } from '@mui/material';
 import { useState, useMemo } from 'react';
 import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, Line } from 'recharts';
-import { ImpactAssessment } from '@/types/oxp.type';
+import { ImpactAssessment } from '@/types/scope.type';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 
 const FILTERED_AGENTS = new Set(['finalize_on_error', 'user']);

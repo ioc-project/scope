@@ -4,7 +4,7 @@ The Metrics Computation Engine (MCE) — a pluggable framework that computes qua
 LLM-judged metrics for MAS (Multi-Agent System) sessions and persists the results back to the
 knowledge graph.
 
-**Source:** [`mce`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/mce)
+**Source:** [`mce`](https://github.com/ioc-project/scope/tree/main/backend/mce)
 
 ## Overview
 
@@ -20,15 +20,15 @@ runs right after the normalization worker has written a session into the knowled
 fetches the session's context, computes the configured metrics, and writes the results back to
 Neo4j so they can be queried alongside the rest of the session's data.
 
-### Where it sits in OXP
+### Where it sits in SCOPE
 
 ```
 mce-core     pure computation: metric specs, provider contracts, the scheduling/execution engine
              (no I/O)
     ↑
-oxp-api      knowledge-graph provider / connector ownership
+scope-api      knowledge-graph provider / connector ownership
     ↑
-mce-client   data-access layer: config, Neo4j wiring (via oxp-api), the CLI, an optional REST API
+mce-client   data-access layer: config, Neo4j wiring (via scope-api), the CLI, an optional REST API
     ↑
 mce-worker   the standalone RabbitMQ worker (see the worker doc below) that runs MCE in the
              ingestion pipeline
@@ -198,7 +198,7 @@ internet access, and `MODEL_PRICES_URL` points it at another copy of the file. T
 copies up to date by hand, run `python backend/scripts/update_model_prices.py`.
 
 The API stores metrics natively as the ontology's `Metric` (the definition, one per metric name and provider) and `MetricResult` (one observation), linked by `ofMetricType`; a result `measures` the session or the call (by span id) it was computed for. Each write is validated against
-the model generated from the ontology (`oxp_ontology.models.nodes.MetricResult`) and a result that does
+the model generated from the ontology (`scope_ontology.models.nodes.MetricResult`) and a result that does
 not fit it (a non-numeric value or cost, say) is logged and not saved. All metrics carry the same fields
 (`id`, `name`, `result`, `reasoning`, `evaluationModel`, `evaluationPromptTokenCount`,
 `evaluationCompletionTokenCount`, `evaluationTotalTokenCount`, `evaluationCost`), so a metric that

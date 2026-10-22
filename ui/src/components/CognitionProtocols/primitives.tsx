@@ -20,7 +20,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { GeneralSize, Tag, Tooltip } from '@open-ui-kit/core';
 import { CognitionTone, getVerdictTone, humanizeLabel } from '@/common/cognitionProtocols';
-import { CognitionCheck, CognitionVerdict } from '@/types/oxp.type';
+import { CognitionCheck, CognitionVerdict } from '@/types/scope.type';
 
 export const NO_DATA = 'N/A';
 

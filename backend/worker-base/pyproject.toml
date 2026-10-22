@@ -27,7 +27,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "aio_pika>=8.0.0",
     "pika>=1.3.0",
-    "oxp-api",
+    "scope-api",
     "ruff<=0.15.22",
 ]
 
@@ -40,7 +40,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

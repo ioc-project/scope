@@ -239,7 +239,7 @@ wheels = [
 ]
 
 [[package]]
-name = "oxp-ontology"
+name = "scope-ontology"
 version = "1.0.6"
 source = { editable = "." }
 dependencies = [

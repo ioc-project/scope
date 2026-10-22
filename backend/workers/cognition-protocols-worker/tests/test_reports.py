@@ -62,7 +62,7 @@ def test_another_agents_skill_name_in_arguments_is_ignored():
 
 
 class FakeWriter:
-    """Stands in for the platform's OXPCognitionProtocolReportProvider and records what it is asked to store."""
+    """Stands in for the platform's SCOPECognitionProtocolReportProvider and records what it is asked to store."""
 
     def __init__(self, session_exists=True):
         self.session_exists = session_exists

@@ -11,13 +11,13 @@ MASCall's already-adopted boundary.
 
 from __future__ import annotations
 
-from oxp_ontology.models.edges import (
+from scope_ontology.models.edges import (
     hasAgentCall,
     hasFinalState,
     hasInitialState,
     hasMASCall,
 )
-from oxp_ontology.models.nodes import AgentCall, MASCall, Session
+from scope_ontology.models.nodes import AgentCall, MASCall, Session
 
 from ..registry import Registry
 from ..trajectory import adopt_boundary_states

@@ -90,8 +90,8 @@ jobs:
       
       - name: Verify package installation
         run: |
-          python -c "from oxp_ontology import get_ontology_path; print(f'MAS: {get_ontology_path(\"mas\")}')"
-          python -c "from oxp_ontology import load_graph; g = load_graph('mas'); print(f'Loaded {len(g)} triples')"
+          python -c "from scope_ontology import get_ontology_path; print(f'MAS: {get_ontology_path(\"mas\")}')"
+          python -c "from scope_ontology import load_graph; g = load_graph('mas'); print(f'Loaded {len(g)} triples')"
 
   lint-ttl:
     runs-on: ubuntu-latest
@@ -114,7 +114,7 @@ jobs:
           from rdflib import Graph
           import sys
           
-          files = ['src/oxp_ontology/mas-ontology.ttl', 'src/oxp_ontology/semantic-ontology.ttl', 'src/oxp_ontology/metrics-ontology.ttl', 'src/oxp_ontology/analysis-ontology.ttl', 'src/oxp_ontology/insight-ontology.ttl']
+          files = ['src/scope_ontology/mas-ontology.ttl', 'src/scope_ontology/semantic-ontology.ttl', 'src/scope_ontology/metrics-ontology.ttl', 'src/scope_ontology/analysis-ontology.ttl', 'src/scope_ontology/insight-ontology.ttl']
           failed = []
           
           for file in files:
@@ -148,10 +148,10 @@ jobs:
           # ontology.ttl is a newer, independently-versioned component (see
           # scripts/version_manager.py) and isn't expected to match yet.
           TTL_FILES=(
-            "src/oxp_ontology/mas-ontology.ttl"
-            "src/oxp_ontology/metrics-ontology.ttl"
-            "src/oxp_ontology/analysis-ontology.ttl"
-            "src/oxp_ontology/insight-ontology.ttl"
+            "src/scope_ontology/mas-ontology.ttl"
+            "src/scope_ontology/metrics-ontology.ttl"
+            "src/scope_ontology/analysis-ontology.ttl"
+            "src/scope_ontology/insight-ontology.ttl"
           )
           
           FAILED=0

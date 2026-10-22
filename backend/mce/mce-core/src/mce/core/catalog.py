@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Lazy imports for heavy dependencies
 try:
-    from oxp_ontology import OntologyService
+    from scope_ontology import OntologyService
 except ImportError:
     OntologyService = None
 

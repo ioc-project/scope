@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from oxp_ontology.models.edges import (
+from scope_ontology.models.edges import (
     correspondsToTransition,
     executesProcessing,
     hasFinalState,
@@ -15,7 +15,7 @@ from oxp_ontology.models.edges import (
     leadsTo,
     representsExecution,
 )
-from oxp_ontology.models.nodes import Processing, ProcessingCall, State, Transition
+from scope_ontology.models.nodes import Processing, ProcessingCall, State, Transition
 
 from .fields import _hash_id
 from .registry import Registry

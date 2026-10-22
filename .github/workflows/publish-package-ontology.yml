@@ -96,7 +96,7 @@ jobs:
           retention-days: 5
 
       - name: Publish to PyPI
-        if: github.repository == 'outshift-open/observe-and-explain-platform' && steps.version.outputs.is_rc == 'false' && steps.version.outputs.is_dev_build == 'false'
+        if: github.repository == 'ioc-project/scope' && steps.version.outputs.is_rc == 'false' && steps.version.outputs.is_dev_build == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ontology/dist

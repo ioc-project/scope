@@ -2,7 +2,7 @@
 
 Standalone periodic worker that executes intelligence catalog templates against the knowledge graph and ingests the resulting `Insight` nodes.
 
-**Source:** [`workers/intelligence-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/intelligence-worker)
+**Source:** [`workers/intelligence-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/intelligence-worker)
 
 ## Overview
 

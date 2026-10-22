@@ -24,8 +24,8 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "oxp-api",
-    "oxp-ontology[models]>=1.0.6",
+    "scope-api",
+    "scope-ontology[models]>=1.0.6",
     "dem[analysis]",
     "worker-base",
     "pydantic>=2.0.0",
@@ -49,7 +49,7 @@ dev = [
 anomaly-detection-worker-cli = "anomaly_detection_worker.cli:main"
 
 [tool.uv.sources]
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 dem = { workspace = true }
 worker-base = { workspace = true }
 

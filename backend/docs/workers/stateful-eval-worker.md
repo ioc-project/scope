@@ -2,7 +2,7 @@
 
 In-process stateful evaluation worker — runs temporal metric computation directly as a library, bypassing the HTTP service.
 
-**Source:** [`workers/stateful-eval-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/stateful-eval-worker)
+**Source:** [`workers/stateful-eval-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/stateful-eval-worker)
 
 ## Overview
 
@@ -29,7 +29,7 @@ certain from this worker's own source is its queue name:
 For each message, `StatefulEvalWorker.handle_message`:
 
 1. Builds a new `TemporalMetricsProcessor` and calls `evaluate_trajectory(trajectory)`
-   on the trajectory read by the OXP API library's `oxp.client.dal.get_session_trajectory`: every
+   on the trajectory read by the SCOPE API library's `scope.client.dal.get_session_trajectory`: every
    `LLMCall`, `ToolCall`, and `AgentCall` of the session, in start-time order, with the `Transition` it
    corresponds to and the text of its initial and final `State`, in one query. Steps are
    identified by their KG ids; there is no span id or de-duplication. The policy is the
@@ -49,7 +49,7 @@ message is acknowledged, not requeued.
 ### What it writes
 
 The worker reads and writes Neo4j only, through the shared connector
-(`oxp.dependencies.get_neo4j_connector()`):
+(`scope.dependencies.get_neo4j_connector()`):
 
 | Written | Attached to | Value |
 |---|---|---|
@@ -70,8 +70,8 @@ Each value is a `MetricResult` node (`result`, `reasoning`, `timestamp`) linked 
 definition (one per name and provider, here `metricProvider` `StatefulEvals`) and by `measures` to its target: the
 LLM or tool call for step metrics, the `Session` for `TrajectoryScore`. A result is keyed by
 definition and measured resource, so a re-run overwrites it. `Span` nodes are not written.
-The OXP API's `quality` category reads `TrajectoryScore` as a source of `MDT`
-(`trajectoryQuality`) in [`api/oxp/core/config.py`](../../api/oxp/core/config.py).
+The SCOPE API's `quality` category reads `TrajectoryScore` as a source of `MDT`
+(`trajectoryQuality`) in [`api/scope/core/config.py`](../../api/scope/core/config.py).
 
 A `TrajectoryContext` node (a semantic-ontology class) has one JSON property per
 constituent, present only when the step contributed it: `evidence`,
@@ -135,7 +135,7 @@ Flags override environment variables, except `MAX_INFLIGHT_MESSAGES`, which over
 | `MODEL_PRICES_URL` | _(env only)_ | LiteLLM's published file | Where to fetch the price table from |
 | `MODEL_PRICES_TTL_SECONDS` | _(env only)_ | `86400` | How long a fetched price table is used before the next fetch; a failed fetch is retried after an hour and the table already loaded keeps being used |
 
-The connector is `oxp.dependencies.get_neo4j_connector()`, the one `BaseWorker` creates at startup
+The connector is `scope.dependencies.get_neo4j_connector()`, the one `BaseWorker` creates at startup
 and every other worker uses, so this worker does not close it. It reads `NEO4J_URI` first, else
 `NEO4J_HOST`, which may be a bare host, `host:port`, or a URI, and uses `NEO4J_PORT` when the host
 has no port.
@@ -187,5 +187,5 @@ stateful-eval` also starts RabbitMQ and Neo4j.
 uv run --package stateful-eval-worker --extra dev pytest workers/stateful-eval-worker/tests -v
 ```
 
-The tests mock span fetching, the processor, and the OXP client — no broker, database, or model is
+The tests mock span fetching, the processor, and the SCOPE client — no broker, database, or model is
 needed.

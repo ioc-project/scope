@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-name: Image Builder for OXP-UI
+name: Image Builder for SCOPE-UI
 
 on:
   # a tag push is what actually triggers a registry push in the reusable workflow
@@ -22,7 +22,7 @@ jobs:
         run: echo "value=${GITHUB_REF_NAME#ui-v}" >> "$GITHUB_OUTPUT"
 
   call-docker-build-push:
-    name: Build and push OXP UI image
+    name: Build and push SCOPE UI image
     needs: prep
     permissions:
       contents: read  # required for actions/checkout
@@ -31,6 +31,6 @@ jobs:
     with:
       bake-targets: ui
       image-tag: ${{ needs.prep.outputs.image-tag }}
-      image-repo: ghcr.io/outshift-open/oxp-ui
+      image-repo: ghcr.io/ioc-project/container-images/scope-ui
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { SessionWithStatefulEval } from '@/types/oxp.type';
+import { SessionWithStatefulEval } from '@/types/scope.type';
 import { CircleBadge, ExecutionTrace, SessionStatus, Tags } from '@/components';
 import { Dayjs } from 'dayjs';
 import { formatDurationMs } from '@/utils/stringUtils';

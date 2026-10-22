@@ -26,8 +26,8 @@ requires-python = ">=3.11"
 dependencies = [
     "dem[analysis,grouping,llm]",
     "worker-base",
-    "oxp-api",
-    "oxp-ontology[models]>=1.0.6",
+    "scope-api",
+    "scope-ontology[models]>=1.0.6",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -51,7 +51,7 @@ analysis-worker-cli = "analysis_worker.cli:main"
 [tool.uv.sources]
 dem = { workspace = true }
 worker-base = { workspace = true }
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

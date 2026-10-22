@@ -1,7 +1,7 @@
 """The platform's knowledge-graph providers, configured the way the platform's workers are.
 
-Workers read and write the graph only through these: ``OXPKGProvider`` to read a
-session, ``OXPCognitionProtocolReportProvider`` to write the Cognition protocol reports. Nothing here, or in the
+Workers read and write the graph only through these: ``SCOPEKGProvider`` to read a
+session, ``SCOPECognitionProtocolReportProvider`` to write the Cognition protocol reports. Nothing here, or in the
 workers, holds a Cypher query.
 """
 
@@ -26,23 +26,23 @@ def get_connector() -> Any:
     if password:
         os.environ.setdefault("NEO4J_PASSWORD", password)
 
-    from oxp.dependencies import get_neo4j_connector
+    from scope.dependencies import get_neo4j_connector
 
     return get_neo4j_connector()
 
 
 def reader() -> Any:
-    """The provider that reads a session's spans (``OXPKGProvider``)."""
-    from oxp.providers import OXPKGProvider
+    """The provider that reads a session's spans (``SCOPEKGProvider``)."""
+    from scope.providers import SCOPEKGProvider
 
-    return OXPKGProvider(db=get_connector())
+    return SCOPEKGProvider(db=get_connector())
 
 
 def writer() -> Any:
-    """The provider that writes the Cognition protocol reports (``OXPCognitionProtocolReportProvider``)."""
-    from oxp.providers import OXPCognitionProtocolReportProvider
+    """The provider that writes the Cognition protocol reports (``SCOPECognitionProtocolReportProvider``)."""
+    from scope.providers import SCOPECognitionProtocolReportProvider
 
-    return OXPCognitionProtocolReportProvider(db=get_connector())
+    return SCOPECognitionProtocolReportProvider(db=get_connector())
 
 
 def fetch_session(provider: Any, session_id: str) -> dict[str, Any]:

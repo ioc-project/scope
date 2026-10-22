@@ -13,7 +13,7 @@ import {
   useLiveSessions,
   useSessionsCount,
   useStaticTopology
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { isToolDataArray } from '@/utils';
 import { useTimeRangeStore } from '@/store';

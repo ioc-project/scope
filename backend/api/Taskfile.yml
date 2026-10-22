@@ -25,9 +25,9 @@ tasks:
       - uv sync --python .venv_tests/bin/python --dev --group mce-providers
 
   api-server:
-    desc: Start the OXP API with uv on the configured port
+    desc: Start the SCOPE API with uv on the configured port
     cmds:
-      - uv run uvicorn oxp.app:app --host 0.0.0.0 --port {{.API_PORT}} --log-level info
+      - uv run uvicorn scope.app:app --host 0.0.0.0 --port {{.API_PORT}} --log-level info
 
   test-single:
     desc: Run one GET on a real session and check for Duration and Cost in the payload

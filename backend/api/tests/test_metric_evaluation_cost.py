@@ -3,14 +3,14 @@
 """Metric results are stored as the ontology's Metric + MetricResult, with the evaluation cost."""
 
 import pytest
-from oxp_ontology.models.nodes import Metric as OntologyMetric
-from oxp_ontology.models.nodes import MetricResult as OntologyMetricResult
+from scope_ontology.models.nodes import Metric as OntologyMetric
+from scope_ontology.models.nodes import MetricResult as OntologyMetricResult
 from pydantic import ValidationError
 
-from oxp.client.local import LocalClient
-from oxp.interfaces.models import MetricResult
-from oxp.providers import OXPMetricsProvider
-from oxp.query_builders import metric_graph
+from scope.client.local import LocalClient
+from scope.interfaces.models import MetricResult
+from scope.providers import SCOPEMetricsProvider
+from scope.query_builders import metric_graph
 
 COST_METADATA = {
     "evaluation_model": "gpt-4o",
@@ -205,7 +205,7 @@ def test_the_target_decides_what_is_measured():
 def test_save_metrics_stores_the_model_with_the_evaluation_cost():
     db = _Db()
     assert (
-        OXPMetricsProvider(db=db).save_metrics(
+        SCOPEMetricsProvider(db=db).save_metrics(
             [_result(metadata=dict(COST_METADATA), reasoning="ok")]
         )
         is True
@@ -224,7 +224,7 @@ def test_save_metrics_stores_the_model_with_the_evaluation_cost():
 
 def test_save_metrics_without_cost_metadata_stores_the_defaults():
     db = _Db()
-    OXPMetricsProvider(db=db).save_metrics(
+    SCOPEMetricsProvider(db=db).save_metrics(
         [_result(metadata={"raw_score": 4.0, "scale": "1-5"})]
     )
     assert set(db.commands[0][1]["result"]) == MODEL_FIELDS
@@ -233,7 +233,7 @@ def test_save_metrics_without_cost_metadata_stores_the_defaults():
 
 def test_save_span_metrics_measures_the_execution_element_of_the_session():
     db = _Db()
-    OXPMetricsProvider(db=db).save_span_metrics(
+    SCOPEMetricsProvider(db=db).save_span_metrics(
         "s1", "sp1", [_result(metadata=dict(COST_METADATA))]
     )
     query, params = db.commands[0]
@@ -247,13 +247,13 @@ def test_a_result_that_does_not_fit_the_model_is_not_saved_and_the_rest_still_ar
     db = _Db()
     bad = _result(metric_id="Bad", metadata={"evaluation_cost_usd": "free"})
     good = _result(metric_id="Good", metadata=dict(COST_METADATA))
-    assert OXPMetricsProvider(db=db).save_metrics([bad, good]) is False
+    assert SCOPEMetricsProvider(db=db).save_metrics([bad, good]) is False
     assert [params["result"]["name"] for _, params in db.commands] == ["Good"]
 
 
 def test_a_non_numeric_value_is_not_saved():
     db = _Db()
-    assert OXPMetricsProvider(db=db).save_metrics([_result(value="high")]) is False
+    assert SCOPEMetricsProvider(db=db).save_metrics([_result(value="high")]) is False
     assert db.commands == []
 
 
@@ -263,7 +263,7 @@ def test_failed_results_are_not_persisted():
     failed = _result(
         value=0.0, error="No conversation data", metadata=dict(COST_METADATA)
     )
-    assert OXPMetricsProvider(db=db).save_metrics([failed]) is True
+    assert SCOPEMetricsProvider(db=db).save_metrics([failed]) is True
     assert db.commands == []
 
 
@@ -271,7 +271,7 @@ def test_failed_results_are_not_persisted():
 
 
 def _client(db):
-    return LocalClient(db=db, metrics_provider=OXPMetricsProvider(db=db))
+    return LocalClient(db=db, metrics_provider=SCOPEMetricsProvider(db=db))
 
 
 def test_write_span_metrics_forwards_the_cost_from_the_payload():

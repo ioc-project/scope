@@ -193,7 +193,7 @@ def _packaged_lookup() -> Dict[str, ModelPrice]:
 def _fetched_lookup(url: str) -> Dict[str, ModelPrice]:
     """The table at ``url``; raises ``ValueError`` unless it looks like LiteLLM's."""
     request = urllib.request.Request(
-        url, headers={"User-Agent": "oxp-stateful-evals-model-prices"}
+        url, headers={"User-Agent": "scope-stateful-evals-model-prices"}
     )
     with urllib.request.urlopen(request, timeout=_FETCH_TIMEOUT_SECONDS) as response:
         lookup = _parse(

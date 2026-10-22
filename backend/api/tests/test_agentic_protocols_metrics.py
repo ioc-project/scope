@@ -10,11 +10,11 @@ import fakeredis
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.client import LocalClient
-from oxp.connectors.clickhouse import ClickHouseConnector
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.client import LocalClient
+from scope.connectors.clickhouse import ClickHouseConnector
+from scope.dependencies import get_db, get_redis
 
 # Load API .env for test-only environment defaults.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)

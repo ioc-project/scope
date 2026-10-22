@@ -1,6 +1,6 @@
 # Components
 
-The core libraries and services that make up the OXP backend. Each one can be used as a
+The core libraries and services that make up the SCOPE backend. Each one can be used as a
 standalone Python library; some also expose a service on top (e.g. the API's REST server, or the
 standalone [workers](../workers/index.md) built on `worker-base`).
 

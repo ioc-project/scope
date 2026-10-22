@@ -6,8 +6,8 @@
 import MetricsGrid from '../MetricsGrid';
 import { Spinner, Stack } from '@open-ui-kit/core';
 import { useParams } from 'react-router';
-import { AgentCostMetrics, AgentMetricType } from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
+import { AgentCostMetrics, AgentMetricType } from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
 
 interface CostTabProps {
   agentId: string;

@@ -66,7 +66,7 @@ tasks:
         from rdflib import Graph, RDF, RDFS, OWL
         import sys
 
-        files = ['src/oxp_ontology/mas-ontology.ttl', 'src/oxp_ontology/semantic-ontology.ttl', 'src/oxp_ontology/metrics-ontology.ttl', 'src/oxp_ontology/analysis-ontology.ttl', 'src/oxp_ontology/insight-ontology.ttl']
+        files = ['src/scope_ontology/mas-ontology.ttl', 'src/scope_ontology/semantic-ontology.ttl', 'src/scope_ontology/metrics-ontology.ttl', 'src/scope_ontology/analysis-ontology.ttl', 'src/scope_ontology/insight-ontology.ttl']
         failed = []
 
         for file in files:
@@ -113,7 +113,7 @@ tasks:
   test-coverage:
     desc: Run tests with coverage report
     cmds:
-      - pytest tests/ -v --cov=src/oxp_ontology --cov-report=term-missing
+      - pytest tests/ -v --cov=src/scope_ontology --cov-report=term-missing
 
   verify:
     desc: Run all verification checks (version, TTL validation, tests)

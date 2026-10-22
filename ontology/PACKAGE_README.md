@@ -1,10 +1,10 @@
-# oxp-ontology
+# scope-ontology
 
 **Multi-Agent System (MAS) Execution Ontology** — RDF/OWL vocabulary and Python
 helpers for describing, validating, and querying multi-agent system telemetry
 as a knowledge graph.
 
-Part of the [Observe and eXplain Platform](https://github.com/outshift-open/observe-and-explain-platform).
+Part of [SCOPE](https://github.com/ioc-project/scope).
 
 ## What's included
 
@@ -24,7 +24,7 @@ knowledge-graph instances against the ontology.
 ## Install
 
 ```bash
-pip install oxp-ontology
+pip install scope-ontology
 ```
 
 ## Usage
@@ -32,7 +32,7 @@ pip install oxp-ontology
 ### Import the ontology in your own RDF
 
 ```turtle
-@prefix mas: <https://outshift-open.github.io/oxp-ontology/mas#> .
+@prefix mas: <https://ioc-project.github.io/scope-ontology/mas#> .
 @prefix ex: <http://example.org/myproject#> .
 
 ex:myAgent a mas:Agent ;
@@ -45,7 +45,7 @@ ex:myMAS a mas:MAS ;
 ### Access bundled files and load graphs
 
 ```python
-from oxp_ontology import get_ontology_path, load_graph
+from scope_ontology import get_ontology_path, load_graph
 
 # Valid names: mas, semantic, metrics, analysis, insight,
 # mas-shapes, mas-shapes-custom
@@ -57,7 +57,7 @@ g = load_graph("mas")
 ### Validate and verify
 
 ```python
-from oxp_ontology import validate_bundled_ontologies, verify_kg_object
+from scope_ontology import validate_bundled_ontologies, verify_kg_object
 
 # Structural validation of the bundled TTL files
 report = validate_bundled_ontologies()
@@ -69,7 +69,7 @@ verify_kg_object(my_kg_dict)
 ### Query with SPARQL
 
 ```sparql
-PREFIX mas: <https://outshift-open.github.io/oxp-ontology/mas#>
+PREFIX mas: <https://ioc-project.github.io/scope-ontology/mas#>
 
 SELECT ?agent ?task WHERE {
     ?agent a mas:Agent ;
@@ -82,7 +82,7 @@ SELECT ?agent ?task WHERE {
 Full ontology documentation (Widoco reference docs and WebVOWL visualizations
 for each component), versioning strategy, and the source repository are at:
 
-**https://outshift-open.github.io/observe-and-explain-platform/**
+**https://ioc-project.github.io/scope/**
 
 ## License
 

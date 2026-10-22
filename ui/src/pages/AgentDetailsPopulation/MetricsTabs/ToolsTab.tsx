@@ -8,9 +8,9 @@ import { useParams } from 'react-router';
 import { MetricChart, WidgetCard } from '@/components';
 import { generateTimelineData } from '@/utils';
 import { unitSuffix } from '@/common/constants';
-import { Unit } from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
-import { AgentMetricType, AgentToolsMetrics } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
+import { AgentMetricType, AgentToolsMetrics } from '@/types/scope.type';
 
 interface ToolsTabProps {
   agentId: string;

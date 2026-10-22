@@ -4,7 +4,7 @@
  */
 
 import { Stack, Typography } from '@mui/material';
-import { CognitionProtocol } from '@/types/oxp.type';
+import { CognitionProtocol } from '@/types/scope.type';
 import {
   MetricRow,
   NotAvailable,

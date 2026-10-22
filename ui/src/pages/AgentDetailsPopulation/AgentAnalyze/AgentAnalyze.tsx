@@ -15,7 +15,7 @@ import {
   useSemanticGroups,
   useApplicationSessions,
   useImpactAssessmentSessionList
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { DEFAULT_START_DATE, DEFAULT_END_DATE } from '@/common/constants';
 import { useMemo } from 'react';
 import { Spinner } from '@open-ui-kit/core';

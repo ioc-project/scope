@@ -24,7 +24,7 @@ fi
 
 echo "📝 Generating Widoco Documentation..."
 java -jar widoco.jar \
-  -ontFile src/oxp_ontology/mas-ontology.ttl \
+  -ontFile src/scope_ontology/mas-ontology.ttl \
   -outFolder docs/widoco \
   -rewriteAll \
   -includeAnnotationProperties \
@@ -221,7 +221,7 @@ cat > docs/index.html << 'EOF'
         </div>
         
         <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d7de; text-align: center; color: #57606a; font-size: 14px;">
-            <p>Generated from <code>src/oxp_ontology/mas-ontology.ttl</code> • View on <a href="https://github.com/outshift-open/observe-and-explain-platform/ontology" style="color: #0969da;">GitHub</a></p>
+            <p>Generated from <code>src/scope_ontology/mas-ontology.ttl</code> • View on <a href="https://github.com/ioc-project/scope/ontology" style="color: #0969da;">GitHub</a></p>
         </div>
     </div>
 </body>

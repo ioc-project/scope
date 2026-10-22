@@ -1,6 +1,6 @@
 # cognition-protocols-worker
 
-One OXP worker for Cognition protocols. For each session it:
+One SCOPE worker for Cognition protocols. For each session it:
 
 1. **detects** which Cognition protocols the session's agents had (*enabled*) and used (*activated*), from the
    session's spans in the KG;
@@ -20,7 +20,7 @@ ACCORD and CONCORD are built in:
 CONCORD is *enabled* when an agent's prompt lists a `l9-concord-*` skill and *activated* when one is called
 (`activate_skill`, or `run_skill_script` against it). Its metrics read the initiator script's own calls, so a
 session where only a specialist activated the receiver is recorded as activated and every metric is skipped.
-All graph access goes through the platform's providers (`OXPKGProvider` to read, `OXPCognitionProtocolReportProvider` to
+All graph access goes through the platform's providers (`SCOPEKGProvider` to read, `SCOPECognitionProtocolReportProvider` to
 write); the worker holds no queries.
 
 ```bash

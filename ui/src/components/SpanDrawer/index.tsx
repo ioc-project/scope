@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useSpanDetails } from '@/api/oxpApi';
+import { useSpanDetails } from '@/api/scopeApi';
 import { Box, SideDrawer, Spinner, Stack } from '@open-ui-kit/core';
 import { SpanDrawerTitle } from './SpanDrawerTitle';
 import { SpanDrawerContent } from './SpanDrawerContent';

@@ -1,4 +1,4 @@
-# OXP Ontology Documentation Deployment
+# SCOPE Ontology Documentation Deployment
 
 This repository automatically generates and deploys documentation for all five ontologies — **MAS**, **Metrics**, **Semantic**, **Analysis**, and **Insight** — to GitHub Pages, via `.github/workflows/deploy-docs-multi.yml`.
 
@@ -48,7 +48,7 @@ Steps:
 3. Save
 
 **Required files** (all present in this repo):
-- `src/oxp_ontology/mas-ontology.ttl`, `src/oxp_ontology/metrics-ontology.ttl`, `src/oxp_ontology/semantic-ontology.ttl`, `src/oxp_ontology/analysis-ontology.ttl`, `src/oxp_ontology/insight-ontology.ttl`
+- `src/scope_ontology/mas-ontology.ttl`, `src/scope_ontology/metrics-ontology.ttl`, `src/scope_ontology/semantic-ontology.ttl`, `src/scope_ontology/analysis-ontology.ttl`, `src/scope_ontology/insight-ontology.ttl`
 - `scripts/generate_webvowl_json_generic.py`
 - `scripts/generate_lode_html.py`
 - `scripts/version_manager.py`
@@ -72,19 +72,19 @@ This is a convenience script for previewing `mas-ontology.ttl` docs locally. It 
 ```bash
 # Widoco
 java -jar widoco.jar \
-  -ontFile src/oxp_ontology/mas-ontology.ttl \
+  -ontFile src/scope_ontology/mas-ontology.ttl \
   -outFolder docs/mas/widoco \
   -rewriteAll -includeAnnotationProperties -webVowl
 
 # WebVOWL JSON
 python3 scripts/generate_webvowl_json_generic.py \
-  src/oxp_ontology/mas-ontology.ttl \
+  src/scope_ontology/mas-ontology.ttl \
   docs/mas/webvowl/data/mas-ontology.json \
   "MAS Ontology" \
-  "https://outshift-open.github.io/observe-and-explain-platform/mas"
+  "https://ioc-project.github.io/scope/mas"
 
 # LODE-style HTML
-python3 scripts/generate_lode_html.py src/oxp_ontology/mas-ontology.ttl docs/mas/lode/index.html
+python3 scripts/generate_lode_html.py src/scope_ontology/mas-ontology.ttl docs/mas/lode/index.html
 ```
 
 Swap `mas-ontology.ttl` for `metrics-ontology.ttl` (and the paths/names) to build the Metrics docs the same way.

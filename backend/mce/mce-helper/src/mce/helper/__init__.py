@@ -6,9 +6,9 @@ Three-layer architecture::
 
     mce-core   : pure computation engine, metric registry, no IO
     mce-helper : this package — MetricsProvider ABC (metric CRUD)
-    oxp-api : concrete implementations (OXPKGProvider, OXPMetricsProvider)
+    scope-api : concrete implementations (SCOPEKGProvider, SCOPEMetricsProvider)
                  also owns DataProvider ABC (KG-specific: resolve_session_id + fetch)
-    mce-client : orchestration, provider injected by oxp-api
+    mce-client : orchestration, provider injected by scope-api
 """
 
 from mce.helper.interfaces import MetricsProvider  # noqa: F401

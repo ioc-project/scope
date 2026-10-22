@@ -5,9 +5,9 @@
 
 import { Spinner, Stack } from '@open-ui-kit/core';
 import { Typography } from '@mui/material';
-import { useSessionsInsights } from '@/api/oxpApi';
+import { useSessionsInsights } from '@/api/scopeApi';
 import { SessionsInsightsTable } from './SessionsInsightsTable';
-import { SessionInsight } from '@/types/oxp.type';
+import { SessionInsight } from '@/types/scope.type';
 import { PATHS } from '@/routes/routes';
 import { useNavigate, useParams } from 'react-router-dom';
 

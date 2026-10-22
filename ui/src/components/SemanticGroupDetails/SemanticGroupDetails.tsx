@@ -15,7 +15,7 @@ import {
   useNormalBehaviourReport,
   useNormalBehaviourReportList,
   useSemanticGroups
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import {
   OutlierSession,
   OutlierMetric,
@@ -25,7 +25,7 @@ import {
   SessionWithStatefulEval,
   SessionMetric,
   ImpactAssessmentAgent
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import { useNavigate } from 'react-router-dom';
 import { PATHS } from '@/routes/routes';
 import { metricCatalog } from '@/common';

@@ -9,8 +9,8 @@ import { useParams } from 'react-router';
 import {
   AgentMetricType,
   AgentQualityAndReasoningMetrics
-} from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
+} from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
 
 interface QualityReasoningTabProps {
   agentId: string;

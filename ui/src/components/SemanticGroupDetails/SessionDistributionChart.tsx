@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, ReferenceArea, ReferenceLine, Customized } from 'recharts';
 import { Box, Typography } from '@mui/material';
-import { SessionWithMetrics, Unit } from '@/types/oxp.type';
+import { SessionWithMetrics, Unit } from '@/types/scope.type';
 import { findMetricCatalogEntry, formatMetricValue } from '@/utils/metrics';
 import { metricCatalog } from '@/common';
 import { getDisplayedResultsCount } from '@/utils/stringUtils';

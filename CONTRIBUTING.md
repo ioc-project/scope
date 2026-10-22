@@ -1,6 +1,6 @@
 # How to Contribute
 
-Thanks for your interest in contributing to `observe-and-explain-platform`! Here are a few
+Thanks for your interest in contributing to `scope`! Here are a few
 general guidelines on contributing and reporting bugs that we ask you to review.
 Following these guidelines helps to communicate that you respect the time of the
 contributors managing and developing this open source project. In return, they
@@ -18,7 +18,7 @@ in any real-time space e.g., Slack, Discord, etc.
 
 Before reporting a new issue, please ensure that the issue was not already
 reported or fixed by searching through our [issues
-list](https://github.com/outshift-open/observe-and-explain-platform/issues).
+list](https://github.com/ioc-project/scope/issues).
 
 When creating a new issue, please be sure to include a **title and clear
 description**, as much relevant information as possible, and, if possible, a
@@ -39,7 +39,7 @@ major version release.
 
 ## Other Ways to Contribute
 
-We welcome anyone that wants to contribute to `observe-and-explain-platform` to triage and
+We welcome anyone that wants to contribute to `scope` to triage and
 reply to open issues to help troubleshoot and fix existing bugs. Here is what
 you can do:
 
@@ -47,9 +47,9 @@ you can do:
   _[Reporting Issues](#reporting-issues)_ section, providing feedback to the
   issue's author on what might be missing.
 - Review existing pull requests, and testing patches against real existing
-  applications that use `observe-and-explain-platform`.
+  applications that use `scope`.
 - Write a test, or add a missing test case to an existing test.
 
-Thanks again for your interest on contributing to `observe-and-explain-platform`!
+Thanks again for your interest on contributing to `scope`!
 
 :heart:

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Multi-component versioning script for oxp-ontology.
+Multi-component versioning script for scope-ontology.
 
 Each ontology component has its own version tracked in:
   - owl:versionInfo in the TTL file  (authoritative source of truth)
@@ -47,11 +47,11 @@ PYPROJECT_FILE = ROOT / "pyproject.toml"
 
 # Component name → TTL file path
 COMPONENTS: dict[str, Path] = {
-    "mas": ROOT / "src/oxp_ontology/mas-ontology.ttl",
-    "semantic": ROOT / "src/oxp_ontology/semantic-ontology.ttl",
-    "metrics": ROOT / "src/oxp_ontology/metrics-ontology.ttl",
-    "analysis": ROOT / "src/oxp_ontology/analysis-ontology.ttl",
-    "insight": ROOT / "src/oxp_ontology/insight-ontology.ttl",
+    "mas": ROOT / "src/scope_ontology/mas-ontology.ttl",
+    "semantic": ROOT / "src/scope_ontology/semantic-ontology.ttl",
+    "metrics": ROOT / "src/scope_ontology/metrics-ontology.ttl",
+    "analysis": ROOT / "src/scope_ontology/analysis-ontology.ttl",
+    "insight": ROOT / "src/scope_ontology/insight-ontology.ttl",
 }
 
 VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-(rc\d+))?$")

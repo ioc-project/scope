@@ -1,12 +1,12 @@
-# The Observe and Explain Platform
+# SCOPE: System for Cognitive Observability Provenance and Explainability
 
-The Observe and eXplain Platform (OXP) is a modular platform for analyzing and visualizing Multi-Agent System (MAS) executions from OpenTelemetry traces. It relies on a multi-layers knowledge graph, which holds representations of the different sessions (runs) of a given MAS that were observed previously.
+The System for Cognitive Observability Provenance and Explainability (SCOPE) is a modular platform for analyzing and visualizing Multi-Agent System (MAS) executions from OpenTelemetry traces. It relies on a multi-layers knowledge graph, which holds representations of the different sessions (runs) of a given MAS that were observed previously.
 
-The lifecycle of one MAS session within OXP is the following:
+The lifecycle of one MAS session within SCOPE is the following:
 1. The MAS sends OTel spans to an OTel collector, which, in turn, sends these spans to a storage place (currently using ClickHouse DB, but it can be replaced by another one quite easily).
-2. When the trace is complete, the OXP ingestion pipeline is triggered and the Otel spans are mapped to an ontology modeling MAS execution.
+2. When the trace is complete, the SCOPE ingestion pipeline is triggered and the Otel spans are mapped to an ontology modeling MAS execution.
 3. The representation of the session is then enriched via the different analysis modules.
-4. Through the enrichment of each session of a MAS, OXP is able to provide explainability and insights about the inner workings of the MAS.
+4. Through the enrichment of each session of a MAS, SCOPE is able to provide explainability and insights about the inner workings of the MAS.
 
 The current analysis offers semantic grouping of the sessions, along with anomaly detection, consistency checking, and stateful evaluation of one session trajectory.
 A detailed description of each analysis feature is provided in the [documentation](docs/index.md).
@@ -41,14 +41,14 @@ This library computes the stateful evaluation, a cost-effective evaluation of th
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd oxp-lib
+cd scope-lib
 uv sync
 ```
 
 ### Deployment
 
-A docker compose file is provided to deploy locally OXP.
-It is composed of the otel collector, an instance of ClickHouse DB, an instance of Neo4j, and the whole ingestion pipeline of OXP.
+A docker compose file is provided to deploy locally SCOPE.
+It is composed of the otel collector, an instance of ClickHouse DB, an instance of Neo4j, and the whole ingestion pipeline of SCOPE.
 To deploy it, you would need to create a `.env` file at the repository root folder:
 
 ```bash
@@ -62,7 +62,7 @@ docker compose up [--build]
 ```
 The `--build` is optional, it forces the rebuild of the different images that are used.
 
-A helm chart is also provided, to deploy OXP in k8s.
+A helm chart is also provided, to deploy SCOPE in k8s.
 
 ### Running Tests
 

@@ -7,7 +7,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import { Box, Chip, Stack, Tooltip, Typography, useTheme } from '@mui/material';
-import type { AppReasoningNode } from '@/types/oxp.type';
+import type { AppReasoningNode } from '@/types/scope.type';
 import { getDistributionColor, isHighCardinality } from './ApplicationReasoningPath.utils';
 
 const TIER_CONFIG: Record<string, { label: string; color: string; description: string }> = {

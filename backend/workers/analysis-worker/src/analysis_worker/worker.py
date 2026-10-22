@@ -11,9 +11,9 @@ import os
 import tempfile
 from typing import Any, Dict, List, Optional
 
-from oxp_ontology.models.nodes.anomaly_report import AnomalyReport
-from oxp_ontology.models.nodes.consistency_report import ConsistencyReport
-from oxp_ontology.models.nodes.normal_behaviour_report import NormalBehaviourReport
+from scope_ontology.models.nodes.anomaly_report import AnomalyReport
+from scope_ontology.models.nodes.consistency_report import ConsistencyReport
+from scope_ontology.models.nodes.normal_behaviour_report import NormalBehaviourReport
 from worker_base.base_worker import BaseWorker
 from worker_base.queue_message import (
     BaseQueueMessage,

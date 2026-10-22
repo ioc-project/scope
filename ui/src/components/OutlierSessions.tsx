@@ -8,7 +8,7 @@ import { CreateTableInstance, EmptyState, TableProps, TagBackgroundColorVariants
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { OutlierSession, Unit } from '@/types/oxp.type';
+import { OutlierSession, Unit } from '@/types/scope.type';
 import { Dayjs } from 'dayjs';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 import { OutlierMetricsTable, Tags } from '@/components';

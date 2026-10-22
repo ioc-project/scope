@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 
 import { CustomTooltip as Tooltip } from '@/components';
 import { getDisplayedResultsCount, getDisplayedResultsCountDollar } from '@/utils';
-import { Task } from '@/types/oxp.type';
+import { Task } from '@/types/scope.type';
 import { formatDurationMs } from '@/utils';
 import { DotLabel } from '../DotLabel';
 import { Stack, useTheme } from '@mui/material';

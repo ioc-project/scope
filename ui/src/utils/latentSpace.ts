@@ -8,7 +8,7 @@ import type {
   LatentSpaceNode,
   LatentSpaceEdge,
   SessionLatentSpaceData
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 
 export function transformLatentSpaceResponse(response: SessionLatentSpaceResponse): SessionLatentSpaceData {
   const SCALE_FACTOR = 3;

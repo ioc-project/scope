@@ -21,10 +21,10 @@ import {
   useSemanticGroups,
   useSessionLatentSpace,
   useSessionStatefulEval
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { Spinner } from '@open-ui-kit/core';
 import { metricCatalog } from '@/common';
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 import { PATHS } from '@/routes/routes';
 import { AgentImpactChart } from '../AgentImpactChart';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';

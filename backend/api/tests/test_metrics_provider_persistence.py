@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 from dotenv import load_dotenv
 
-from oxp.interfaces.models import MetricResult
-from oxp.providers import OXPMetricsProvider
+from scope.interfaces.models import MetricResult
+from scope.providers import SCOPEMetricsProvider
 
 load_dotenv()
 
@@ -17,8 +17,8 @@ TEST_SPAN_PREFIX = "TEST-span-metrics-provider"
 
 
 @pytest.fixture(scope="module")
-def provider() -> Iterator[OXPMetricsProvider]:
-    p = OXPMetricsProvider()
+def provider() -> Iterator[SCOPEMetricsProvider]:
+    p = SCOPEMetricsProvider()
     p._db.execute_command(
         """
         MERGE (s:Session {sessionId: $session_id})
@@ -58,7 +58,7 @@ def _resource_id(prefix: str) -> str:
 
 
 def _cleanup_metric(
-    provider: OXPMetricsProvider, resource_id: str, metric_name: str
+    provider: SCOPEMetricsProvider, resource_id: str, metric_name: str
 ) -> None:
     provider._db.execute_command(
         """
@@ -78,7 +78,7 @@ def _find_metric(results: list[MetricResult], metric_name: str) -> MetricResult:
 
 
 def test_save_metrics_persists_scalar_metric_result_and_explicit_fields(
-    provider: OXPMetricsProvider,
+    provider: SCOPEMetricsProvider,
 ) -> None:
     session_id = TEST_SESSION_ID
     metric_name = "LLMErrorRate"
@@ -105,7 +105,7 @@ def test_save_metrics_persists_scalar_metric_result_and_explicit_fields(
 
 
 def test_save_metrics_falls_back_to_metric_name_for_metric_id(
-    provider: OXPMetricsProvider,
+    provider: SCOPEMetricsProvider,
 ) -> None:
     session_id = TEST_SESSION_ID
     metric_name = "Groundedness"
@@ -128,7 +128,7 @@ def test_save_metrics_falls_back_to_metric_name_for_metric_id(
 
 
 def test_save_span_metrics_falls_back_to_metric_name_for_metric_id(
-    provider: OXPMetricsProvider,
+    provider: SCOPEMetricsProvider,
 ) -> None:
     session_id = _resource_id("session-metrics-provider")
     span_id = _resource_id("span-metrics-provider")
@@ -170,7 +170,7 @@ def test_save_span_metrics_falls_back_to_metric_name_for_metric_id(
 
 
 def test_get_metrics_reads_new_scalar_metric_result_shape(
-    provider: OXPMetricsProvider,
+    provider: SCOPEMetricsProvider,
 ) -> None:
     session_id = _resource_id("session-metrics-provider")
     metric_name = "LLMErrorRate"

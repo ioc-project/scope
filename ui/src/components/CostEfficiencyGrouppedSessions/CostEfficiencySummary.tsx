@@ -8,7 +8,7 @@ import { CustomTooltip } from '../CustomTooltip';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { GeneralSize, Tag } from '@open-ui-kit/core';
 import { colorTokens } from '@/theme/colors';
-import { CostEfficiencyGrouppedSessions as CostEfficiencyGrouppedSessionsType } from '@/types/oxp.type';
+import { CostEfficiencyGrouppedSessions as CostEfficiencyGrouppedSessionsType } from '@/types/scope.type';
 import { SemanticGroupOption } from '../SemanticGroupSelector';
 import { useMemo } from 'react';
 import { formatTwoDecimals } from '@/utils/stringUtils';

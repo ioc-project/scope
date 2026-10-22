@@ -4,13 +4,13 @@
 
 import pytest
 
-from oxp.client.cognition_protocols import (
+from scope.client.cognition_protocols import (
     _build_metric,
     _get_application_sessions_with_cognition_protocols,
     _get_session_cognition_protocols,
 )
-from oxp.core.exceptions import NotFoundError
-from oxp.query_builders.types import Dialect
+from scope.core.exceptions import NotFoundError
+from scope.query_builders.types import Dialect
 
 
 class _StubDB:

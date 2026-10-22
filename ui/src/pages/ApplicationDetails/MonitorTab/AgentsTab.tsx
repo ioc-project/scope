@@ -7,7 +7,7 @@ import { useParams } from 'react-router';
 import {
   useApplicationAgents,
   useApplicationSessionsWithStatefulEval
-} from '@/api/oxpApi';
+} from '@/api/scopeApi';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import {
   AgentCardWithStatefulEval,
@@ -15,7 +15,7 @@ import {
   AgentFailingEntityType,
   SessionStatefulEvalMetricFailure,
   SessionWithStatefulEval
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import { AgentCard } from '@/components/AgentCard';
 import { Grid, Spinner, Stack, Typography } from '@open-ui-kit/core';
 import { useDebouncedValue } from '@/utils';

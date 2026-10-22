@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol
 
 from norm import normalize
-from oxp.client.local import LocalClient as OXPLocalClient
-from oxp.dependencies import get_db
+from scope.client.local import LocalClient as SCOPELocalClient
+from scope.dependencies import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +25,12 @@ class NormDALHandler(Protocol):
 
 
 def _to_otel_span_dict(span: Any) -> Dict[str, Any]:
-    """Map an oxp-api ``SpanMetadataItem`` to the raw ClickHouse-shaped span
+    """Map an scope-api ``SpanMetadataItem`` to the raw ClickHouse-shaped span
     dict ``norm.ioa_observe`` reads directly (``SpanName``/``SpanAttributes``/
     ``SpanId``/``ParentSpanId``/``Timestamp``/``Duration``) -- a straight
     field rename, no reformatting: ``SpanMetadataItem`` is itself sourced
     from the same ``otel_traces`` ClickHouse columns (see
-    ``oxp.query_builders.sessions.session_spans_query``), so ``timestamp``
+    ``scope.query_builders.sessions.session_spans_query``), so ``timestamp``
     is already ClickHouse's native ``Timestamp`` string and ``duration`` is
     already nanoseconds.
     """
@@ -53,9 +53,9 @@ def _to_otel_span_dict(span: Any) -> Dict[str, Any]:
 
 
 class NormWrapper:
-    """Fetches raw spans via oxp-api and delegates normalization to norm.
+    """Fetches raw spans via scope-api and delegates normalization to norm.
 
-    Pipeline: oxp-api -> SpanMetadataItem rows -> raw ClickHouse-shaped span
+    Pipeline: scope-api -> SpanMetadataItem rows -> raw ClickHouse-shaped span
     dicts -> norm.normalize -> Neo4j.
 
     All span normalization -- the full handler/heuristic pipeline turning
@@ -79,7 +79,7 @@ class NormWrapper:
         self.kg_output = kg_output
 
     def retrieve_and_normalize(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch raw spans via oxp-api and normalize them to KG nodes/edges.
+        """Fetch raw spans via scope-api and normalize them to KG nodes/edges.
 
         Returns a dict with ``nodes``, ``edges`` and ``run_id``, or None if
         span fetching or normalization itself failed.
@@ -97,15 +97,15 @@ class NormWrapper:
         return {"nodes": nodes, "edges": edges, "run_id": session_id}
 
     def _fetch_spans(self, session_id: str) -> Optional[List[Any]]:
-        """Fetch raw session spans for session_id through oxp-api LocalClient.
+        """Fetch raw session spans for session_id through scope-api LocalClient.
 
-        Returns oxp-api's own span model (``SpanMetadataItem``) as-is --
+        Returns scope-api's own span model (``SpanMetadataItem``) as-is --
         adapting it to the raw span-dict shape norm expects is
         ``_to_otel_span_dict``'s job, not this method's.
         """
         try:
             db = next(get_db())
-            client = OXPLocalClient(db=db)
+            client = SCOPELocalClient(db=db)
             response = client.get_session_spans(
                 session_ids=[session_id],
                 limit=10000,
@@ -144,11 +144,11 @@ class NormWrapper:
         return self._push_to_neo4j(kg)
 
     def _push_to_neo4j(self, kg: Dict[str, Any]) -> bool:
-        """Push KG nodes and edges to Neo4j via oxp-api. Returns True on success.
+        """Push KG nodes and edges to Neo4j via scope-api. Returns True on success.
 
         norm-worker has no Neo4j connection logic of its own: ``db_handler``
         is built once by ``NormWorker`` (wrapping the same shared connector
-        singleton oxp-api's own endpoints use) and injected here - this
+        singleton scope-api's own endpoints use) and injected here - this
         method never builds or closes a connection itself.
         """
         nodes = kg["nodes"]

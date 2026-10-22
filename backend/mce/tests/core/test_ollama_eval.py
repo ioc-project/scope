@@ -41,7 +41,7 @@ SESSION_ID = "76bc0800-8f02-416a-9ff3-f172e0ad68c2"
 
 # Resolve paths relative to this file:
 #   tests/test_ollama_eval.py  →  parents[0]=tests  →  parents[1]=mce
-#   parents[2]=oxp-lib      →  parents[3]=oxp
+#   parents[2]=scope-lib      →  parents[3]=scope
 _REPO_ROOT = Path(__file__).parents[4]
 
 OTEL_FILE = _REPO_ROOT / "otel_dumps_converted" / f"{SESSION_ID}.otel.json"

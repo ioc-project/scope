@@ -5,18 +5,18 @@ from unittest.mock import Mock, call
 
 import pytest
 
-from oxp.client._sessions import SessionsClient
-from oxp.client.local import LocalClient
+from scope.client._sessions import SessionsClient
+from scope.client.local import LocalClient
 
 
 @pytest.fixture
 def connectors(monkeypatch):
     db, kg, provider = Mock(), Mock(), Mock()
-    monkeypatch.setattr("oxp.connectors.clickhouse.ClickHouseConnector", db)
-    monkeypatch.setattr("oxp.connectors.neo4j.Neo4JConnector", kg)
-    monkeypatch.setattr("oxp.providers.OXPMetricsProvider", provider)
+    monkeypatch.setattr("scope.connectors.clickhouse.ClickHouseConnector", db)
+    monkeypatch.setattr("scope.connectors.neo4j.Neo4JConnector", kg)
+    monkeypatch.setattr("scope.providers.SCOPEMetricsProvider", provider)
     monkeypatch.setattr(
-        "oxp.core.config.settings",
+        "scope.core.config.settings",
         SimpleNamespace(
             **{
                 f"{prefix}_{field}": "test"

@@ -16,12 +16,12 @@ import {
   ScoreSeverityBadgeLabel,
   WidgetCard
 } from '@/components';
-import { useSessionsWithCognitiveObservability } from '@/api/oxpApi';
+import { useSessionsWithCognitiveObservability } from '@/api/scopeApi';
 import { useTimeRangeStore } from '@/store';
 import { FAILURE_CONFIDENCE_THRESHOLD } from '@/common/cognitiveFailures';
 // import { COGNITIVE_METRIC_GROUPS } from '@/common/cognitiveFailures';
 // import { getScoreColor } from '@/utils/metrics';
-// import { CognitiveObservabilityMetric, Unit } from '@/types/oxp.type';
+// import { CognitiveObservabilityMetric, Unit } from '@/types/scope.type';
 import { COGNITIVE_FAILURE_DESCRIPTIONS } from '@/common/cognitiveFailures';
 
 /*

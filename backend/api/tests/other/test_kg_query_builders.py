@@ -1,7 +1,7 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-from oxp.interfaces.models import EdgeFacet
-from oxp.query_builders.kg import (
+from scope.interfaces.models import EdgeFacet
+from scope.query_builders.kg import (
     fetch_agent_call_sequence_query,
     fetch_call_content_and_names_query,
     fetch_session_query,

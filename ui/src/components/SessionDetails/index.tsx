@@ -13,9 +13,9 @@ import { ConversationTab } from './ConversationTab';
 import { SessionAnalysisTab } from './SessionAnalysisTab';
 import { CognitiveObservabilityTab } from './CognitiveObservabilityTab';
 import { CognitionProtocolsTab } from './CognitionProtocolsTab';
-import { useApplicationSessionsWithStatefulEval } from '@/api/oxpApi';
+import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
 import { DEFAULT_START_DATE, DEFAULT_END_DATE } from '@/common';
-import { SessionWithStatefulEval } from '@/types/oxp.type';
+import { SessionWithStatefulEval } from '@/types/scope.type';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { Tabs, Tab } from '@open-ui-kit/core';
 

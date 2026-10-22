@@ -1,16 +1,16 @@
 [project]
-name = "oxp-lib"
+name = "scope-lib"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "IoC project", email = "oss@cisco.com" }
 ]
 license = "Apache-2.0"
-description = "OXP backend workspace aggregating dem, mce, and norm"
+description = "SCOPE backend workspace aggregating dem, mce, and norm"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "dem[all]",
-    "oxp-mce",
+    "scope-mce",
     "norm",
 ]
 
@@ -47,22 +47,22 @@ members = [
 ]
 
 [tool.uv]
-# The protocol MCE plugins pin oxp-mce-core to a git ref for standalone use; here it is the workspace member.
-override-dependencies = ["oxp-mce-core"]
+# The protocol MCE plugins pin scope-mce-core to a git ref for standalone use; here it is the workspace member.
+override-dependencies = ["scope-mce-core"]
 
 [tool.uv.sources]
 dem = { workspace = true }
-oxp-mce = { workspace = true }
-oxp-api = { workspace = true }
-oxp-mce-core = { workspace = true }
-oxp-mce-helper = { workspace = true }
-oxp-mce-client = { workspace = true }
-oxp-mce-legacy = { workspace = true }
-oxp-mce-provider-native = { workspace = true }
-oxp-mce-provider-sdk = { workspace = true }
-oxp-mce-provider-deepeval = { workspace = true }
-oxp-mce-provider-opik = { workspace = true }
-oxp-mce-provider-ragas = { workspace = true }
+scope-mce = { workspace = true }
+scope-api = { workspace = true }
+scope-mce-core = { workspace = true }
+scope-mce-helper = { workspace = true }
+scope-mce-client = { workspace = true }
+scope-mce-legacy = { workspace = true }
+scope-mce-provider-native = { workspace = true }
+scope-mce-provider-sdk = { workspace = true }
+scope-mce-provider-deepeval = { workspace = true }
+scope-mce-provider-opik = { workspace = true }
+scope-mce-provider-ragas = { workspace = true }
 norm = { workspace = true }
 norm-worker = { workspace = true }
 hierarchical-grouping-worker = { workspace = true }

@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import { Stack } from '@mui/material';
-import { CognitionProtocol } from '@/types/oxp.type';
+import { CognitionProtocol } from '@/types/scope.type';
 import { ProtocolSection } from './ProtocolSection';
 
 // A protocol is listed when it applies to the session. A protocol that was

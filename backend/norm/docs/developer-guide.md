@@ -7,7 +7,7 @@ How to extend and maintain the reactive normalizer.
 1. **Nothing more, nothing less** — a handler builds only the nodes/edges its
    span shape directly implies. No inference, no placeholder/"unknown"
    fabrication, no reconstructing information the span doesn't carry.
-2. **Ontology-first output** — Pydantic models generated from `oxp-ontology`
+2. **Ontology-first output** — Pydantic models generated from `scope-ontology`
    TTL, validated with `extra="forbid"` so an undeclared field is a hard
    error, not a silently-dropped one.
 3. **Best-effort post-processing stays separate and idempotent** — anything
@@ -80,12 +80,12 @@ Only add one when there's a genuine signal gap the SDK doesn't cover yet
 
 ## Picking up new ontology classes
 
-Model generation lives in `oxp-ontology` itself
-(`scripts/generate_models.py` there), not in norm. When `oxp-ontology`
+Model generation lives in `scope-ontology` itself
+(`scripts/generate_models.py` there), not in norm. When `scope-ontology`
 releases new classes:
 
 ```bash
-uv pip install -U oxp-ontology
+uv pip install -U scope-ontology
 pytest
 ```
 

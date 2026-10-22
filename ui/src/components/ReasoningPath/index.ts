@@ -10,4 +10,4 @@ export type {
   ReasoningNode,
   ReasoningEdge,
   ReasoningHistoryValueEntry
-} from '@/types/oxp.type';
+} from '@/types/scope.type';

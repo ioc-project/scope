@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from oxp_ontology.models.edges import executesSession
-from oxp_ontology.models.nodes import MAS, Session
+from scope_ontology.models.edges import executesSession
+from scope_ontology.models.nodes import MAS, Session
 
 from ..fields import (
     _to_float,

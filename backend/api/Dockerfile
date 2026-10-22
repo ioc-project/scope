@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy the API source code.
 COPY api /src/api
 
-# Install the oxp-api package
+# Install the scope-api package
 RUN --mount=type=cache,target=/root/.cache/uv \
   cd /src && uv sync --frozen --no-dev --no-editable --project /src/api
 

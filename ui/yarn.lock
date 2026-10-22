@@ -6211,9 +6211,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"oxp-ui@workspace:.":
+"scope-ui@workspace:.":
   version: 0.0.0-use.local
-  resolution: "oxp-ui@workspace:."
+  resolution: "scope-ui@workspace:."
   dependencies:
     "@antv/g2": "npm:^5.4.8"
     "@antv/g6": "npm:^5.0.51"

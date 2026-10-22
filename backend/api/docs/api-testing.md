@@ -1,4 +1,4 @@
-# OXP API — Manual Testing Guide
+# SCOPE API — Manual Testing Guide
 
 This guide covers all endpoints added in PR #33 (`feat/provider-interfaces`).
 Run the commands below to validate the implementation end-to-end.
@@ -8,8 +8,8 @@ Run the commands below to validate the implementation end-to-end.
 ### Start the API
 
 ```bash
-cd oxp-api
-uvicorn oxp.api:app --host 0.0.0.0 --port 8001 --log-level info
+cd scope-api
+uvicorn scope.api:app --host 0.0.0.0 --port 8001 --log-level info
 ```
 
 > **Neo4j** is required for `GET /metrics/sessions/{id}`, `POST /kg/query`, and `POST /kg/neighbors`.

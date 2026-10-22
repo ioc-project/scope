@@ -24,8 +24,8 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "oxp-mce",
-    "oxp-mce-client",
+    "scope-mce",
+    "scope-mce-client",
     "worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -47,8 +47,8 @@ dev = [
 mce-worker-cli = "mce_worker.cli:main"
 
 [tool.uv.sources]
-oxp-mce = { workspace = true }
-oxp-mce-client = { workspace = true }
+scope-mce = { workspace = true }
+scope-mce-client = { workspace = true }
 worker-base = { workspace = true }
 
 [project.urls]

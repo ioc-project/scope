@@ -10,7 +10,7 @@ import { Typography, useTheme } from '@mui/material';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 import { AgentAnalyzeImpactAssessment } from './types';
 import { formatMetricValue } from '@/utils/metrics';
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 import { PATHS } from '@/routes/routes';
 import { useNavigate, useParams } from 'react-router-dom';
 

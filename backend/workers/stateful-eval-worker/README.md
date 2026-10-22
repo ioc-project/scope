@@ -12,7 +12,7 @@ forwards the message. No OTel store is read.
 Evaluation makes model calls, which can cost money. The worker is built on the
 [worker-base](../../worker-base/README.md) framework.
 
-## Where it sits in OXP
+## Where it sits in SCOPE
 
 ```mermaid
 flowchart LR
@@ -20,19 +20,19 @@ flowchart LR
     B -->|read trajectory| C[(Neo4j trajectory)]
     B -->|evaluate_trajectory| D[TemporalMetricsProcessor]
     B -->|write metrics and context| E[(Neo4j Transition and Metric nodes)]
-    E -->|TrajectoryScore| F[OXP API quality category]
+    E -->|TrajectoryScore| F[SCOPE API quality category]
     B -.->|optional| G[output and feedback queues]
 ```
 
-The OXP API's `quality` category reads `TrajectoryScore` as a source of `MDT` (`trajectoryQuality`) in [`config.py`](../../api/oxp/core/config.py); no default
+The SCOPE API's `quality` category reads `TrajectoryScore` as a source of `MDT` (`trajectoryQuality`) in [`config.py`](../../api/scope/core/config.py); no default
 category lists the step metrics (`Groundedness`, `IntentRecognition`, `Relevancy`) under the `StatefulEvals` provider.
 
 ## How it works
 
 For each message, `StatefulEvalWorker.handle_message`:
 
-1. Reads the trajectory with the OXP API library's
-   `oxp.client.dal.get_session_trajectory`: every `LLMCall`, `ToolCall`, and `AgentCall` of the session, in start-time order, with the `Transition` it corresponds to and the text of its initial and final `State`, in one query.
+1. Reads the trajectory with the SCOPE API library's
+   `scope.client.dal.get_session_trajectory`: every `LLMCall`, `ToolCall`, and `AgentCall` of the session, in start-time order, with the `Transition` it corresponds to and the text of its initial and final `State`, in one query.
    Builds a new `TemporalMetricsProcessor` and calls
    `evaluate_trajectory(trajectory)`. Steps are identified by their KG ids;
    there is no span id or de-duplication. The policy is the first LLM call's system prompt, the request is its first
@@ -61,7 +61,7 @@ publishes nothing. Either way the message is acknowledged, not requeued.
 ## What it writes
 
 The worker reads and writes Neo4j only, through the shared connector
-(`oxp.dependencies.get_neo4j_connector()`).
+(`scope.dependencies.get_neo4j_connector()`).
 
 | Written | Attached to | Value |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ overrides `--max-inflight-messages`. From a source checkout, `cli.py` also loads
 | `PUSH_TRANSITION_CONTEXT` | | `true` | `false`, `0`, or `no` skips writing `TrajectoryContext` nodes |
 | `NEO4J_HOST`, `NEO4J_PORT`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE` | | `localhost`, `7687`, `neo4j`, empty, `neo4j` | Knowledge graph, read and written. `NEO4J_AUTH=user/password` also sets the credentials |
 
-The connector is `oxp.dependencies.get_neo4j_connector()`, the one `BaseWorker`
+The connector is `scope.dependencies.get_neo4j_connector()`, the one `BaseWorker`
 creates at startup and every other worker uses, so the worker does not close it.
 It reads `NEO4J_URI` first, else `NEO4J_HOST`, which may be a bare host,
 `host:port`, or a URI, and uses `NEO4J_PORT` when the host has no port.

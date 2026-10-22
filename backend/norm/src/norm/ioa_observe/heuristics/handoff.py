@@ -34,8 +34,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from oxp_ontology.models.edges import hasAgentCall, hasFinalState, hasInitialState
-from oxp_ontology.models.nodes import AgentCall, MASCall
+from scope_ontology.models.edges import hasAgentCall, hasFinalState, hasInitialState
+from scope_ontology.models.nodes import AgentCall, MASCall
 
 from ..fields import _hash_id, attrs, get_agent_id
 from ..registry import Registry

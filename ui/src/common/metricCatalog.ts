@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 
 export interface SemanticGroupMetric {
   name: string;

@@ -7,8 +7,8 @@ import MetricsGrid from '../MetricsGrid';
 import { Box, Spinner, Stack } from '@open-ui-kit/core';
 import { useParams } from 'react-router';
 import AgentErrorBreakdown from '@/components/AgentErrorBreakdown';
-import { AgentMetricType, AgentPerformanceMetrics } from '@/types/oxp.type';
-import { useAgentMetrics } from '@/api/oxpApi';
+import { AgentMetricType, AgentPerformanceMetrics } from '@/types/scope.type';
+import { useAgentMetrics } from '@/api/scopeApi';
 
 interface PerformanceTabProps {
   agentId: string;

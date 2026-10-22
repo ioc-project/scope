@@ -9,8 +9,8 @@ import type {
   ReasoningPathResponse,
   ReasoningNode,
   ReasoningHistoryValueEntry
-} from '@/types/oxp.type';
-import { useReasoningPath as useReasoningPathQuery } from '@/api/oxpApi';
+} from '@/types/scope.type';
+import { useReasoningPath as useReasoningPathQuery } from '@/api/scopeApi';
 import {
   computeLayout,
   computeEdges,

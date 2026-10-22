@@ -7,11 +7,11 @@ import { Box, Stack, Typography } from '@mui/material';
 import { useTheme } from '@mui/material';
 import { KGGraph } from '@/components/KGInspectorGraph';
 import type { LayoutOptions } from '@antv/g6';
-import { useSemanticGroupsTree } from '@/api/oxpApi';
+import { useSemanticGroupsTree } from '@/api/scopeApi';
 import { useParams } from 'react-router-dom';
 import { Spinner } from '@open-ui-kit/core';
 import { useMemo } from 'react';
-import type { SemanticGroup } from '@/types/oxp.type';
+import type { SemanticGroup } from '@/types/scope.type';
 
 const FONT_SIZE = 14;
 const PADDING_X = 24;

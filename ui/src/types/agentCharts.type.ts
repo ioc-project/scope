@@ -7,7 +7,7 @@ import {
   TimelineData,
   SingleValueData,
   ErrorItem
-} from './oxp.type';
+} from './scope.type';
 
 export interface ApplicationGeneralCharts {
   averageAnswerRelevancy: TimelineData[];

@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 import {
   SessionsWithCognitiveObservability,
   SessionWithCognitiveObservability
-} from '@/types/oxp.type';
+} from '@/types/scope.type';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { CustomTooltip, Tags } from '@/components';
 import { getScoreColor } from '@/utils/metrics';

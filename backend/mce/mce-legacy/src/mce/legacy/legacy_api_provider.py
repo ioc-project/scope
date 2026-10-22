@@ -15,7 +15,7 @@ class LegacyApiProvider(DataProvider):
     Fetches OTel traces from ClickHouse via REST API (port 8081).
 
     This provider is kept for backward compatibility only. New code should use
-    oxp-api providers through mce-client.
+    scope-api providers through mce-client.
     """
 
     def __init__(self):

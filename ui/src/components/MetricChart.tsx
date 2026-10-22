@@ -10,7 +10,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { formatDurationMs, formatTwoDecimals, getDisplayedResultsCount, getDisplayedResultsCountDollar } from '@/utils';
 import MetricLineChart from '@/components/MetricLineChart';
-import { TimelineData, Unit } from '@/types/oxp.type';
+import { TimelineData, Unit } from '@/types/scope.type';
 import { Operation } from '@/api/metrics';
 import { CustomTooltip } from './CustomTooltip';
 import { formatMetricValue, getResultCount, getScoreColor } from '@/utils/metrics';

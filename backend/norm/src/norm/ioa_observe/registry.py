@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TypeVar, cast
 
-from oxp_ontology.models.base import KGBase
+from scope_ontology.models.base import KGBase
 
 T = TypeVar("T", bound=KGBase)
 

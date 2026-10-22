@@ -1,0 +1,17 @@
+{{- if .Values.test -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "scope-api.fullname" . }}-test-connection"
+  labels:
+    {{- include "scope-api.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "scope-api.fullname" . }}:{{ .Values.api.service.port }}/healthz']
+  restartPolicy: Never
+{{- end -}}

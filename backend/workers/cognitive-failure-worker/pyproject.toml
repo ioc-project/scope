@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "worker-base",
-    "oxp-api",
+    "scope-api",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -48,7 +48,7 @@ Repository = "https://github.com/agntcy/telemetry-hub"
 
 [tool.uv.sources]
 worker-base = { workspace = true }
-oxp-api = { workspace = true }
+scope-api = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cognitive_failure_worker"]

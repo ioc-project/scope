@@ -10,7 +10,7 @@ Architecture::
 
     mce-core     (computation: providers, metrics, engine)
         ↑
-    oxp-api   (KG provider, connector ownership)
+    scope-api   (KG provider, connector ownership)
         ↑
     mce-client   (DAL: config + orchestration)
         ↑
@@ -23,24 +23,24 @@ import logging
 from typing import Any, List, Optional
 
 from .config import MCEClientConfig
-from .setup import build_oxp_kg_provider
+from .setup import build_scope_kg_provider
 
 logger = logging.getLogger(__name__)
 
 
 def _build_api_graph_provider(config: MCEClientConfig):
-    """Build the graph provider via oxp-api, not via mce-local adapters."""
+    """Build the graph provider via scope-api, not via mce-local adapters."""
     config.validate()
-    provider = build_oxp_kg_provider(config, combined=True)
+    provider = build_scope_kg_provider(config, combined=True)
     if provider is None:
-        raise RuntimeError("oxp-api is required to build the MCE graph provider")
+        raise RuntimeError("scope-api is required to build the MCE graph provider")
     return provider
 
 
 class MCEClient:
     """High-level client for the Metrics Computation Engine.
 
-    Encapsulates the oxp-api data access layer and the metric computation
+    Encapsulates the scope-api data access layer and the metric computation
     engine behind a single, stable API. Internal backend details are not exposed.
 
     Usage::
@@ -78,10 +78,10 @@ class MCEClient:
         """Return the KG provider, lazily building one from explicit config.
 
         When ``kg_provider`` was injected at construction (e.g. in tests or
-        when called from oxp-api), that instance is returned directly.
+        when called from scope-api), that instance is returned directly.
 
         When no provider was injected, the client delegates provider creation
-        to oxp-api using the explicit config supplied at the boundary.
+        to scope-api using the explicit config supplied at the boundary.
         """
         if self._kg_provider is None:
             self._kg_provider = _build_api_graph_provider(self._config)

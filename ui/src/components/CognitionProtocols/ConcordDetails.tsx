@@ -11,7 +11,7 @@ import {
   isBestEffortState,
   isCommitState
 } from '@/common/cognitionProtocols';
-import { CognitionConcordProtocol } from '@/types/oxp.type';
+import { CognitionConcordProtocol } from '@/types/scope.type';
 import { BoundsTable, PhaseUsageTable, UsageSummaryTable } from './UsageTables';
 import { SatisfactionTrajectoryChart } from './SatisfactionTrajectoryChart';
 import {

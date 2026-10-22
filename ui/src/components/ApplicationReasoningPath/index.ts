@@ -9,4 +9,4 @@ export type {
   AppReasoningPathResponse,
   AppReasoningNode,
   AppReasoningSessionEntry
-} from '@/types/oxp.type';
+} from '@/types/scope.type';

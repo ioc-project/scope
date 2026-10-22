@@ -7,7 +7,7 @@ import { MaterialReactTable } from 'material-react-table';
 import { CreateTableInstance, EmptyState, GeneralSize, TableProps, Tag, TagBackgroundColorVariants } from '@open-ui-kit/core';
 import { useMemo } from 'react';
 import { Typography } from '@mui/material';
-import type { ErrorItem } from '@/types/oxp.type';
+import type { ErrorItem } from '@/types/scope.type';
 import { CustomTooltip } from '@/components';
 import { capitalizeFirstLetter } from '@/utils';
 

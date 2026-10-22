@@ -2,7 +2,7 @@
 
 Standalone normalization worker that converts a completed MAS session's raw OTel spans into a Knowledge Graph.
 
-**Source:** [`workers/norm-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/norm-worker)
+**Source:** [`workers/norm-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/norm-worker)
 
 ## Overview
 
@@ -21,11 +21,11 @@ Internally, `NormWorker` (`workers/norm-worker/src/norm_worker/worker.py`) subcl
 [`worker-base`](../components/worker-base.md) `BaseWorker`, and delegates the actual work to
 `NormWrapper` (`workers/norm-worker/src/norm_worker/wrapper/norm_wrapper.py`), which:
 
-1. fetches the session's raw ClickHouse-shaped spans via `oxp-api`'s `LocalClient` (see the
+1. fetches the session's raw ClickHouse-shaped spans via `scope-api`'s `LocalClient` (see the
    [api](../components/api.md) component),
 2. delegates span → events → Knowledge Graph normalization to `norm.normalize()` (the
    [norm](../components/norm.md) library),
-3. pushes the resulting nodes/edges to Neo4j (via `oxp.client.dal.ingest_normalized_kg`), and
+3. pushes the resulting nodes/edges to Neo4j (via `scope.client.dal.ingest_normalized_kg`), and
    optionally dumps the KG to a JSON file (`--kg-output`).
 
 ## Usage
@@ -66,8 +66,8 @@ CLI flags / environment variables:
 | — | `--max-sessions` | Stop after N sessions (`-1` = unlimited) |
 | — | `--debug` | Verbose logging plus `/tmp/norm_worker_events_<session_id>.jsonl` and `/tmp/norm_worker_kg_<session_id>.json` dumps |
 | — | `--override` | Delete any existing Neo4j data for the session before pushing (used for re-processing) |
-| `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` / `CLICKHOUSE_USERNAME` / `CLICKHOUSE_PASSWORD` / `CLICKHOUSE_DATABASE` | — | ClickHouse connection, read by the underlying `oxp-api` DB layer |
-| `NEO4J_URI` / `NEO4J_AUTH` / `NEO4J_DB` | — | Neo4j connection, read by the underlying `oxp-api` DB layer |
+| `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` / `CLICKHOUSE_USERNAME` / `CLICKHOUSE_PASSWORD` / `CLICKHOUSE_DATABASE` | — | ClickHouse connection, read by the underlying `scope-api` DB layer |
+| `NEO4J_URI` / `NEO4J_AUTH` / `NEO4J_DB` | — | Neo4j connection, read by the underlying `scope-api` DB layer |
 
 Also supported: the common worker flags `--run-once`, `--input`, `--output`, `--test`, shared by
 all [workers](index.md).

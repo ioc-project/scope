@@ -16,7 +16,7 @@ import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
 import { CustomTooltip, IntervalPicker } from '@/components';
 import { useDebouncedValue } from '@/utils';
 import { useTimeRangeStore } from '@/store';
-import { useSessionsWithCognitiveObservability } from '@/api/oxpApi';
+import { useSessionsWithCognitiveObservability } from '@/api/scopeApi';
 import { FAILURE_CONFIDENCE_THRESHOLD } from '@/common/cognitiveFailures';
 
 const CognitiveObservability = () => {

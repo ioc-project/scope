@@ -1,6 +1,6 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Thin wrapper around :class:`~oxp.client.mock.client.GoldenClient`.
+"""Thin wrapper around :class:`~scope.client.mock.client.GoldenClient`.
 
 Provides module-level functions that delegate to a shared ``GoldenClient``
 instance so existing tests can keep doing ``mocker.get_applications()`` etc.
@@ -13,7 +13,7 @@ import inspect
 import json
 import logging
 
-from oxp.client.mock import GoldenClient
+from scope.client.mock import GoldenClient
 
 logger = logging.getLogger(__name__)
 

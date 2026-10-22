@@ -1,11 +1,11 @@
 [project]
-name = "oxp-api"
+name = "scope-api"
 version = "1.0.0"
 authors = [
     { name = "Outshift Open", email = "oss@cisco.com" }
 ]
 license = "Apache-2.0"
-description = "OXP backend API service"
+description = "SCOPE backend API service"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -24,7 +24,7 @@ dependencies = [
     "umap-learn>=0.5.7",
     "uvicorn>=0.41.0",
     "ruff<=0.15.22",
-    "oxp-ontology[models,verify]>=1.0.6",
+    "scope-ontology[models,verify]>=1.0.6",
 ]
 
 
@@ -34,17 +34,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["oxp"]
+packages = ["scope"]
 
 [project.scripts]
-dev = "oxp.app:main"
+dev = "scope.app:main"
 
 [dependency-groups]
 dev = [
     "fakeredis>=2.0.0",
     "httpx>=0.28.1",
-    "oxp-mce-provider-native",
-    "oxp-mce-provider-sdk",
+    "scope-mce-provider-native",
+    "scope-mce-provider-sdk",
     "pytest>=9.0.2",
 ]
 

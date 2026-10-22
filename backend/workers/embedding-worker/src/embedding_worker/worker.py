@@ -5,10 +5,10 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from oxp.client.dal import get_state_content as oxp_api_get_state_content
-from oxp.client.dal import ingest_embeddings as oxp_api_ingest_embeddings
-from oxp.connectors.base import Connector
-from oxp.dependencies import get_neo4j_connector
+from scope.client.dal import get_state_content as scope_api_get_state_content
+from scope.client.dal import ingest_embeddings as scope_api_ingest_embeddings
+from scope.connectors.base import Connector
+from scope.dependencies import get_neo4j_connector
 from worker_base import queue_message
 from worker_base.base_worker import BaseWorker
 
@@ -17,7 +17,7 @@ from embedding_worker.wrapper import embedding_wrapper
 logger = logging.getLogger(__name__)
 
 
-class OXPApiEmbeddingDALAdapter:
+class SCOPEApiEmbeddingDALAdapter:
     def __init__(self, connector: Connector):
         self._connector = connector
 
@@ -25,14 +25,14 @@ class OXPApiEmbeddingDALAdapter:
         self._connector.close()
 
     def get_state_content(self, session_id: str) -> List[Dict[str, Any]]:
-        return oxp_api_get_state_content(
+        return scope_api_get_state_content(
             db=self._connector,
             filters_eq={"sessionId": session_id},
             filters_neq={"content": ""},
         )
 
     def ingest_embeddings(self, embeddings: List[Dict[str, Any]]) -> None:
-        oxp_api_ingest_embeddings(
+        scope_api_ingest_embeddings(
             db=self._connector,
             embeddings=embeddings,
         )
@@ -65,7 +65,7 @@ class EmbeddingWorker(BaseWorker):
         self.debug = debug
 
         try:
-            self.db_handler = OXPApiEmbeddingDALAdapter(get_neo4j_connector())
+            self.db_handler = SCOPEApiEmbeddingDALAdapter(get_neo4j_connector())
         except Exception as exc:
             logger.warning(
                 "Failed to initialize API-managed Neo4j connector; DB operations disabled: %s",

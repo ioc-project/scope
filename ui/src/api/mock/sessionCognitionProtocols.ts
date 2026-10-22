@@ -1,4 +1,4 @@
-import { SessionCognitionProtocols } from '@/types/oxp.type';
+import { SessionCognitionProtocols } from '@/types/scope.type';
 
 // Mocked Cognition protocols per session. Sessions that are not listed have no Cognition
 // protocol at all (empty `protocols` list). Scenarios:

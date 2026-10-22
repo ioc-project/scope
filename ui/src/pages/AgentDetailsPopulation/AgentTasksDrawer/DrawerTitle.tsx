@@ -5,7 +5,7 @@
 
 import { Stack, Typography } from '@open-ui-kit/core';
 import { useTheme } from '@mui/material';
-import { Task } from '@/types/oxp.type';
+import { Task } from '@/types/scope.type';
 
 interface DrawerTitleProps {
   tasks: Task[];

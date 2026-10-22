@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the OXP Ontology will be documented in this file.
+All notable changes to the SCOPE Ontology will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -75,7 +75,7 @@ Versioning starts at `1.0.0` with this open-source release.
 
 ### Added
 
-Initial open-source release of the OXP Ontology.
+Initial open-source release of the SCOPE Ontology.
 
 - Five bundled Turtle ontologies, all under a single `mas:` namespace:
   - `mas-ontology.ttl` — core execution schema: structural types (`MAS`, `Agent`, `LLM`, `Tool`,
@@ -87,7 +87,7 @@ Initial open-source release of the OXP Ontology.
   - `insight-ontology.ttl` — rendered, catalog-templated insights attached to a target KG node.
 - SHACL shapes: hand-maintained multi-node/conditional constraints in `mas-shapes-custom.ttl`,
   plus `scripts/generate_shacl_shapes.py` to scaffold class-level shapes from the ontology files.
-- `oxp-ontology` Python package:
+- `scope-ontology` Python package:
   - `get_ontology_path()` / `load_graph()` for programmatic access to the bundled files.
   - `validate_bundled_ontologies()` — structural validation of the ontology files themselves.
   - `verify_kg_object()` — SHACL-based verification of a single constructed KG node/edge object.
@@ -96,5 +96,5 @@ Initial open-source release of the OXP Ontology.
 - Per-component semantic versioning (`mas`, `semantic`, `metrics`, `analysis`, `insight`), with
   `mas`/`metrics`/`analysis`/`insight` kept in lockstep and `semantic` versioned independently —
   see [docs/VERSIONING.md](docs/VERSIONING.md).
-- Documentation published to [outshift-open.github.io/oxp-ontology](https://outshift-open.github.io/oxp-ontology/)
+- Documentation published to [ioc-project.github.io/scope-ontology](https://ioc-project.github.io/scope-ontology/)
   (Widoco, WebVOWL, LODE) for the `mas` and `metrics` ontologies, via CI on every push to `main`.

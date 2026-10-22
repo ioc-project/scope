@@ -14,7 +14,7 @@ supply spans and model access, and own scheduling and persistence.
 
 ## Install
 
-The library supports Python 3.11+ (the full OXP workspace needs 3.13+). From the
+The library supports Python 3.11+ (the full SCOPE workspace needs 3.13+). From the
 repository root:
 
 ```bash
@@ -67,8 +67,8 @@ Keep API keys in the environment, not in source files. Model calls cost money.
 `SpanAttributes`, `StatusCode`, and `Duration` (nanoseconds). `Links` arrays are
 kept. Use unique span IDs and sortable timestamps. Inputs are copied, not changed.
 
-Other formats need converting first, for example OXP snake_case spans with
-`integrations.oxp.oxp_span_to_otel`. The library has no built-in converter for
+Other formats need converting first, for example SCOPE snake_case spans with
+`integrations.scope.scope_span_to_otel`. The library has no built-in converter for
 other trace formats; write one that produces the record shape above.
 
 ## Entry points
@@ -90,7 +90,7 @@ summary = engine.evaluate_sessions(sessions.keys(), span_loader=sessions.__getit
 
 Each trajectory gets fresh state, so runs never share context or token counts.
 The library does no database access. Database sessions are read by the
-Stateful Eval worker through the OXP API (`get_session_trajectory`) and evaluated
+Stateful Eval worker through the SCOPE API (`get_session_trajectory`) and evaluated
 with `TemporalMetricsProcessor.evaluate_trajectory`.
 
 ## Options

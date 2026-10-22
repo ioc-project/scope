@@ -19,18 +19,18 @@ import fakeredis
 import redis as redis_lib
 from dotenv import load_dotenv
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints.helpers import reset_client
-from oxp.connectors.neo4j import Neo4JConnector
-from oxp.core.config import settings
-from oxp.dependencies import get_db, get_redis
+from scope.api import app
+from scope.api.api_v1.endpoints.helpers import reset_client
+from scope.connectors.neo4j import Neo4JConnector
+from scope.core.config import settings
+from scope.dependencies import get_db, get_redis
 from fastapi.testclient import TestClient
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Ensure the project root is on sys.path so ``oxp`` is importable
+# Ensure the project root is on sys.path so ``scope`` is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
@@ -97,7 +97,7 @@ def _make_redis_client():
     configured via ``CACHE_REDIS_URL`` (default: ``redis://localhost:6379/0``).
     """
     if os.environ.get("CACHE_USE_FAKE_REDIS", "").lower() in ("0", "false", "no"):
-        from oxp.core.config import settings
+        from scope.core.config import settings
 
         logger.info("Using real Redis — %s", settings.CACHE_REDIS_URL)
         return redis_lib.Redis.from_url(settings.CACHE_REDIS_URL, decode_responses=True)

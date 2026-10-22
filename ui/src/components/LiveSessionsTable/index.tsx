@@ -4,9 +4,9 @@
  */
 
 import { Stack, SxProps } from '@mui/material';
-import { useLiveSessions } from '@/api/oxpApi';
+import { useLiveSessions } from '@/api/scopeApi';
 import { LiveSessionsTable } from './LiveSessionsTable';
-import type { LiveSession } from '@/types/oxpApi.type';
+import type { LiveSession } from '@/types/scopeApi.type';
 import { useParams } from 'react-router-dom';
 
 interface LiveSessionsTableWrapperProps {

@@ -8,7 +8,7 @@ It provides the span-level metrics stateful-evals scores on a 1-5 rubric:
 - `IntentRecognition`
 - `Relevancy`
 
-The plugin registers them as MCE entry points under these names. Results are persisted by the OXP API with the
+The plugin registers them as MCE entry points under these names. Results are persisted by the SCOPE API with the
 `StatefulEvals` provider, which tells them apart from MCE metrics of the same name.
 
 ## Installation

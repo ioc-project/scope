@@ -16,12 +16,12 @@ from rdflib import OWL, RDF, RDFS, Graph, Namespace
 # Load ontology
 g = Graph()
 g.parse(
-    sys.argv[1] if len(sys.argv) > 1 else "src/oxp_ontology/mas-ontology.ttl",
+    sys.argv[1] if len(sys.argv) > 1 else "src/scope_ontology/mas-ontology.ttl",
     format="turtle",
 )
 
 # Namespaces
-MAS = Namespace("https://outshift-open.github.io/oxp-ontology/mas#")
+MAS = Namespace("https://ioc-project.github.io/scope-ontology/mas#")
 DCTERMS = Namespace("http://purl.org/dc/terms/")
 
 
@@ -156,7 +156,7 @@ webvowl_data = {
     "header": {
         "title": title,
         "description": description,
-        "iri": "https://outshift-open.github.io/oxp-ontology/mas",
+        "iri": "https://ioc-project.github.io/scope-ontology/mas",
         "languages": ["en"],
         "version": str(next(g.objects(None, DCTERMS.modified), "")),
     },

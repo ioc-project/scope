@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from oxp_ontology.models.edges import executesTool, hasToolCall, usesTool
-from oxp_ontology.models.nodes import AgentCall, Tool, ToolCall
+from scope_ontology.models.edges import executesTool, hasToolCall, usesTool
+from scope_ontology.models.nodes import AgentCall, Tool, ToolCall
 
 from ..fields import (
     _hash_id,

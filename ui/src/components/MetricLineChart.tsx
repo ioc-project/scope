@@ -8,7 +8,7 @@ import { ClickableDot } from '../pages/AgentDetailsPopulation/MetricsGrid/Custom
 import CustomChartTooltip from '../pages/AgentDetailsPopulation/MetricsGrid/CustomChartTooltip.tsx';
 import { YAxisProps } from 'recharts';
 import { getDisplayedResultsCountDollar } from '@/utils/stringUtils.ts';
-import { Unit } from '@/types/oxp.type';
+import { Unit } from '@/types/scope.type';
 import { formatMetricValue } from '@/utils/metrics.tsx';
 
 interface MetricLineChartProps {

@@ -3,11 +3,11 @@
 import json
 import logging
 
-from oxp.api import app
-from oxp.api.api_v1.endpoints import metrics as metrics_endpoint
-from oxp.interfaces.models import MetricResult
-from oxp.models.otel_traces import MetricCatalogItem
-from oxp.providers.kg_query_runner import KGQueryExecutionError
+from scope.api import app
+from scope.api.api_v1.endpoints import metrics as metrics_endpoint
+from scope.interfaces.models import MetricResult
+from scope.models.otel_traces import MetricCatalogItem
+from scope.providers.kg_query_runner import KGQueryExecutionError
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 

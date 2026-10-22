@@ -2,10 +2,10 @@
 #  SPDX-License-Identifier: Apache-2.0
 """Unit tests for the sessions-with-cognitive-observability client logic."""
 
-from oxp.client.applications import (
+from scope.client.applications import (
     _get_application_sessions_with_cognitive_observability,
 )
-from oxp.query_builders.types import Dialect
+from scope.query_builders.types import Dialect
 
 
 class _StubDB:

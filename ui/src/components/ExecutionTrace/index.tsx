@@ -36,9 +36,9 @@ import {
   sortByDateAccessorAsc
 } from '@/utils';
 import { useParams } from 'react-router';
-import { Span, SpanStatefulEvalMetric } from '@/types/oxp.type';
+import { Span, SpanStatefulEvalMetric } from '@/types/scope.type';
 import ErrorIcon from '@mui/icons-material/Error';
-import { useSessionTimeline, useSpanListStatefulEval } from '@/api/oxpApi';
+import { useSessionTimeline, useSpanListStatefulEval } from '@/api/scopeApi';
 import MetricsTree from './MetricsTree';
 
 export interface ExecutionTraceProps {

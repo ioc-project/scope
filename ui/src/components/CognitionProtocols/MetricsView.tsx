@@ -12,7 +12,7 @@ import {
   getMetricLabel
 } from '@/common/cognitionMetrics';
 import { humanizeLabel } from '@/common/cognitionProtocols';
-import { CognitionMetric, CognitionProtocol } from '@/types/oxp.type';
+import { CognitionMetric, CognitionProtocol } from '@/types/scope.type';
 import {
   BulletList,
   MetricRow,

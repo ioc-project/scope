@@ -5,7 +5,7 @@
 
 import ELK from 'elkjs/lib/elk.bundled.js';
 import { MarkerType, type Node, type Edge } from '@xyflow/react';
-import type { AppReasoningNode, ReasoningEdge } from '@/types/oxp.type';
+import type { AppReasoningNode, ReasoningEdge } from '@/types/scope.type';
 
 const NODE_WIDTH = 300;
 const NODE_HEIGHT = 160;

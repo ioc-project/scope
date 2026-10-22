@@ -56,7 +56,7 @@ When `sessions` is empty the worker fetches group data from Neo4j using `group_i
 
 Copy `.env.template` to `.env` and fill in your values. All options can also be passed via CLI flags.
 
-Neo4j connection settings are resolved by the API layer (`oxp.dependencies`) from environment variables. The analysis worker does not expose Neo4j CLI flags.
+Neo4j connection settings are resolved by the API layer (`scope.dependencies`) from environment variables. The analysis worker does not expose Neo4j CLI flags.
 
 | Environment variable | CLI flag | Description |
 |---|---|---|

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from stateful_evals_be.integrations.oxp import oxp_span_to_otel
+from stateful_evals_be.integrations.scope import scope_span_to_otel
 
 
 def _read_export(path: Path) -> tuple[list[Any], dict[str, Any]]:
@@ -223,7 +223,7 @@ def _normalize_span(record: Any) -> dict[str, Any]:
         span = _sdk_span(record)
     elif "span_id" in record and "span_attributes" in record:
         span = deepcopy(record)
-        span.update(oxp_span_to_otel(record))
+        span.update(scope_span_to_otel(record))
     elif "span_id" in record and "entity_type" in record:
         span = _entity_span(record)
     else:

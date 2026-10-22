@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from oxp.query_builders import metrics as qb
+from scope.query_builders import metrics as qb
 
 FORBIDDEN = (
     "hasMetric",

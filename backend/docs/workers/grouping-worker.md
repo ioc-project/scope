@@ -2,7 +2,7 @@
 
 Standalone worker that assigns a session to a semantic group by nearest-neighbour lookup in the knowledge graph.
 
-**Source:** [`workers/grouping-worker`](https://github.com/outshift-open/observe-and-explain-platform/tree/main/backend/workers/grouping-worker)
+**Source:** [`workers/grouping-worker`](https://github.com/ioc-project/scope/tree/main/backend/workers/grouping-worker)
 
 ## Overview
 
@@ -13,7 +13,7 @@ it does **not** run the HDBSCAN clustering itself. That heavier reclustering job
 periodic [hierarchical-grouping-worker](hierarchical-grouping-worker.md), which is the one that
 actually calls `SemanticGrouper` in the [analysis](../components/analysis.md) library
 (`dem.grouping.grouping`). `grouping-worker` only queries the medioid embeddings of existing leaf
-`SemanticGroup` nodes (via `oxp.client.dal.get_session_group`) and attaches the session if one is
+`SemanticGroup` nodes (via `scope.client.dal.get_session_group`) and attaches the session if one is
 within `max_distance` cosine distance — so it stays cheap enough to run inline, per session.
 
 Pipeline position:
@@ -56,7 +56,7 @@ grouping-worker-cli --test
 
 Copy `workers/grouping-worker/.env.template` to `.env`, or pass everything via CLI flags /
 environment variables. Neo4j connection settings are resolved by the API layer
-(`oxp.dependencies`) from environment variables — the grouping worker has no Neo4j CLI flags.
+(`scope.dependencies`) from environment variables — the grouping worker has no Neo4j CLI flags.
 
 | Env var | CLI flag | Description |
 |---|---|---|

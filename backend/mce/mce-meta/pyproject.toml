@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oxp-mce"
+name = "scope-mce"
 version = "2.0.0rc1"
 authors = [
     { name = "Outshift Open", email = "oss@cisco.com" }
@@ -12,24 +12,24 @@ license = "Apache-2.0"
 description = "Metrics Computation Engine metapackage"
 requires-python = ">=3.13,<3.15"
 dependencies = [
-    "oxp-mce-core>=2.0.0rc1",
-    "oxp-mce-helper>=0.1.0",
-    "oxp-mce-client>=0.1.0",
-    "oxp-mce-legacy>=0.1.0",
-    "oxp-mce-provider-native>=0.1.0",
-    "oxp-mce-provider-sdk>=0.1.0",
-    "oxp-mce-provider-deepeval>=0.1.0",
-    "oxp-mce-provider-opik>=0.1.0",
-    "oxp-mce-provider-ragas>=0.1.0",
+    "scope-mce-core>=2.0.0rc1",
+    "scope-mce-helper>=0.1.0",
+    "scope-mce-client>=0.1.0",
+    "scope-mce-legacy>=0.1.0",
+    "scope-mce-provider-native>=0.1.0",
+    "scope-mce-provider-sdk>=0.1.0",
+    "scope-mce-provider-deepeval>=0.1.0",
+    "scope-mce-provider-opik>=0.1.0",
+    "scope-mce-provider-ragas>=0.1.0",
 ]
 
 [tool.uv.sources]
-oxp-mce-core = { workspace = true }
-oxp-mce-helper = { workspace = true }
-oxp-mce-client = { workspace = true }
-oxp-mce-legacy = { workspace = true }
-oxp-mce-provider-native = { workspace = true }
-oxp-mce-provider-sdk = { workspace = true }
-oxp-mce-provider-deepeval = { workspace = true }
-oxp-mce-provider-opik = { workspace = true }
-oxp-mce-provider-ragas = { workspace = true }
+scope-mce-core = { workspace = true }
+scope-mce-helper = { workspace = true }
+scope-mce-client = { workspace = true }
+scope-mce-legacy = { workspace = true }
+scope-mce-provider-native = { workspace = true }
+scope-mce-provider-sdk = { workspace = true }
+scope-mce-provider-deepeval = { workspace = true }
+scope-mce-provider-opik = { workspace = true }
+scope-mce-provider-ragas = { workspace = true }

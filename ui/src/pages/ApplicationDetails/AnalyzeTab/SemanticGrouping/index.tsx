@@ -6,8 +6,8 @@
 import { SemanticGroupingTable } from './SemanticGroupingTable.tsx';
 import { Box, Spinner, Stack } from '@open-ui-kit/core';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSemanticGroups } from '@/api/oxpApi.ts';
-import { SemanticGroup } from '@/types/oxp.type.ts';
+import { useSemanticGroups } from '@/api/scopeApi.ts';
+import { SemanticGroup } from '@/types/scope.type.ts';
 
 const SemanticGrouping = () => {
   const navigate = useNavigate();

@@ -1,14 +1,14 @@
-# OXP — Observe and eXplain Platform
+# SCOPE — System for Cognitive Observability Provenance and Explainability
 
-The Observe and eXplain Platform (OXP) is a modular platform for analyzing and visualizing Multi-Agent System (MAS) executions from OpenTelemetry traces. It relies on a multi-layers knowledge graph, which holds representations of the different sessions (runs) of a given MAS that were observed previously.
+The System for Cognitive Observability Provenance and Explainability (SCOPE) is a modular platform for analyzing and visualizing Multi-Agent System (MAS) executions from OpenTelemetry traces. It relies on a multi-layers knowledge graph, which holds representations of the different sessions (runs) of a given MAS that were observed previously.
 
-The lifecycle of one MAS session within OXP is the following:
+The lifecycle of one MAS session within SCOPE is the following:
 1. The MAS sends OTel spans to an OTel collector, which, in turn, sends these spans to a storage place (currently using ClickHouse DB, but it can be replaced by another one quite easily).
-2. When the trace is complete, the OXP ingestion pipeline is triggered and the Otel spans are mapped to an ontology modeling MAS execution.
+2. When the trace is complete, the SCOPE ingestion pipeline is triggered and the Otel spans are mapped to an ontology modeling MAS execution.
 3. The representation of the session is then enriched via the different analysis modules.
-4. Through the enrichment of each session of a MAS, OXP is able to provide explainability and insights about the inner workings of the MAS.
+4. Through the enrichment of each session of a MAS, SCOPE is able to provide explainability and insights about the inner workings of the MAS.
 
-The rest of this documentation provides a detailed view of the different pieces of OXP.
+The rest of this documentation provides a detailed view of the different pieces of SCOPE.
 
 ## Where to start
 

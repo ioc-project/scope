@@ -87,7 +87,8 @@ task version-bump-rc
 
 ## Documentation Websites
 
-- **Main docs**: https://ioc-project.github.io/scope/
+- **SCOPE documentation**: https://ioc-project.github.io/scope/
+- **Ontologies**: https://ioc-project.github.io/scope/ontologies.html
 - **MAS Widoco**: https://ioc-project.github.io/scope/mas/widoco/
 - **MAS WebVOWL**: https://ioc-project.github.io/scope/mas/webvowl/
 - **Metrics Widoco**: https://ioc-project.github.io/scope/metrics/widoco/

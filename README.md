@@ -37,7 +37,7 @@ For a fully local stack, see the [Docker Compose deployment](deploy/docker-compo
 
 ## Documentation
 
-The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` and published at [ioc-project.github.io/scope/docs](https://ioc-project.github.io/scope/docs/):
+The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` and published at [ioc-project.github.io/scope](https://ioc-project.github.io/scope/):
 
 - **Overview**: [what SCOPE is and how it works](docs/index.md).
 - **Ingestion**: [the telemetry path](docs/ingestion/index.md), [normalization](docs/ingestion/normalization/index.md) and [the ontology](https://ioc-project.github.io/scope/ontologies.html).
@@ -48,7 +48,7 @@ The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` 
 
 The ontology reference documentation (Widoco and WebVOWL) is generated separately:
 
-- **Ontology**: [ontology/index.md](ontology/index.md), also published at [ioc-project.github.io/scope](https://ioc-project.github.io/scope/)
+- **Ontology**: [ontology/index.md](ontology/index.md), also published at [ioc-project.github.io/scope/ontologies.html](https://ioc-project.github.io/scope/ontologies.html)
 
 ## Contributing
 

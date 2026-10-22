@@ -1,15 +1,19 @@
 # SCOPE documentation site (docs/ + this file).
 #
-# Built by .github/workflows/deploy-docs-multi.yml and published under /docs/ next to the
-# ontology documentation (/ontologies.html) and the backend reference (/backend/).
+# Built by .github/workflows/deploy-docs-multi.yml and published at the root of the GitHub Pages site, next to the
+# generated ontology documentation (/ontologies.html, /mas/, /metrics/, ...).
 # Preview locally:  pip install -r docs/requirements.txt && mkdocs serve
 
 site_name: SCOPE
 site_description: System for Cognitive Observability Provenance and Explainability.
-site_url: https://ioc-project.github.io/scope/docs/
+site_url: https://ioc-project.github.io/scope/
 repo_url: https://github.com/ioc-project/scope
 repo_name: ioc-project/scope
 edit_uri: edit/main/docs/
+
+# Not part of the site: it only pins the build's dependencies.
+exclude_docs: |
+  requirements.txt
 
 theme:
   name: material

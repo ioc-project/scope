@@ -4,7 +4,7 @@
 
 ## 📖 Documentation
 
-The complete documentation for the SCOPE Ontology Collection is available at: **[https://ioc-project.github.io/scope/](https://ioc-project.github.io/scope/)**
+The complete documentation for the SCOPE Ontology Collection is available at: **[https://ioc-project.github.io/scope/ontologies.html](https://ioc-project.github.io/scope/ontologies.html)**
 
 | Ontology | Description | Documentation | Visualization |
 |----------|-------------|---------------|----------------|

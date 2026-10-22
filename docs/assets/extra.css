@@ -133,13 +133,6 @@
   color: var(--ioc-fg-dim);
 }
 
-/* Lead paragraph: the sentence straight after a page's eyebrow kicker. Pages without one keep body text. */
-.md-typeset .eyebrow + p {
-  font-size: 1.06rem;
-  line-height: 1.6;
-  color: var(--md-default-fg-color--light);
-}
-
 /* Section kicker — write `<p class="eyebrow">TODAY'S PROBLEM</p>` in a page. */
 .md-typeset .eyebrow {
   font-size: 0.72rem;

@@ -47,6 +47,10 @@ Only the gateway and the OTLP ports listen on all interfaces; RabbitMQ and Neo4j
 `127.0.0.1` (change the host ports in `.env` if they clash). ClickHouse is not published; use
 `docker compose exec clickhouse clickhouse-client`.
 
+The Compose project is named `scope-compose` so it does not collide with the `scope` project of
+`backend/docker-compose.yml`. Both publish the same infrastructure ports by default, so stop one before
+starting the other or change the ports in `.env`.
+
 Point your instrumented application at the collector, for example
 `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`. When a session ends, the `session-end-trigger`
 publishes it to the `norm` worker and the pipeline takes over.

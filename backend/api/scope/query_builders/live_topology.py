@@ -13,6 +13,7 @@ from sqlalchemy import (
     func,
     literal,
     literal_column,
+    or_,
     select,
     table,
     distinct,
@@ -258,7 +259,21 @@ def get_live_topology_sessions(
             app_sessions = select(distinct(_ch_traces.c.session_id)).where(
                 _ch_traces.c.application_id == application_name
             )
-            stmt = stmt.where(c["session_id"].in_(app_sessions))
+            # The SDK prefixes the session id of the events with the application
+            # ("<application>_<uuid>"), while ``otel_traces.session_id`` is stored
+            # without it (the column's default strips up to the first "_"). Compare
+            # the id as it is and without the prefix.
+            raw = "LogAttributes['session.id']"
+            unprefixed = literal_column(
+                f"multiIf(position({raw}, '_') > 0, "
+                f"substring({raw}, position({raw}, '_') + 1), {raw})"
+            )
+            stmt = stmt.where(
+                or_(
+                    c["session_id"].in_(app_sessions),
+                    unprefixed.in_(app_sessions),
+                )
+            )
 
     return stmt
 

@@ -11,6 +11,7 @@ from scope.client.application_charts import (
 )
 from scope.client.applications import (
     _get_application_agent_tools,
+    _get_application_structural_topology,
     _get_application_agents,
     _get_application_details,
     _get_application_names,
@@ -497,6 +498,17 @@ class UIClient:
         return _get_application_topology(
             self.db,
             self._dialect,
+            application_id=application_id,
+        )
+
+    def get_application_structural_topology(
+        self,
+        *,
+        application_id: str,
+    ) -> dict:
+        """Return the topology of an application from the KG's structural layer (Neo4j-backed)."""
+        return _get_application_structural_topology(
+            self.db,
             application_id=application_id,
         )
 

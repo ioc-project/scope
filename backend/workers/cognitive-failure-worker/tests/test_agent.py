@@ -63,12 +63,18 @@ def test_the_agent_reads_with_tools_then_submits():
     result = investigate(TRAJECTORY, FAILURES, chat)
 
     assert [d.as_dict() for d in result.detections] == [
-        {"code": "CC-3", "confidence": "low", "reasoning": "unreconciled", "call_id": "toolcall:2"}
+        {
+            "code": "CC-3",
+            "name": FAILURES[1]["name"],
+            "confidence": "low",
+            "reasoning": "unreconciled",
+            "call_id": "toolcall:2",
+        }
     ]
     assert (result.turns, result.prompt_tokens, result.completion_tokens) == (3, 30, 6)
     grep_result = chat.calls[1][0][-1]
     assert grep_result["role"] == "tool" and grep_result["tool_call_id"] == "id-grep"
-    assert "llmcall:1 input" in grep_result["content"]
+    assert "the 1st planner LLM call (span span-1, id llmcall:1) [gpt-4o] input" in grep_result["content"]
     assert "Book a train to Paris" in chat.calls[2][0][-1]["content"]
 
 
@@ -192,3 +198,21 @@ def test_a_long_trace_lists_only_the_first_steps_in_the_first_message(monkeypatc
 
     user = chat.calls[0][0][1]["content"]
     assert "10 steps" in user and "llmcall:2" in user and "llmcall:3" not in user and "next offset 3" in user
+
+
+def test_the_detection_carries_the_failure_name_from_the_taxonomy():
+    (detection,) = investigate(TRAJECTORY, FAILURES, Script(_submit(_item("CC-3")))).detections
+
+    assert detection.name == next(f["name"] for f in FAILURES if f["code"] == "CC-3")
+    assert detection.name != "CC-3"
+
+
+def test_the_prompt_asks_for_cited_steps_and_a_developed_reasoning():
+    chat = Script(_submit())
+
+    investigate(TRAJECTORY, FAILURES, chat)
+
+    system = chat.calls[0][0][0]["content"]
+    assert "span" in system and 'never by a position or "#n"' in system and "two to four sentences" in system.lower()
+    schema = next(t for t in chat.calls[0][1] if t["function"]["name"] == SUBMIT)["function"]["parameters"]
+    assert "never by a position number" in schema["$defs"]["DetectionItem"]["properties"]["reasoning"]["description"]

@@ -15,14 +15,16 @@ For each message (`BaseQueueMessage` with a `session_id`), `CognitiveFailureWork
 2. Writes the trajectory to a private temporary file (`trace_file.TraceFile`, one JSON line per step) and runs an
    agent over it (`agent.investigate`). The agent has no client for the API or the graph: it only reads that
    file, through three read-only tools, so it decides which parts of a long trace to read.
-   - `list_steps`: the steps with position, id, kind, name, agent, sizes and the start of the input;
+   - `list_steps`: the steps, each described as a reader would name it ("the 2nd moderator LLM call") with its
+     span and id, its sizes and the start of the input;
    - `read_step`: a window of one step's input and/or output, with the offset to continue at;
    - `grep`: a case-insensitive regular expression over every step's text, with context.
 
    The first message gives it the definition of each configured failure (summary, signs and detection
    heuristic, from the taxonomy) and the first steps of the trace. It ends by calling `submit_detections`,
    whose arguments are the Pydantic model `detector.DetectionAnswer`: for each detection the failure code, a
-   confidence (`low`, `medium` or `high`), a brief reasoning, and the id of the step where it happened, or
+   confidence (`low`, `medium` or `high`), a reasoning of two to four sentences (the signs found, the evidence, where, why it meets the heuristic and
+   what it led to, citing steps by description and span, never by position), and the id of the step where it happened, or
    `null` when it only shows across the whole session. The endpoint enforces that schema as the tool's
    parameters, and whatever comes back is validated against it again: a detection that does not fit (an
    unknown confidence, no reasoning, a failure that was not asked for) is dropped and the others are kept, and
@@ -40,7 +42,9 @@ Detection quality has not been measured yet. The model endpoint must support too
 
 ## What it writes
 
-`(:CognitiveFailureReport {id, name, code, confidence, reasoning, reportedAt})`
+`(:CognitiveFailureReport {id, name, code, confidence, reasoning})`
+
+`name` is the failure's name in the taxonomy (for example "Incomplete Synthesis") and `code` its code (`CC-3`).
 
 - `-[:reportsOn]->(:Session)`, always;
 - `-[:atCall]->` the LLM, tool or agent call, when the detection names a step of the session.

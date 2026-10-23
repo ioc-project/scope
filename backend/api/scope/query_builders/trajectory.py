@@ -31,6 +31,7 @@ def trajectory_steps_query(session_id: str) -> tuple[str, dict[str, Any]]:
     OPTIONAL MATCH (a)-[:executesAgent]->(ag:Agent)
     RETURN t.id AS transition_id,
            c.id AS call_id,
+           c.spanId AS span_id,
            CASE WHEN c:LLMCall THEN 'llm' WHEN c:ToolCall THEN 'tool' ELSE 'agent' END AS kind,
            coalesce(s.name, c.name) AS name,
            s.description AS description,

@@ -376,10 +376,10 @@ mas:metricCount rdf:type owl:DatatypeProperty, sh:PropertyShape ;
 
 mas:reportedAt rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:reportedAt ;
-    sh:targetClass mas:CognitionProtocolReport, mas:CognitionProtocolExecutionReport, mas:CognitiveFailureReport ;
+    sh:targetClass mas:CognitionProtocolReport, mas:CognitionProtocolExecutionReport ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
-    rdfs:domain [ owl:unionOf ( mas:CognitionProtocolReport mas:CognitionProtocolExecutionReport mas:CognitiveFailureReport ) ] ;
+    rdfs:domain [ owl:unionOf ( mas:CognitionProtocolReport mas:CognitionProtocolExecutionReport ) ] ;
     rdfs:range xsd:dateTime ;
     rdfs:comment "When this report was last written." .
 
@@ -416,15 +416,6 @@ mas:confidence rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     rdfs:domain mas:CognitiveFailureReport ;
     rdfs:range xsd:string ;
     rdfs:comment "How sure the detector is that the challenge happened: 'low' | 'medium' | 'high'." .
-
-mas:reasoning rdf:type owl:DatatypeProperty, sh:PropertyShape ;
-    sh:path mas:reasoning ;
-    sh:targetClass mas:CognitiveFailureReport ;
-    sh:minCount 1 ;
-    sh:severity sh:Violation ;
-    rdfs:domain mas:CognitiveFailureReport ;
-    rdfs:range xsd:string ;
-    rdfs:comment "Brief explanation of why this is a detection: what in the trace matches the challenge." .
 
 mas:atCall rdf:type owl:ObjectProperty, sh:PropertyShape ;
     sh:path mas:atCall ;

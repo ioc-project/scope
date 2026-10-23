@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [1.0.7] - 2026-10-22
+
+### Changed
+
+- `analysis-ontology.ttl`: `CognitiveFailureReport` no longer has `reportedAt` (it was required). Its `name` is the
+  failure's name in the challenges taxonomy (e.g. "Incomplete Synthesis"), `code` stays the taxonomy code.
+- `metrics-ontology.ttl`: `reasoning` is defined once for both `MetricResult` and `CognitiveFailureReport` (it was
+  declared twice, with conflicting `sh:minCount`, which recent pyshacl versions reject). It is no longer required on
+  `CognitiveFailureReport`.
+
 ## [1.0.6] - 2026-10-20
 
 ### Added

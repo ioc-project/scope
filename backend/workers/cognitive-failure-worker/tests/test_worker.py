@@ -119,7 +119,17 @@ async def test_detections_are_written_and_the_message_is_forwarded(rabbit_url, t
     assert await worker.handle_message(message) is True
 
     write.assert_called_once_with(
-        kg, "session-1", [{"code": "IC-2", "confidence": "high", "reasoning": "kept going", "call_id": "toolcall:2"}]
+        kg,
+        "session-1",
+        [
+            {
+                "code": "IC-2",
+                "name": "Plan Revision Failure",
+                "confidence": "high",
+                "reasoning": "kept going",
+                "call_id": "toolcall:2",
+            }
+        ],
     )
     (forwarded,) = worker.output_messages
     assert (forwarded.session_id, forwarded.job_id, forwarded.workflow_id) == ("session-1", "job", "wf")

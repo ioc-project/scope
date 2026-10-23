@@ -2265,7 +2265,7 @@ def get_session_trajectory(db: Connector, session_id: str) -> Dict[str, Any]:
     -------
     dict
         ``session_id`` and ``steps``, each step holding ``transition_id``,
-        ``call_id``, ``kind`` (``llm``/``tool``/``agent``), ``name`` (model, tool
+        ``call_id``, ``span_id`` (the OTel span, when there is one), ``kind`` (``llm``/``tool``/``agent``), ``name`` (model, tool
         or agent), ``description`` (tools), ``agent_id`` (the acting agent),
         ``parent_id`` (the agent call that owns an LLM/tool call), ``success``,
         ``start_time``, ``duration_ms``, ``input_text`` and ``output_text``.
@@ -2286,6 +2286,7 @@ def get_session_trajectory(db: Connector, session_id: str) -> Dict[str, Any]:
             {
                 "transition_id": str(row["transition_id"]),
                 "call_id": str(row["call_id"]),
+                "span_id": str(row.get("span_id") or ""),
                 "kind": row["kind"],
                 "name": str(row.get("name") or ""),
                 "description": str(row.get("description") or ""),

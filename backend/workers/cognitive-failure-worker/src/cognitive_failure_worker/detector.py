@@ -31,7 +31,15 @@ class DetectionItem(BaseModel):
             "low: the evidence is plausible but weak or ambiguous."
         )
     )
-    reasoning: str = Field(min_length=1, description="One or two sentences: what in the trace matches the failure.")
+    reasoning: str = Field(
+        min_length=1,
+        description=(
+            "Two to four sentences for a reader who has not seen the trace: which signs of the failure appear, "
+            "the key evidence (quote or closely paraphrase it), where it happens, why that meets the detection "
+            "heuristic, and what it led to. Refer to steps by their description and span as given in the trace "
+            "(for example 'the first moderator LLM call (span abc123)'), never by a position number or '#n'."
+        ),
+    )
     call_id: str | None = Field(
         default=None,
         description="Id of the step where it happened, or null if it only shows across the whole session.",
@@ -81,9 +89,16 @@ class Detection:
     confidence: str
     reasoning: str
     call_id: str | None = None
+    name: str | None = None  # the failure's name in the taxonomy
 
     def as_dict(self) -> dict[str, Any]:
-        return {"code": self.code, "confidence": self.confidence, "reasoning": self.reasoning, "call_id": self.call_id}
+        return {
+            "code": self.code,
+            "name": self.name,
+            "confidence": self.confidence,
+            "reasoning": self.reasoning,
+            "call_id": self.call_id,
+        }
 
 
 @dataclass(frozen=True)

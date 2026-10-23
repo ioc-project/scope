@@ -27,6 +27,7 @@ COPY workers/hierarchical-grouping-worker /app/workers/hierarchical-grouping-wor
 COPY worker-base /app/worker-base
 COPY api /app/api
 COPY dem /app/dem
+COPY --from=ontology . /ontology
 
 RUN uv sync --package hierarchical-grouping-worker --frozen
 
@@ -42,6 +43,7 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app/workers/hierarchical-grouping-worker /app/workers/hierarchical-grouping-worker
 COPY --from=builder /app/worker-base /app/worker-base
 COPY --from=builder /app/dem /app/dem
+COPY --from=builder /ontology /ontology
 COPY api /app/api
 
 COPY workers/hierarchical-grouping-worker/deploy/docker/entrypoint.sh /entrypoint.sh

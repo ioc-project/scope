@@ -4,7 +4,7 @@
 
 ## 📖 Documentation
 
-The complete documentation for the SCOPE Ontology Collection is available at: **[https://ioc-project.github.io/scope/](https://ioc-project.github.io/scope/)**
+The complete documentation for the SCOPE Ontology Collection is available at: **[https://ioc-project.github.io/scope/ontologies.html](https://ioc-project.github.io/scope/ontologies.html)**
 
 | Ontology | Description | Documentation | Visualization |
 |----------|-------------|---------------|----------------|
@@ -35,9 +35,9 @@ All five bundled ontologies share a single namespace — there's no separate pre
 
 ## Repository Structure
 
-- **[src/scope_ontology/](src/scope_ontology/)**: Ontology source files (Turtle) and the `scope-ontology` Python package
-- **[docs/](docs/)**: Versioning and release-process documentation
-- **[scripts/](scripts/)**: Doc/model/shape generation and versioning utilities
+- **[src/scope_ontology/](src/scope_ontology)**: Ontology source files (Turtle) and the `scope-ontology` Python package
+- **[docs/](docs)**: Versioning and release-process documentation
+- **[scripts/](scripts)**: Doc/model/shape generation and versioning utilities
 
 See [REPOSITORY_STRUCTURE.md](REPOSITORY_STRUCTURE.md) for the full file-by-file breakdown.
 

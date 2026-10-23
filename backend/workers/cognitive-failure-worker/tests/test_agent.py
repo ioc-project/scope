@@ -14,7 +14,9 @@ FAILURES = select_failures(["IC-2", "CC-3"])
 
 
 def _tool(name, **arguments):
-    return ChatReply(tool_calls=[ToolCall(f"id-{name}", name, json.dumps(arguments))], prompt_tokens=10, completion_tokens=2)
+    return ChatReply(
+        tool_calls=[ToolCall(f"id-{name}", name, json.dumps(arguments))], prompt_tokens=10, completion_tokens=2
+    )
 
 
 def _submit(*items):

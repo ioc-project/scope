@@ -36,7 +36,9 @@ class ProtocolFinding:
 
     @property
     def skills_activated(self) -> list[str]:
-        return sorted({s for skills in self.activated_by_agent.values() for s in skills})
+        return sorted(
+            {s for skills in self.activated_by_agent.values() for s in skills}
+        )
 
     @property
     def agents_enabled(self) -> list[str]:
@@ -64,7 +66,11 @@ class SessionSpans:
             agents=agents,
             llms=context.get("llm_calls") or context.get("llm_spans") or [],
             tools=context.get("tool_calls") or context.get("tool_spans") or [],
-            owner={str(s.get("spanId")): str(s.get("agentName")) for s in agents if s.get("spanId") and s.get("agentName")},
+            owner={
+                str(s.get("spanId")): str(s.get("agentName"))
+                for s in agents
+                if s.get("spanId") and s.get("agentName")
+            },
         )
 
     def agent_of(self, span: dict[str, Any]) -> str:

@@ -85,13 +85,23 @@ class CognitionProtocolsWorker(BaseWorker):
         except Exception:
             logger.exception("[%s] evaluating %s failed", session_id[:8], protocol)
             return False
-        if not self._get_writer().save_protocol_execution_metrics(session_id, protocol, evaluation.passed):
+        if not self._get_writer().save_protocol_execution_metrics(
+            session_id, protocol, evaluation.passed
+        ):
             return False
-        logger.info("[%s] %s: %d metrics stored (%d skipped)", session_id[:8], protocol, len(evaluation.passed), len(evaluation.failed))
+        logger.info(
+            "[%s] %s: %d metrics stored (%d skipped)",
+            session_id[:8],
+            protocol,
+            len(evaluation.passed),
+            len(evaluation.failed),
+        )
         return True
 
     def _process(self, session_id: str) -> bool | None:
-        findings = detect(kg.fetch_session(self._get_reader(), session_id), self._detectors)
+        findings = detect(
+            kg.fetch_session(self._get_reader(), session_id), self._detectors
+        )
         logger.info(
             "[%s] protocols enabled=%s activated=%s",
             session_id[:8],
@@ -99,7 +109,9 @@ class CognitionProtocolsWorker(BaseWorker):
             [n for n, f in findings.items() if f.activated],
         )
         if not record_findings(self._get_writer(), session_id, findings):
-            logger.warning("[%s] session not in the graph, nothing written", session_id[:8])
+            logger.warning(
+                "[%s] session not in the graph, nothing written", session_id[:8]
+            )
             return None
 
         evaluators = self._get_evaluators()

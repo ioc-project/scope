@@ -26,7 +26,9 @@ def _get_ontology_path(name: str) -> str:
 
         return get_ontology_path(name)
     except ImportError as exc:
-        raise ImportError("scope_ontology is required by norm to resolve ontology TTL files") from exc
+        raise ImportError(
+            "scope_ontology is required by norm to resolve ontology TTL files"
+        ) from exc
 
 
 def resolve_mas_ontology_path(config_path: Optional[str] = None) -> Path:
@@ -97,7 +99,9 @@ def resolve_all_ontology_paths() -> List[Path]:
     try:
         from scope_ontology import ONTOLOGY_FILES  # type: ignore[import]
     except ImportError as exc:
-        raise ImportError("scope_ontology is required by norm to resolve ontology TTL files") from exc
+        raise ImportError(
+            "scope_ontology is required by norm to resolve ontology TTL files"
+        ) from exc
 
     paths: List[Path] = []
     for name in ONTOLOGY_FILES:

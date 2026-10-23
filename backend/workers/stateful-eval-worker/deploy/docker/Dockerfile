@@ -25,6 +25,7 @@ COPY workers/stateful-eval-worker /opt/workers/stateful-eval-worker
 COPY worker-base /opt/worker-base
 COPY stateful-evals /opt/stateful-evals
 COPY api /opt/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package stateful-eval-worker --frozen --no-editable
 

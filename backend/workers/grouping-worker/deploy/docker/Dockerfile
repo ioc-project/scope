@@ -27,6 +27,7 @@ COPY pyproject.toml uv.lock /app/
 COPY workers/grouping-worker /app/workers/grouping-worker
 COPY worker-base /app/worker-base
 COPY api /app/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package grouping-worker --frozen --no-editable
 

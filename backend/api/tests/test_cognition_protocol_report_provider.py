@@ -160,8 +160,8 @@ def test_a_failing_write_is_reported_not_raised():
             raise RuntimeError("neo4j down")
 
     assert (
-        SCOPECognitionProtocolReportProvider(db=_Broken()).save_cognition_protocol_report(
-            "s1", ["accord"], []
-        )
+        SCOPECognitionProtocolReportProvider(
+            db=_Broken()
+        ).save_cognition_protocol_report("s1", ["accord"], [])
         is False
     )

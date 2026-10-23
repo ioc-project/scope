@@ -5,7 +5,9 @@ import os
 from dotenv import load_dotenv
 
 _here = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(dotenv_path=os.path.abspath(os.path.join(_here, "..", "..", ".env")), override=False)
+load_dotenv(
+    dotenv_path=os.path.abspath(os.path.join(_here, "..", "..", ".env")), override=False
+)
 
 import asyncio  # noqa: E402
 import logging  # noqa: E402
@@ -25,7 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("--rabbitmq-url", type=str, default=None, help="RabbitMQ connection URL (default: RABBITMQ_URL env var)")
+@click.option(
+    "--rabbitmq-url",
+    type=str,
+    default=None,
+    help="RabbitMQ connection URL (default: RABBITMQ_URL env var)",
+)
 @click.option(
     "--input-queue",
     type=str,
@@ -39,14 +46,44 @@ logger = logging.getLogger(__name__)
     default=None,
     help="Output queue(s) (default: none, or COGNITION_PROTOCOLS_OUTPUT_QUEUE env var)",
 )
-@click.option("--feedback-queue", type=str, default=None, help="Feedback queue (optional, COGNITION_PROTOCOLS_FEEDBACK_QUEUE env var)")
-@click.option("--max-sessions", type=int, default=-1, help="Max sessions to process (-1 for unlimited)")
-@click.option("--max-inflight-messages", type=int, default=-1, help="Max concurrent messages (-1: auto from CPU count)")
+@click.option(
+    "--feedback-queue",
+    type=str,
+    default=None,
+    help="Feedback queue (optional, COGNITION_PROTOCOLS_FEEDBACK_QUEUE env var)",
+)
+@click.option(
+    "--max-sessions",
+    type=int,
+    default=-1,
+    help="Max sessions to process (-1 for unlimited)",
+)
+@click.option(
+    "--max-inflight-messages",
+    type=int,
+    default=-1,
+    help="Max concurrent messages (-1: auto from CPU count)",
+)
 @click.option("--debug", is_flag=True, default=False, help="Enable debug logging")
-@click.option("--run-once", "run_once", is_flag=True, default=False, help="Run in run-once mode (single input message from file)")
-@click.option("--input", type=str, default=None, help="Input file path for --run-once mode (JSON message)")
-@click.option("--output", type=str, default=None, help="Output file path for --run-once mode")
-@click.option("--test", is_flag=True, default=False, help="Test mode: print 'I'm Alive' and exit")
+@click.option(
+    "--run-once",
+    "run_once",
+    is_flag=True,
+    default=False,
+    help="Run in run-once mode (single input message from file)",
+)
+@click.option(
+    "--input",
+    type=str,
+    default=None,
+    help="Input file path for --run-once mode (JSON message)",
+)
+@click.option(
+    "--output", type=str, default=None, help="Output file path for --run-once mode"
+)
+@click.option(
+    "--test", is_flag=True, default=False, help="Test mode: print 'I'm Alive' and exit"
+)
 def main(
     rabbitmq_url: Optional[str],
     input_queue: Optional[str],
@@ -68,16 +105,26 @@ def main(
         return
 
     _rabbitmq_url = resolve_rabbitmq_url(rabbitmq_url)
-    _input_queue = input_queue or os.getenv("COGNITION_PROTOCOLS_INPUT_QUEUE", queues.NEW_SESSION_TO_COGNITION_PROTOCOLS_Q)
+    _input_queue = input_queue or os.getenv(
+        "COGNITION_PROTOCOLS_INPUT_QUEUE", queues.NEW_SESSION_TO_COGNITION_PROTOCOLS_Q
+    )
     if output_queue:
         _output_queue = list(output_queue)
     else:
         output_queue_env = os.getenv("COGNITION_PROTOCOLS_OUTPUT_QUEUE")
         _output_queue = output_queue_env.split(",") if output_queue_env else []
     _feedback_queue = feedback_queue or os.getenv("COGNITION_PROTOCOLS_FEEDBACK_QUEUE")
-    _max_inflight = resolve_max_inflight_messages(max_inflight_messages, error_subject="cognition-protocols-worker")
+    _max_inflight = resolve_max_inflight_messages(
+        max_inflight_messages, error_subject="cognition-protocols-worker"
+    )
 
-    logger.info("Cognition protocol worker: input=%s output=%s max_inflight=%s run_once=%s", _input_queue, _output_queue, _max_inflight, run_once)
+    logger.info(
+        "Cognition protocol worker: input=%s output=%s max_inflight=%s run_once=%s",
+        _input_queue,
+        _output_queue,
+        _max_inflight,
+        run_once,
+    )
 
     worker = CognitionProtocolsWorker(
         rabbitmq_url=_rabbitmq_url,
@@ -90,7 +137,9 @@ def main(
     try:
         if run_once:
             if not input or not output:
-                raise click.BadParameter("--input and --output are required for --run-once mode")
+                raise click.BadParameter(
+                    "--input and --output are required for --run-once mode"
+                )
             asyncio.run(worker.run_argo_message(input, output))
         else:
             asyncio.run(worker.run())

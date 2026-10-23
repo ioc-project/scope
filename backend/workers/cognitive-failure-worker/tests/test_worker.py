@@ -104,9 +104,7 @@ def test_the_shipped_example_config_loads(rabbit_url):
 
 
 @pytest.mark.asyncio
-async def test_detections_are_written_and_the_message_is_forwarded(
-    rabbit_url, tmp_path, kg, message, mocker
-):
+async def test_detections_are_written_and_the_message_is_forwarded(rabbit_url, tmp_path, kg, message, mocker):
     mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
     write = mocker.patch("scope.client.failures.write_cognitive_failure_reports", return_value=1)
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
@@ -150,9 +148,7 @@ async def test_a_session_with_nothing_detected_writes_an_empty_list(rabbit_url, 
 
 
 @pytest.mark.asyncio
-async def test_an_unusable_answer_writes_nothing_but_still_forwards(
-    rabbit_url, tmp_path, kg, message, mocker
-):
+async def test_an_unusable_answer_writes_nothing_but_still_forwards(rabbit_url, tmp_path, kg, message, mocker):
     mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
     write = mocker.patch("scope.client.failures.write_cognitive_failure_reports")
     worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")

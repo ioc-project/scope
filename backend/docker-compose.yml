@@ -77,6 +77,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/norm-worker/deploy/docker/Dockerfile
     command: ["--max-sessions", "-1"]
     environment:
@@ -88,6 +90,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/embedding-worker/deploy/docker/Dockerfile
     command: ["--embedder-type", "OpenAIEmbedder", "--embedding-model", "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"]
     environment:
@@ -107,6 +111,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/mce-worker/deploy/docker/Dockerfile
     command: ["--config-file", "/scope/mce_config.yaml"]
     environment:
@@ -125,6 +131,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/grouping-worker/deploy/docker/Dockerfile
     command: ["--embedding-model", "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"]
     environment:
@@ -143,6 +151,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/analysis-worker/deploy/docker/Dockerfile
     command:
       - "--embedding-model"
@@ -166,6 +176,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/hierarchical-grouping-worker/deploy/docker/Dockerfile
     command:
       - "--embedding-model"
@@ -186,6 +198,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/intelligence-worker/deploy/docker/Dockerfile
     command:
       - "--catalog-root"
@@ -207,6 +221,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/stateful-eval-worker/deploy/docker/Dockerfile
     command: ["--config-file", "/scope/stateful_eval_config.yaml"]
     environment:
@@ -225,6 +241,8 @@ services:
     <<: *worker-base
     build:
       context: .
+      additional_contexts:
+        ontology: ../ontology
       dockerfile: workers/cognitive-failure-worker/deploy/docker/Dockerfile
     command: ["--config-file", "/scope/cognitive_failure_config.yaml"]
     environment:

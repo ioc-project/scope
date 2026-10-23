@@ -63,7 +63,9 @@ SCOPE_DB_PATH = os.environ.get(
 if CONNECTOR_TYPE == "SQLITE":
     if _DEBUG:
         _db_dir = (
-            os.path.dirname(SCOPE_DB_PATH) if SCOPE_DB_PATH.endswith(".db") else SCOPE_DB_PATH
+            os.path.dirname(SCOPE_DB_PATH)
+            if SCOPE_DB_PATH.endswith(".db")
+            else SCOPE_DB_PATH
         )
         os.makedirs(_db_dir, exist_ok=True)
         _DB_PATH = (

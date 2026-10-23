@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1460" viewBox="0 0 2200 1460" font-family="Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <rect width="2200" height="1460" fill="#000000"/>
+
+  <text x="1100" y="86" font-size="58" font-weight="700" fill="#17BFFF" text-anchor="middle">SCOPE</text>
+  <text x="1100" y="140" font-size="34" fill="#9AA6B2" text-anchor="middle">From multi-agent telemetry to insight consumable by the fabric</text>
+
+  <!-- ===================== CONSUMERS ===================== -->
+  <rect x="330" y="206" width="700" height="132" rx="16" fill="#01131B" stroke="#0FBFFF" stroke-width="3"/>
+  <text x="680" y="276" font-size="42" font-weight="600" fill="#7FD2F4" text-anchor="middle">Cognition Fabric</text>
+  <text x="680" y="316" font-size="28" fill="#6C7A86" text-anchor="middle">memory and contracts</text>
+
+  <rect x="1170" y="206" width="700" height="132" rx="16" fill="#300D2C" stroke="#DF87D5" stroke-width="3"/>
+  <text x="1520" y="276" font-size="42" font-weight="600" fill="#E9AFE3" text-anchor="middle">Cognition Engines</text>
+  <text x="1520" y="316" font-size="28" fill="#8A6F86" text-anchor="middle">judgment — COGs and GATs</text>
+
+  <!-- consumers arrow -->
+  <path d="M1100 408 L1100 352" stroke="#17BFFF" stroke-width="3.5" marker-end="url(#upCyan)"/>
+  <text x="1130" y="392" font-size="30" font-style="italic" fill="#7FD2F4">insights · trajectories · metrics</text>
+
+  <!-- ===================== SCOPE ===================== -->
+  <rect x="150" y="430" width="1900" height="690" rx="22" fill="#060A0D" stroke="#2A3844" stroke-width="3"/>
+
+  <!-- API layer -->
+  <rect x="200" y="476" width="1800" height="116" rx="14" fill="#0B1A24" stroke="#3FAFFF" stroke-width="3"/>
+  <text x="1100" y="530" font-size="38" font-weight="600" fill="#7DC8EA" text-anchor="middle">API layer</text>
+  <text x="1100" y="568" font-size="27" fill="#6C7A86" text-anchor="middle">the stable contract — backends swap behind it</text>
+
+  <!-- knowledge graph -->
+  <rect x="200" y="624" width="1800" height="288" rx="14" fill="#0A0A0A" stroke="#737373" stroke-width="2.5"/>
+  <text x="248" y="676" font-size="34" font-weight="600" fill="#CCCCCC">Multi-layer knowledge graph</text>
+  <text x="1952" y="676" font-size="27" font-style="italic" fill="#6C7A86" text-anchor="end">every stage writes its own layer</text>
+
+  <rect x="248" y="700" width="1704" height="60" rx="10" fill="#2A0E12" stroke="#B3545E" stroke-width="2"/>
+  <text x="1100" y="739" font-size="30" fill="#E59AA2" text-anchor="middle">Symbolic / causal</text>
+
+  <rect x="248" y="770" width="1704" height="60" rx="10" fill="#574706" stroke="#B59526" stroke-width="2"/>
+  <text x="1100" y="809" font-size="30" fill="#FFC147" text-anchor="middle">Semantic — concepts, groupings, meaning</text>
+
+  <rect x="248" y="840" width="1704" height="60" rx="10" fill="#0B2036" stroke="#3FAFFF" stroke-width="2"/>
+  <text x="1100" y="879" font-size="30" fill="#7DC8EA" text-anchor="middle">Normalized — one trajectory under one session identity</text>
+
+  <!-- pipeline -->
+  <rect x="200" y="944" width="1800" height="134" rx="14" fill="#0A0A0A" stroke="#B59526" stroke-width="2.5"/>
+  <text x="248" y="996" font-size="34" font-weight="600" fill="#FFC147">Ingestion pipeline</text>
+  <text x="1952" y="996" font-size="26" font-style="italic" fill="#6C7A86" text-anchor="end">per session · partial sessions supported</text>
+
+  <g font-size="30" fill="#E8E8E8" text-anchor="middle">
+    <rect x="700" y="1012" width="270" height="50" rx="9" fill="#141414" stroke="#5A5A5A" stroke-width="1.6"/>
+    <text x="835" y="1046">Normalize</text>
+    <rect x="1000" y="1012" width="270" height="50" rx="9" fill="#141414" stroke="#5A5A5A" stroke-width="1.6"/>
+    <text x="1135" y="1046">Derive</text>
+    <rect x="1300" y="1012" width="270" height="50" rx="9" fill="#141414" stroke="#5A5A5A" stroke-width="1.6"/>
+    <text x="1435" y="1046">Evaluate</text>
+    <rect x="1600" y="1012" width="270" height="50" rx="9" fill="#141414" stroke="#5A5A5A" stroke-width="1.6"/>
+    <text x="1735" y="1046">Detect</text>
+  </g>
+  <g stroke="#737373" stroke-width="2.5" marker-end="url(#rtGrey)">
+    <path d="M974 1037 L994 1037"/><path d="M1274 1037 L1294 1037"/><path d="M1574 1037 L1594 1037"/>
+  </g>
+
+  <!-- ===================== INGEST ARROW ===================== -->
+  <path d="M1100 1250 L1100 1138" stroke="#17BFFF" stroke-width="3.5" marker-end="url(#upCyan)"/>
+  <text x="1130" y="1206" font-size="30" font-style="italic" fill="#7FD2F4">OTel spans + protocol phase events</text>
+
+  <!-- ===================== MAS ===================== -->
+  <rect x="150" y="1272" width="1900" height="132" rx="16" fill="#0B2036" stroke="#3FAFFF" stroke-width="3"/>
+  <text x="1100" y="1330" font-size="42" font-weight="600" fill="#7DC8EA" text-anchor="middle">MAS</text>
+  <text x="1100" y="1372" font-size="28" fill="#6C7A86" text-anchor="middle">agents over A2A / MCP / SLIM, with Cognition Protocol bridges</text>
+
+  <defs>
+    <marker id="upCyan" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="14" refX="19" refY="7" orient="auto"><path d="M1,1 L19,7 L1,13 Z" fill="#17BFFF"/></marker>
+    <marker id="rtGrey" markerUnits="userSpaceOnUse" markerWidth="20" markerHeight="14" refX="19" refY="7" orient="auto"><path d="M1,1 L19,7 L1,13 Z" fill="#737373"/></marker>
+  </defs>
+</svg>

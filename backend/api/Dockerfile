@@ -21,6 +21,7 @@ COPY pyproject.toml /src/pyproject.toml
 COPY uv.lock /src/uv.lock
 COPY uv.lock /src/api/uv.lock
 COPY api/pyproject.toml /src/api/pyproject.toml
+COPY --from=ontology . /ontology
 
 # Install dependencies without installing source code yet.
 RUN --mount=type=cache,target=/root/.cache/uv \

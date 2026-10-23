@@ -68,12 +68,20 @@ def _configure_llm_from_env() -> None:
 class McEvaluator(ProtocolEvaluator):
     """A protocol whose metrics are MCE plugins listed in ``config_path``."""
 
-    def __init__(self, name: str, config_path: Path | str, *, service_factory: Callable[[], Any] | None = None):
+    def __init__(
+        self,
+        name: str,
+        config_path: Path | str,
+        *,
+        service_factory: Callable[[], Any] | None = None,
+    ):
         self.name = name
         self.config_path = Path(config_path)
         self._service_factory = service_factory
         self._service: Any = None
-        self._lock = threading.Lock()  # the worker evaluates sessions on several threads
+        self._lock = (
+            threading.Lock()
+        )  # the worker evaluates sessions on several threads
 
     def _get_service(self) -> Any:
         with self._lock:
@@ -85,7 +93,10 @@ class McEvaluator(ProtocolEvaluator):
 
                     _configure_llm_from_env()
                     self._service = MCEWorkerService(
-                        config_path=self.config_path, client_config=_client_config(), cache_read=False, cache_write=False
+                        config_path=self.config_path,
+                        client_config=_client_config(),
+                        cache_read=False,
+                        cache_write=False,
                     )
             return self._service
 

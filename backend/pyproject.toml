@@ -16,6 +16,7 @@ dependencies = [
 
 [tool.uv.workspace]
 members = [
+    "../ontology",
     "api",
     "dem",
     "mce/mce-meta",
@@ -51,6 +52,7 @@ members = [
 override-dependencies = ["scope-mce-core"]
 
 [tool.uv.sources]
+scope-ontology = { workspace = true }
 dem = { workspace = true }
 scope-mce = { workspace = true }
 scope-api = { workspace = true }

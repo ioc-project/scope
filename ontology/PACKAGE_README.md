@@ -82,7 +82,7 @@ SELECT ?agent ?task WHERE {
 Full ontology documentation (Widoco reference docs and WebVOWL visualizations
 for each component), versioning strategy, and the source repository are at:
 
-**https://ioc-project.github.io/scope/**
+**https://ioc-project.github.io/scope/ontologies.html**
 
 ## License
 

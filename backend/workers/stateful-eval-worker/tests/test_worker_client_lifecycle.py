@@ -9,7 +9,9 @@ from stateful_eval_worker.worker import StatefulEvalWorker
 
 def test_worker_uses_the_shared_neo4j_connector(monkeypatch, rabbit_url):
     shared = Mock()
-    monkeypatch.setitem(sys.modules, "scope.dependencies", SimpleNamespace(get_neo4j_connector=Mock(return_value=shared)))
+    monkeypatch.setitem(
+        sys.modules, "scope.dependencies", SimpleNamespace(get_neo4j_connector=Mock(return_value=shared))
+    )
     worker = StatefulEvalWorker(
         rabbit_url=rabbit_url,
         input_queue="test",

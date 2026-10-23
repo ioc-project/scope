@@ -52,17 +52,24 @@ def default_registry() -> DetectorRegistry:
     return _default
 
 
-def detect(context: dict[str, Any], detectors: Iterable[ProtocolDetector] | None = None) -> dict[str, ProtocolFinding]:
+def detect(
+    context: dict[str, Any], detectors: Iterable[ProtocolDetector] | None = None
+) -> dict[str, ProtocolFinding]:
     """Run each detector on a session's spans: findings by protocol name.
 
     A detector that fails is logged and left out; the others still report.
     """
     findings: dict[str, ProtocolFinding] = {}
-    for detector in detectors if detectors is not None else default_registry().detectors():
+    for detector in (
+        detectors if detectors is not None else default_registry().detectors()
+    ):
         try:
             finding = detector.detect(context)
         except Exception:
-            logger.exception("Cognition protocol detector %r failed; its protocol is not reported", detector.name)
+            logger.exception(
+                "Cognition protocol detector %r failed; its protocol is not reported",
+                detector.name,
+            )
             continue
         finding.protocol = finding.protocol or detector.name
         findings[detector.name] = finding

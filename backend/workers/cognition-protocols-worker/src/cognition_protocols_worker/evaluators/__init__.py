@@ -2,7 +2,12 @@
 
 from .base import Evaluation, ProtocolEvaluator
 from .mce import McEvaluator
-from .registry import ENTRY_POINT_GROUP, EvaluatorRegistry, builtin_evaluators, default_registry
+from .registry import (
+    ENTRY_POINT_GROUP,
+    EvaluatorRegistry,
+    builtin_evaluators,
+    default_registry,
+)
 
 __all__ = [
     "ENTRY_POINT_GROUP",

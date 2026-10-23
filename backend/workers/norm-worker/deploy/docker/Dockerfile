@@ -28,6 +28,7 @@ COPY workers/norm-worker /app/workers/norm-worker
 COPY worker-base /app/worker-base
 COPY norm /app/norm
 COPY api /app/api
+COPY --from=ontology . /ontology
 
 RUN uv sync --package norm-worker --frozen --no-editable
 

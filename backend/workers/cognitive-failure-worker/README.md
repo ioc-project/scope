@@ -12,7 +12,7 @@ and the worker writes a report per detection.
 Which failures to look for is set in `cognitive_failure_config.yaml` (see
 [`backend/cognitive_failure_config.yaml`](../../cognitive_failure_config.yaml)); with none, nothing is
 detected. The full description, the graph model and the settings are in the
-[worker documentation](../../docs/workers/cognitive-failure-worker.md).
+[worker documentation](../../../docs/analysis/workers/cognitive-failure-worker.md).
 
 ```bash
 cognitive-failure-worker-cli --config-file cognitive_failure_config.yaml

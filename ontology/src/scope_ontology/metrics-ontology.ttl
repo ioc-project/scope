@@ -113,12 +113,12 @@ mas:timestamp rdf:type owl:DatatypeProperty, sh:PropertyShape ;
 
 mas:reasoning rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:reasoning ;
-    sh:targetClass mas:MetricResult ;
+    sh:targetClass mas:MetricResult, mas:CognitiveFailureReport ;
     sh:minCount 0 ;
     sh:severity sh:Info ;
-    rdfs:domain mas:MetricResult ;
+    rdfs:domain [ owl:unionOf ( mas:MetricResult mas:CognitiveFailureReport ) ] ;
     rdfs:range xsd:string ;
-    rdfs:comment "Logical reasoning/justification behind the metric evaluation." .
+    rdfs:comment "Logical reasoning/justification behind a metric evaluation, or the explanation of a cognitive failure detection: what in the trace matches the failure. A single property shared by both, so its shape is defined once." .
 
 mas:evaluationModel rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:path mas:evaluationModel ;

@@ -1194,8 +1194,9 @@ def _get_application_structural_topology(
     Used when the application did not declare a graph (no ``gen_ai.ioa.graph``
     attribute on its graph span, as with a plain ``@graph`` function). The nodes
     are the application's agents, in the shape of a declared graph so the UI
-    renders both the same way. The structural layer has no edges between agents
-    (a handoff is an execution-level step), and the agents' tools come from the
+    renders both the same way. The structural layer has no edges between agents,
+    so the handoffs are read from the execution layer (one agent's call directly
+    following another's within a session); the agents' tools come from the
     agent-tools endpoint. Returns ``{}`` when the application has no agent.
     """
     query, params = ui_queries.structural_agents_by_application_query(
@@ -1226,7 +1227,33 @@ def _get_application_structural_topology(
 
     if not nodes:
         return {}
-    return {"nodes": nodes, "edges": []}
+
+    handoffs_query, handoffs_params = ui_queries.agent_handoffs_by_application_query(
+        application_id=application_id,
+    )
+    try:
+        handoff_rows = db.execute(handoffs_query, handoffs_params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get agent handoffs for application '{application_id}': {exc}"
+        ) from exc
+
+    edges: list[dict] = []
+    for row in handoff_rows or []:
+        if not isinstance(row, dict):
+            continue
+        source, target = str(row.get("source") or ""), str(row.get("target") or "")
+        if source in nodes and target in nodes:
+            edges.append(
+                {
+                    "source": source,
+                    "target": target,
+                    "data": None,
+                    "conditional": False,
+                }
+            )
+
+    return {"nodes": nodes, "edges": edges}
 
 
 # ── get_application_agent_tools ──────────────────────────────────────────────

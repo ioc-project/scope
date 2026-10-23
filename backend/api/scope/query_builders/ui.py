@@ -697,6 +697,34 @@ def structural_agents_by_application_query(
     return query, {"applicationId": application_id}
 
 
+def agent_handoffs_by_application_query(
+    *,
+    application_id: str,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the agent hand-offs of an application (Neo4j only).
+
+    The structural layer has no agent-to-agent edge, so a hand-off is read from
+    the execution layer: within each session of the application, an
+    ``AgentCall`` that directly follows another one (by start time) is a
+    hand-off from the first call's agent to the second's. Calls of the same
+    agent in a row are not hand-offs. Returns distinct ``(source, target)``
+    agent id pairs.
+    """
+    query = """
+        MATCH (:MAS {id: $applicationId})<-[:executesSession]-(s:Session)
+            -[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(ac:AgentCall)
+            -[:executesAgent]->(a:Agent)
+        WITH s, ac, a ORDER BY s.id, ac.startTime
+        WITH s, collect(a.id) AS sequence
+        UNWIND range(0, size(sequence) - 2) AS i
+        WITH sequence[i] AS source, sequence[i + 1] AS target
+        WHERE source <> target
+        RETURN DISTINCT source, target
+        ORDER BY source, target
+    """
+    return query, {"applicationId": application_id}
+
+
 def agents_by_application_and_sessions_query(
     dialect: Dialect = Dialect.CLICKHOUSE,
     *,

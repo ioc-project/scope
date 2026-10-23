@@ -724,3 +724,75 @@ workers:
       limits:
         memory: 2Gi
         cpu: "1"
+
+  cognitive-failure:
+    # It makes a judge-model call (an agent reading the trace) for each session: set enabled to false to
+    # skip that cost. While enabled, its input queue is added to the embedding worker's output queues.
+    enabled: true
+    replicaCount: 1
+    secretOverrides:
+      aiGatewayApiKey: ""
+      aiGatewayBaseUrl: ""
+      llmModelNameKey: ""
+    inputQueue: new_session_to_cognitive_failure
+    outputQueue: []
+    feedbackQueue: ""
+    configPath: /scope/cognitive_failure_config.yaml
+    maxInflightMessages: "8"
+    extraEnv: {}
+    image:
+      repository: ghcr.io/ioc-project/container-images/scope-cognitive-failure-worker
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      pullPolicy: IfNotPresent
+    # Contents of cognitive_failure_config.yaml (see backend/cognitive_failure_config.yaml): the failures of
+    # the challenges taxonomy to look for. Only the ones listed run, and each one listed makes the judge
+    # prompt longer; with none, nothing is detected.
+    config:
+      failures:
+        - IR-1
+        - IC-1
+        - IC-2
+        - IE-1
+        - DR-2
+        - DC-3
+        - DC-4
+        - DE-1
+        - CC-3
+        - CE-1
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 2Gi
+        cpu: "1"
+
+  cognition-protocols:
+    # Enabled by default, but its image is not published by CI yet: it needs the ACCORD and CONCORD metric
+    # packages, which are private git dependencies, so the image is built with an SSH agent (see the worker's
+    # Dockerfile). Until the image is available to the cluster, set enabled to false to avoid an ImagePullBackOff.
+    # While enabled, its input queue is added to the embedding worker's output queues.
+    enabled: true
+    replicaCount: 1
+    secretOverrides:
+      aiGatewayApiKey: ""
+      aiGatewayBaseUrl: ""
+      llmModelNameKey: ""
+    inputQueue: new_session_to_cognition_protocols
+    outputQueue: []
+    feedbackQueue: ""
+    maxInflightMessages: "4"
+    extraEnv: {}
+    image:
+      repository: ghcr.io/ioc-project/container-images/scope-cognition-protocols-worker
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: ""
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 2Gi
+        cpu: "2"

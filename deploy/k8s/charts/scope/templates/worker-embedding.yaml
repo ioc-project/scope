@@ -54,7 +54,7 @@ spec:
             - name: EMBEDDING_INPUT_QUEUE
               value: {{ $worker.inputQueue | quote }}
             - name: EMBEDDING_OUTPUT_QUEUE
-              value: {{ include "scope.listOrStringEnvValue" $worker.outputQueue | quote }}
+              value: {{ include "scope.embeddingOutputQueues" . | quote }}
             {{ if $worker.feedbackQueue }}
             - name: EMBEDDING_FEEDBACK_QUEUE
               value: {{ $worker.feedbackQueue | quote }}

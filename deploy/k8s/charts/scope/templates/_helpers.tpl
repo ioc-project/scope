@@ -84,6 +84,30 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%s-stateful-eval-config" (include "scope.fullname" .) -}}
 {{- end }}
 
+{{- define "scope.cognitiveFailureConfigMapName" -}}
+{{- printf "%s-cognitive-failure-config" (include "scope.fullname" .) -}}
+{{- end }}
+
+{{/*
+Output queues of the embedding worker: the configured ones, plus the input queues of the optional
+branch workers (cognitive-failure, cognition-protocols) that are deployed, so that enabling one is enough to feed it.
+*/}}
+{{- define "scope.embeddingOutputQueues" -}}
+{{- $queues := list -}}
+{{- if kindIs "slice" .Values.workers.embedding.outputQueue -}}
+{{- $queues = .Values.workers.embedding.outputQueue -}}
+{{- else if .Values.workers.embedding.outputQueue -}}
+{{- $queues = splitList "," (toString .Values.workers.embedding.outputQueue) -}}
+{{- end -}}
+{{- range $branch := list "cognitive-failure" "cognition-protocols" -}}
+{{- $branchWorker := index $.Values.workers $branch -}}
+{{- if and $.Values.workers.enabled $branchWorker.enabled -}}
+{{- $queues = append $queues $branchWorker.inputQueue -}}
+{{- end -}}
+{{- end -}}
+{{- join "," (uniq $queues) -}}
+{{- end }}
+
 {{- define "scope.otelCollectorName" -}}
 {{- printf "%s-otel-collector" (include "scope.fullname" .) -}}
 {{- end }}

@@ -10,8 +10,6 @@
 #   docker compose up -d --build   # or builds them from this checkout
 #
 # UI + API: http://localhost:${SCOPE_PORT:-8080}      OTLP: localhost:4317 (gRPC) / :4318 (HTTP)
-# Distinct from backend/docker-compose.yml (project "scope"): same-named services would otherwise
-# be recreated by whichever of the two files runs last.
 name: scope-compose
 
 x-rabbitmq-env: &rabbitmq-env

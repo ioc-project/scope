@@ -139,9 +139,6 @@ dmypy.json
 *.db-shm
 *.db-wal
 
-# PNG files
-*.png
-
 demo/
 
 .ruff_cache

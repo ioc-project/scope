@@ -47,22 +47,9 @@ uv sync
 
 ### Deployment
 
-A docker compose file is provided to deploy locally SCOPE.
-It is composed of the otel collector, an instance of ClickHouse DB, an instance of Neo4j, and the whole ingestion pipeline of SCOPE.
-To deploy it, you would need to create a `.env` file at the repository root folder:
-
-```bash
-cp .env.template .env
-# Edit .env with your own settings
-```
-Then, you can deploy it, by running:
-
-```bash
-docker compose up [--build]
-```
-The `--build` is optional, it forces the rebuild of the different images that are used.
-
-A helm chart is also provided, to deploy SCOPE in k8s.
+The whole SCOPE stack (OTel collector, ClickHouse, RabbitMQ, Neo4j, the ingestion and analysis workers, the API and
+the dashboard) runs locally with the Docker Compose stack in [`deploy/docker-compose`](../deploy/docker-compose/README.md).
+A Helm chart is provided to deploy it on Kubernetes ([`deploy/k8s`](../deploy/k8s)).
 
 ### Running Tests
 

@@ -37,12 +37,6 @@ Pick one of the two options.
 Best for a laptop or a single VM. Docker with the Compose plugin (v2.17 or later) is
 the only prerequisite, and Docker should have at least **12 GB of memory**.
 
-!!! note "Use `deploy/docker-compose`, not `backend/docker-compose.yml`"
-    The compose file in `backend/` is a development setup: it starts RabbitMQ, Neo4j
-    and the workers only, and expects ClickHouse, the collector, the API and the
-    dashboard to run elsewhere. The one in `deploy/docker-compose/` starts the whole
-    stack, with the same components as the Helm chart.
-
 ### 1. Clone SCOPE repo
 
 ```bash

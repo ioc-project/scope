@@ -103,7 +103,38 @@ Important for local/simple installs:
   1) provide an explicit existing auth secret that matches the running Neo4j DB password, or
   2) reset the local Neo4j data/secret before reinstalling.
 
-### 6. Install / Upgrade
+### 6. Cognitive Failure Worker
+
+The `cognitive-failure` worker detects cognitive failures of the challenges taxonomy in each session. It is
+**enabled by default**, and makes a judge-model call (an agent that reads the trace) for every session. It uses
+the same LLM secret as the other workers, so the model must support tool calling. To skip that cost, turn it off:
+
+```bash
+helm upgrade -i -n scope scope charts/scope \
+  --set workers.cognitive-failure.enabled=false
+```
+
+While it is enabled, its input queue, `new_session_to_cognitive_failure`, is added to the embedding worker's
+output queues. The failures to look for are listed in `workers.cognitive-failure.config.failures`; only the ones listed
+run, and each one makes the judge prompt longer.
+
+### 7. Cognition Protocols Worker
+
+The `cognition-protocols` worker detects which Cognition protocols (ACCORD, CONCORD) a session used, and evaluates
+the ones it used. It is **enabled by default**. Its image is not published by CI yet, because the packages with the
+protocol metrics are private git dependencies, so the image has to be built with an SSH agent that can read them
+(see its Dockerfile) and made available to the cluster. Until then, its pod cannot pull the image: turn the worker
+off.
+
+```bash
+helm upgrade -i -n scope scope charts/scope \
+  --set workers.cognition-protocols.enabled=false
+```
+
+While it is enabled, its input queue, `new_session_to_cognition_protocols`, is added to the embedding worker's
+output queues. The LLM-judged metrics use the same LLM secret as the other workers.
+
+### 8. Install / Upgrade
 
 From a local checkout of this repository:
 
@@ -112,7 +143,7 @@ helm dependency build charts/scope
 helm upgrade -i -n scope scope charts/scope
 ```
 
-### 7. Verify
+### 9. Verify
 
 ```bash
 kubectl get pods -n scope

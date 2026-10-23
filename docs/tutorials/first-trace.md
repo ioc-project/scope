@@ -1,4 +1,4 @@
-# SCOPE — Tutorial: Your first trace
+# SCOPE — Tutorial: Ingesting your first trace
 
 <p class="eyebrow">From <code>docker compose up</code> to one session in the knowledge graph and in the dashboard</p>
 
@@ -105,8 +105,6 @@ The spans go through four steps. Each one is visible in the logs of the stack, f
 4. The **embedding worker** takes over, and the analysis workers (metrics, grouping,
    stateful evaluation, cognitive failures) run on the session.
 
-![The norm worker logs for the session](../assets/tutorials/first-trace/03-pipeline-logs.png)
-
 The session appears in the graph within a few seconds. The analyses take longer, depending on
 your model.
 
@@ -119,8 +117,6 @@ Open the Neo4j browser at <http://localhost:7474> and connect with:
 | Connect URL | `bolt://localhost:7687` |
 | Username | `neo4j` |
 | Password | the `NEO4J_PASSWORD` from your `.env` |
-
-![The Neo4j browser connection form](../assets/tutorials/first-trace/04-neo4j-login.png)
 
 List the sessions:
 
@@ -142,7 +138,7 @@ OPTIONAL MATCH p = (n)-[]->(m {layer: "structural"})
 RETURN n, p
 ```
 
-![The topology of the multi-agent system in the Neo4j browser](../assets/tutorials/first-trace/05-neo4j-topology.png)
+![The topology of the multi-agent system in the Neo4j browser](../assets/tutorials/first-trace/neo4j-topology.png)
 
 For the example, you see the `currency_conversion` MAS (named after the `@graph`), its two agents
 (`rate_provider` and `currency_assistant`) each tied to it by `belongsToMAS`, and the tool each one
@@ -162,7 +158,7 @@ WHERE m.sessionId = n.sessionId AND m.layer IN ["execution", "trajectory"]
 RETURN n, p
 ```
 
-![The execution of the session in the Neo4j browser: calls, transitions and states](../assets/tutorials/first-trace/06-neo4j-execution.png)
+![The execution of the session in the Neo4j browser: calls, transitions and states](../assets/tutorials/first-trace/neo4j-execution.png)
 
 Every call points to the transition it corresponds to, and to the state it started from
 (`hasInitialState`) and the state it ended in (`hasFinalState`). Replace `["execution", "trajectory"]`
@@ -180,21 +176,18 @@ Open <http://localhost:8080>. The dashboard reads the same knowledge graph throu
 1. Open **Applications**. The application is named after the service the example registered,
    `currency-demo`.
 
-    ![The Applications page listing currency-demo](../assets/tutorials/first-trace/07-ui-applications.png)
+    ![The Applications page listing currency-demo](../assets/tutorials/first-trace/ui-applications.png)
 
-2. Open the application and go to its sessions. Your session is listed with its duration and the
+2. Open the application and go to **Inspect**. Your session is listed with its cost and
    metrics computed so far.
 
-    ![The sessions of the application](../assets/tutorials/first-trace/08-ui-sessions.png)
+    ![The sessions of the application](../assets/tutorials/first-trace/ui-sessions.png)
 
-3. Open the session. The execution graph shows the two agents and the tools they called, in the
+3. Click on the session. The execution graph shows the two agents and the tools they called, in the
    order they ran, and the details panel shows each step's input and output. This is the same
    structure you saw in Neo4j.
 
-    ![The execution graph of the session in the dashboard](../assets/tutorials/first-trace/09-ui-session.png)
-
-Metrics, semantic groups and the other analyses appear on the session as the workers finish. They
-need the LLM endpoint you configured in `.env`.
+    ![The execution graph of the session in the dashboard](../assets/tutorials/first-trace/ui-session-timeline.png)
 
 ## 6. Send more and clean up
 

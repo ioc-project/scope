@@ -135,7 +135,7 @@ nav:
       - UI:
           - platform/ui/index.md
           - Run the UI standalone: platform/ui/standalone.md
-  - Tutorials:
+  - Getting Started:
       - tutorials/index.md
       - Instrument your app: tutorials/instrument-your-app.md
       - Deploy SCOPE: tutorials/deploy-scope.md

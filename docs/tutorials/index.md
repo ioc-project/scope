@@ -1,4 +1,4 @@
-# SCOPE — Tutorials and Demos
+# SCOPE — Getting Started
 
 <p class="eyebrow">Walkthroughs for instrumenting a system and reading what SCOPE produces</p>
 

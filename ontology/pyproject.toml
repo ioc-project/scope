@@ -3,13 +3,13 @@ requires = ["hatchling", "rdflib>=6.0.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "scope-ontology"
-version = "1.0.6"
+name = "ioc-scope-ontology"
+version = "1.1.0"
 description = "The MAS execution ontology for SCOPE."
 readme = "PACKAGE_README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 classifiers = [

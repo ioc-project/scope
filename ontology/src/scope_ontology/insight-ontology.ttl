@@ -35,7 +35,7 @@
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://ioc-project.github.io/scope-ontology/mas#" ;
     owl:priorVersion <https://ioc-project.github.io/scope-ontology/insight/1.0.0-rc0> ;
-    owl:versionInfo "1.0.6" ;
+    owl:versionInfo "1.1.0" ;
     owl:imports <https://ioc-project.github.io/scope-ontology/mas> ,
                 <https://ioc-project.github.io/scope-ontology/analysis> ;
     rdfs:comment "Insight ontology — rendered, catalog-templated insights attached to a target KG node. v1.0.0: split out of analysis-ontology.ttl."@en .

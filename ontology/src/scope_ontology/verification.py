@@ -10,7 +10,7 @@ node/edge object (an instance of a class generated under
 bundled SHACL shapes (``mas-shapes.ttl``) before a caller writes it to the
 graph database.
 
-Requires the ``verify`` extra (``pip install scope-ontology[verify]``),
+Requires the ``verify`` extra (``pip install ioc-scope-ontology[verify]``),
 which pulls in ``pyshacl``.
 """
 
@@ -222,7 +222,7 @@ def verify_kg_object(
         import pyshacl
     except ImportError as exc:  # pragma: no cover - environment guard
         raise ImportError(
-            "verify_kg_object() requires pyshacl. Install with 'pip install scope-ontology[verify]'."
+            "verify_kg_object() requires pyshacl. Install with 'pip install ioc-scope-ontology[verify]'."
         ) from exc
 
     kg_type = getattr(obj, "kg_type", obj.__class__.__name__)

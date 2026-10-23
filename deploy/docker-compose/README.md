@@ -43,9 +43,9 @@ registry (override `SCOPE_IMAGE_REGISTRY` / `SCOPE_VERSION` in `.env` otherwise)
 | RabbitMQ management | http://localhost:15672 |
 | Neo4j browser | http://localhost:7474 |
 
-Only the gateway and the OTLP ports listen on all interfaces; RabbitMQ and Neo4j are bound to
-`127.0.0.1` (change the host ports in `.env` if they clash). ClickHouse is not published; use
-`docker compose exec clickhouse clickhouse-client`.
+Only the gateway and the OTLP ports listen on all interfaces; RabbitMQ, Neo4j and ClickHouse
+(HTTP `8123`, native `9000`) are bound to `127.0.0.1` (change the host ports in `.env` if they
+clash). You can also use `docker compose exec clickhouse clickhouse-client`.
 
 The Compose project is named `scope-compose` so it does not collide with the `scope` project of
 `backend/docker-compose.yml`. Both publish the same infrastructure ports by default, so stop one before

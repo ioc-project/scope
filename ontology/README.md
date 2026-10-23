@@ -77,7 +77,7 @@ git clone https://github.com/ioc-project/scope.git
 cd scope/ontology
 
 # Install the Python package
-pip install scope-ontology
+pip install ioc-scope-ontology
 ```
 
 ### Import in your own ontology
@@ -109,7 +109,7 @@ SELECT ?agent ?task WHERE {
 ### Python Package
 
 ```bash
-pip install scope-ontology
+pip install ioc-scope-ontology
 ```
 
 Access ontologies programmatically:

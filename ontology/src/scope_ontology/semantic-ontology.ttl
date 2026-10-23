@@ -16,7 +16,7 @@
     dcterms:description "Semantic embedding layer for MAS trajectories. Defines Embedding classes and State/Execution to Embedding links."@en ;
     dcterms:created "2026-07-22"^^xsd:date ;
     owl:priorVersion <https://ioc-project.github.io/scope-ontology/embedding/1.0.0-rc0> ;
-    owl:versionInfo "1.0.6" ;
+    owl:versionInfo "1.1.0" ;
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://ioc-project.github.io/scope-ontology/mas#" ;
     owl:imports <https://ioc-project.github.io/scope-ontology/mas> .

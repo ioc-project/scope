@@ -6,17 +6,17 @@ build-backend = "hatchling.build"
 name = "norm"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "OTel(ioa_observe) span -> Knowledge Graph normalization."
 requires-python = ">=3.10"
-# scope-ontology[models] provides the generated KG node/edge Pydantic models
+# ioc-scope-ontology[models] provides the generated KG node/edge Pydantic models
 # (scope_ontology.models.*) that the ioa_observe -> KG path builds directly
 # (see docs/normalization.md).
 dependencies = [
   "neo4j>=6.3.1",
-  "scope-ontology>=1.0.6",
+  "ioc-scope-ontology>=1.1.0",
   "pydantic>=2.0.0",
 ]
 

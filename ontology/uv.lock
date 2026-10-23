@@ -118,6 +118,70 @@ wheels = [
 ]
 
 [[package]]
+name = "ioc-scope-ontology"
+version = "1.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "rdflib" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+eval = [
+    { name = "pyshacl" },
+    { name = "rdflib" },
+]
+eval-full = [
+    { name = "opentelemetry-api", version = "1.41.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "opentelemetry-api", version = "1.45.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "opentelemetry-sdk", version = "1.41.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "opentelemetry-sdk", version = "1.45.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pyshacl" },
+    { name = "rdflib" },
+]
+models = [
+    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+verify = [
+    { name = "pyshacl" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "opentelemetry-api", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
+    { name = "opentelemetry-sdk", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
+    { name = "pydantic", marker = "extra == 'models'", specifier = ">=2.0" },
+    { name = "pyshacl", marker = "extra == 'eval'", specifier = ">=0.25.0" },
+    { name = "pyshacl", marker = "extra == 'eval-full'", specifier = ">=0.25.0" },
+    { name = "pyshacl", marker = "extra == 'verify'", specifier = ">=0.25.0" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "rdflib", specifier = ">=6.0.0" },
+    { name = "rdflib", marker = "extra == 'eval'", specifier = ">=6.0.0" },
+    { name = "rdflib", marker = "extra == 'eval-full'", specifier = ">=6.0.0" },
+]
+provides-extras = ["dev", "eval", "eval-full", "models", "verify"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pydantic", specifier = ">=2.13.5" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "ruff", specifier = "<=0.15.22" },
+]
+
+[[package]]
 name = "isodate"
 version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
@@ -744,70 +808,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/76/3f72d8fc38c1cb77b38c56a70da9d0c17700cc1cc50f9649c9d3c8f5ba71/ruff-0.15.22-py3-none-win32.whl", hash = "sha256:e5ba0e4a13fd14abbed2a77b517a3911290c6c6c59ef67784328d1668fab76cf", size = 10789165, upload-time = "2026-07-16T15:14:04.16Z" },
     { url = "https://files.pythonhosted.org/packages/cb/46/4965251734c2b6fcdca1b1b187d20bcac3af0ee5b083b89c910bb961ce3a/ruff-0.15.22-py3-none-win_amd64.whl", hash = "sha256:9be63ba1eb936acd2d1342fb8337c356353706fce233b2a15a09a97037e6acde", size = 11938297, upload-time = "2026-07-16T15:14:07.316Z" },
     { url = "https://files.pythonhosted.org/packages/57/c9/e69b1ff4c8b69093ef08b8919ab767af0569666865b39c30a8795d88d3c6/ruff-0.15.22-py3-none-win_arm64.whl", hash = "sha256:e1168075b72158510839f250027659cdd78476f40507dd517892304c41318661", size = 11298172, upload-time = "2026-07-16T15:14:10.51Z" },
-]
-
-[[package]]
-name = "scope-ontology"
-version = "1.0.6"
-source = { editable = "." }
-dependencies = [
-    { name = "rdflib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-]
-eval = [
-    { name = "pyshacl" },
-    { name = "rdflib" },
-]
-eval-full = [
-    { name = "opentelemetry-api", version = "1.41.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "opentelemetry-api", version = "1.45.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "opentelemetry-sdk", version = "1.41.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "opentelemetry-sdk", version = "1.45.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pyshacl" },
-    { name = "rdflib" },
-]
-models = [
-    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-]
-verify = [
-    { name = "pyshacl" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentelemetry-api", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
-    { name = "opentelemetry-sdk", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
-    { name = "pydantic", marker = "extra == 'models'", specifier = ">=2.0" },
-    { name = "pyshacl", marker = "extra == 'eval'", specifier = ">=0.25.0" },
-    { name = "pyshacl", marker = "extra == 'eval-full'", specifier = ">=0.25.0" },
-    { name = "pyshacl", marker = "extra == 'verify'", specifier = ">=0.25.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "rdflib", specifier = ">=6.0.0" },
-    { name = "rdflib", marker = "extra == 'eval'", specifier = ">=6.0.0" },
-    { name = "rdflib", marker = "extra == 'eval-full'", specifier = ">=6.0.0" },
-]
-provides-extras = ["dev", "eval", "eval-full", "models", "verify"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pydantic", specifier = ">=2.13.5" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "ruff", specifier = "<=0.15.22" },
 ]
 
 [[package]]

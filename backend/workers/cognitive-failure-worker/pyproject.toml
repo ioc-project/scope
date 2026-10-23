@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "cognitive-failure-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Detects the cognitive failures of the challenges taxonomy in agentic sessions and writes a CognitiveFailureReport for each"
@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "worker-base",
-    "scope-api",
+    "ioc-scope-api",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -48,7 +48,7 @@ Repository = "https://github.com/agntcy/telemetry-hub"
 
 [tool.uv.sources]
 worker-base = { workspace = true }
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cognitive_failure_worker"]

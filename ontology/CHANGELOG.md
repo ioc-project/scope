@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
-## [1.0.7] - 2026-10-22
+## [1.1.0] - 2026-10-24
 
 ### Changed
 

@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "mce-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Standalone MCE (Metrics Computation Engine) worker for processing telemetry sessions"
@@ -24,8 +24,8 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "scope-mce",
-    "scope-mce-client",
+    "ioc-scope-mce",
+    "ioc-scope-mce-client",
     "worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -47,8 +47,8 @@ dev = [
 mce-worker-cli = "mce_worker.cli:main"
 
 [tool.uv.sources]
-scope-mce = { workspace = true }
-scope-mce-client = { workspace = true }
+ioc-scope-mce = { workspace = true }
+ioc-scope-mce-client = { workspace = true }
 worker-base = { workspace = true }
 
 [project.urls]

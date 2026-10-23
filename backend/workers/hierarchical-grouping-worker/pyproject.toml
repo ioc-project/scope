@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "hierarchical-grouping-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Standalone hierarchical grouping worker"
@@ -24,7 +24,7 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "scope-api",
+    "ioc-scope-api",
     "dem[grouping,llm]",
     "worker-base",
     "pydantic>=2.0.0",
@@ -48,7 +48,7 @@ dev = [
 hierarchical-grouping-worker-cli = "hierarchical_grouping_worker.cli:main"
 
 [tool.uv.sources]
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 dem = { workspace = true }
 worker-base = { workspace = true }
 

@@ -60,4 +60,16 @@ clickhouse-client \
   --password "${CLICKHOUSE_PASSWORD}" \
   --query "ALTER TABLE ${CLICKHOUSE_DATABASE}.otel_traces MODIFY SETTING non_replicated_deduplication_window = 100;"
 
+# Collectors older than 0.141.0 created otel_logs without EventName, which the live
+# topology queries rely on. Add it to volumes created by those versions (a no-op otherwise,
+# and skipped when the table has not been created yet).
+if [ "$(clickhouse-client --host "${CLICKHOUSE_HOST}" --port "${CLICKHOUSE_PORT}" --user "${CLICKHOUSE_USER}" --password "${CLICKHOUSE_PASSWORD}" --query "EXISTS TABLE ${CLICKHOUSE_DATABASE}.otel_logs")" = "1" ]; then
+  clickhouse-client \
+    --host "${CLICKHOUSE_HOST}" \
+    --port "${CLICKHOUSE_PORT}" \
+    --user "${CLICKHOUSE_USER}" \
+    --password "${CLICKHOUSE_PASSWORD}" \
+    --query "ALTER TABLE ${CLICKHOUSE_DATABASE}.otel_logs ADD COLUMN IF NOT EXISTS EventName String CODEC(ZSTD(1));"
+fi
+
 echo "ClickHouse setup completed"

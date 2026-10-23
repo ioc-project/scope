@@ -263,19 +263,32 @@ def application_charts(
 def application_topology(
     application_id: str,
     ui_client=Depends(_client),  # noqa: B008
+    kg_client=Depends(_kg_client),  # noqa: B008
     redis_client: redis_lib.Redis = Depends(get_redis),  # noqa: B008
 ) -> Any:
-    """Return the topology for an application."""
+    """Return the topology for an application.
+
+    The graph the application declared (the ``gen_ai.ioa.graph`` attribute of its
+    graph span) when it has one, otherwise its structural agents from the
+    knowledge graph.
+    """
     key = make_cache_key(
         "applications:topology",
         {"app": application_id},
     )
+
+    def fetch() -> Any:
+        declared = ui_client.get_application_topology(application_id=application_id)
+        if declared and declared.get("nodes"):
+            return declared
+        return kg_client.get_application_structural_topology(
+            application_id=application_id,
+        )
+
     return cached(
         redis_client=redis_client,
         key=key,
-        fetch=lambda: ui_client.get_application_topology(
-            application_id=application_id,
-        ),
+        fetch=fetch,
         ttl=settings.CACHE_TTL_SECONDS,
         enabled=settings.CACHE_ENABLED,
     )

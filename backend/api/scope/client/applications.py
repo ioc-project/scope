@@ -1181,6 +1181,54 @@ def _get_application_details(
     return result
 
 
+# ── get_application_structural_topology ──────────────────────────────────────
+
+
+def _get_application_structural_topology(
+    db: Connector,
+    *,
+    application_id: str,
+) -> dict:
+    """Return an application's topology from the knowledge graph's structural layer.
+
+    Used when the application did not declare a graph (no ``gen_ai.ioa.graph``
+    attribute on its graph span, as with a plain ``@graph`` function). The nodes
+    are the application's agents, in the shape of a declared graph so the UI
+    renders both the same way. The structural layer has no edges between agents
+    (a handoff is an execution-level step), and the agents' tools come from the
+    agent-tools endpoint. Returns ``{}`` when the application has no agent.
+    """
+    query, params = ui_queries.structural_agents_by_application_query(
+        application_id=application_id,
+    )
+    try:
+        rows = db.execute(query, params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get structural topology for application '{application_id}': {exc}"
+        ) from exc
+
+    nodes: dict[str, dict] = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        agent_id = str(row.get("agentId") or row.get("agentName") or "")
+        if not agent_id:
+            continue
+        description = row.get("agentDescription") or ""
+        nodes[agent_id] = {
+            "id": agent_id,
+            "name": str(row.get("agentName") or agent_id),
+            "data": description,
+            "metadata": None,
+            **({"description": description} if description else {}),
+        }
+
+    if not nodes:
+        return {}
+    return {"nodes": nodes, "edges": []}
+
+
 # ── get_application_agent_tools ──────────────────────────────────────────────
 
 

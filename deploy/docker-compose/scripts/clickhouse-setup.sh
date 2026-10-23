@@ -60,16 +60,23 @@ clickhouse-client \
   --password "${CLICKHOUSE_PASSWORD}" \
   --query "ALTER TABLE ${CLICKHOUSE_DATABASE}.otel_traces MODIFY SETTING non_replicated_deduplication_window = 100;"
 
-# Collectors older than 0.141.0 created otel_logs without EventName, which the live
-# topology queries rely on. Add it to volumes created by those versions (a no-op otherwise,
-# and skipped when the table has not been created yet).
-if [ "$(clickhouse-client --host "${CLICKHOUSE_HOST}" --port "${CLICKHOUSE_PORT}" --user "${CLICKHOUSE_USER}" --password "${CLICKHOUSE_PASSWORD}" --query "EXISTS TABLE ${CLICKHOUSE_DATABASE}.otel_logs")" = "1" ]; then
-  clickhouse-client \
-    --host "${CLICKHOUSE_HOST}" \
-    --port "${CLICKHOUSE_PORT}" \
-    --user "${CLICKHOUSE_USER}" \
-    --password "${CLICKHOUSE_PASSWORD}" \
-    --query "ALTER TABLE ${CLICKHOUSE_DATABASE}.otel_logs ADD COLUMN IF NOT EXISTS EventName String CODEC(ZSTD(1));"
-fi
+# The API reads otel_logs.EventName (live topology). Collectors older than the chart's 0.161.0 create
+# otel_logs without it, and the exporter only creates a table that does not exist, so a ClickHouse volume
+# left by an older stack needs the column added. A no-op when the collector already created it.
+logs_wait_elapsed=0
+until [ "$(clickhouse-client --host "${CLICKHOUSE_HOST}" --port "${CLICKHOUSE_PORT}" --user "${CLICKHOUSE_USER}" --password "${CLICKHOUSE_PASSWORD}" --query "EXISTS TABLE ${CLICKHOUSE_DATABASE}.otel_logs")" = "1" ]; do
+  if [ "${logs_wait_elapsed}" -ge 60 ]; then
+    echo "Timed out waiting for ${CLICKHOUSE_DATABASE}.otel_logs to exist"
+    exit 1
+  fi
+  sleep 2
+  logs_wait_elapsed=$((logs_wait_elapsed + 2))
+done
+clickhouse-client \
+  --host "${CLICKHOUSE_HOST}" \
+  --port "${CLICKHOUSE_PORT}" \
+  --user "${CLICKHOUSE_USER}" \
+  --password "${CLICKHOUSE_PASSWORD}" \
+  --query "ALTER TABLE ${CLICKHOUSE_DATABASE}.otel_logs ADD COLUMN IF NOT EXISTS EventName String;"
 
 echo "ClickHouse setup completed"

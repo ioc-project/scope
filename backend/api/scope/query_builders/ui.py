@@ -675,6 +675,28 @@ def agent_tools_by_application_query(
     return query, {"applicationId": application_id}
 
 
+def structural_agents_by_application_query(
+    *,
+    application_id: str,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the structural agents of an application (Neo4j only).
+
+    These are the ``Agent`` nodes of the application's ``MAS`` (the structural
+    layer, linked by ``belongsToMAS``): what the topology of an application is
+    made of when its instrumented framework did not declare a graph. Unlike the
+    ``usesTool`` edge, ``belongsToMAS`` is per MAS, so an agent that several
+    applications share by name is only returned for the ones it belongs to.
+    """
+    query = """
+        MATCH (mas:MAS {id: $applicationId})<-[:belongsToMAS]-(a:Agent)
+        RETURN a.id AS agentId,
+               a.name AS agentName,
+               a.description AS agentDescription
+        ORDER BY agentName
+    """
+    return query, {"applicationId": application_id}
+
+
 def agents_by_application_and_sessions_query(
     dialect: Dialect = Dialect.CLICKHOUSE,
     *,

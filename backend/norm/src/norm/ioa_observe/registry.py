@@ -78,6 +78,25 @@ class Registry:
         """Return every target_id of edge_cls edges out of source_id."""
         return [tid for etype, sid, tid in self.edges if etype is edge_cls and sid == source_id]
 
+    def merge_node_into(self, cls: type[KGBase], drop_id: str, keep_id: str) -> None:
+        """Replace the ``cls`` node ``drop_id`` by ``keep_id``.
+
+        Every edge that touched ``drop_id`` now touches ``keep_id`` (an edge that
+        becomes a duplicate of an existing one is dropped), and ``drop_id`` is removed.
+        """
+        if drop_id == keep_id:
+            return
+        for key, edge in list(self.edges.items()):
+            etype, source_id, target_id = key
+            if source_id != drop_id and target_id != drop_id:
+                continue
+            del self.edges[key]
+            new_source = keep_id if source_id == drop_id else source_id
+            new_target = keep_id if target_id == drop_id else target_id
+            moved = edge.model_copy(update={"source_id": new_source, "target_id": new_target})
+            self.edges.setdefault((etype, new_source, new_target), moved)
+        self.nodes.pop((cls.__name__, drop_id), None)
+
     def all_of(self, cls: type[T]) -> list[T]:
         """Return every node of this class."""
         return [

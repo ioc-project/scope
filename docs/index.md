@@ -121,9 +121,9 @@ Protocols or any other IoC component.
 <div class="grid cards" markdown>
 
 -   **[Ingestion](ingestion/index.md)** — what a MAS must emit, how spans reach SCOPE, and how they become a normalised session in the knowledge graph.
--   **[Platform](platform/index.md)** — the API and UI that serve and visualise the knowledge graph, the datastores behind them, and deployment.
 -   **[Analysis](analysis/index.md)** — everything that enriches the knowledge graph, and the Platform Engines it feeds.
--   **[Tutorials and Demos](tutorials/index.md)** — instrumenting a system and reading what SCOPE produces.
+-   **[Platform](platform/index.md)** — the API and UI that serve and visualise the knowledge graph, the datastores behind them, and deployment.
+-   **[Getting Started](tutorials/index.md)** — instrumenting a system and reading what SCOPE produces.
 
 </div>
 

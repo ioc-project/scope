@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Normalization: identical boundary States are one State.** When a call started with what the previous step
+  produced (a tool called with its agent's input, a tool returning what its agent returns, a handoff that passes
+  its output on unchanged), `norm` kept two State nodes with the same content and no edge between them, so the
+  chain from a session's input to its final state could not be followed through `inputTo` / `leadsTo`. They are
+  now merged into one State (the outer element's own State is kept at an agent's boundary), and only States whose
+  content differs are still bridged by a `ProcessingCall`. Sessions already in the knowledge graph keep their old
+  States until they are normalized again.
+
 ### Added
 
 - **Cognitive failure worker.** `cognitive-failure-worker` detects the cognitive failures of the challenges

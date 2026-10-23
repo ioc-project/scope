@@ -3,18 +3,18 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "scope-mce-legacy"
+name = "ioc-scope-mce-legacy"
 version = "0.1.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Legacy adapters and compatibility layer for MCE"
 requires-python = ">=3.13,<3.15"
 dependencies = [
-    "scope-mce-core>=2.0.0rc1",
-    "scope-mce-provider-native>=0.1.0",
-    "scope-mce-provider-sdk>=0.1.0",
+    "ioc-scope-mce-core>=2.0.0rc1",
+    "ioc-scope-mce-provider-native>=0.1.0",
+    "ioc-scope-mce-provider-sdk>=0.1.0",
     "click>=8.0.0",
     "requests>=2.28.0",
 ]
@@ -25,6 +25,6 @@ include = ["mce.legacy*"]
 namespaces = true
 
 [tool.uv.sources]
-scope-mce-core = { workspace = true }
-scope-mce-provider-native = { workspace = true }
-scope-mce-provider-sdk = { workspace = true }
+ioc-scope-mce-core = { workspace = true }
+ioc-scope-mce-provider-native = { workspace = true }
+ioc-scope-mce-provider-sdk = { workspace = true }

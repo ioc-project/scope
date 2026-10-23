@@ -13,8 +13,8 @@ members = [
 ]
 
 [tool.uv.sources]
-scope-api = { path = "../api", editable = true }
-scope-ontology = { path = "../../ontology", editable = true }
+ioc-scope-api = { path = "../api", editable = true }
+ioc-scope-ontology = { path = "../../ontology", editable = true }
 
 [dependency-groups]
 dev = [

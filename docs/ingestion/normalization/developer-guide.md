@@ -85,7 +85,7 @@ Model generation lives in `scope-ontology` itself
 releases new classes:
 
 ```bash
-uv pip install -U scope-ontology
+uv pip install -U ioc-scope-ontology
 pytest
 ```
 

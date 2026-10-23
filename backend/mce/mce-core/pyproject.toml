@@ -3,10 +3,10 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "scope-mce-core"
+name = "ioc-scope-mce-core"
 version = "2.0.0rc1"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Metrics Computation Engine core"
@@ -23,7 +23,7 @@ dependencies = [
     "typer>=0.9.0",
     "rdflib>=7.0.0",
     "pyyaml>=6.0.0",
-    "scope-ontology",
+    "ioc-scope-ontology>=1.1.0",
 ]
 
 [project.optional-dependencies]
@@ -39,27 +39,27 @@ neo4j = [
     "neo4j>=6.1.0",
 ]
 deepeval = [
-    "scope-mce-provider-deepeval>=0.1.0",
+    "ioc-scope-mce-provider-deepeval>=0.1.0",
 ]
 llm = [
-    "scope-mce-provider-native>=0.1.0",
+    "ioc-scope-mce-provider-native>=0.1.0",
 ]
 opik = [
-    "scope-mce-provider-opik>=0.1.0",
+    "ioc-scope-mce-provider-opik>=0.1.0",
 ]
 ragas = [
-    "scope-mce-provider-ragas>=0.1.0",
+    "ioc-scope-mce-provider-ragas>=0.1.0",
 ]
 server = [
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]
 all = [
-    "scope-mce-provider-native>=0.1.0",
-    "scope-mce-provider-sdk>=0.1.0",
-    "scope-mce-provider-deepeval>=0.1.0",
-    "scope-mce-provider-opik>=0.1.0",
-    "scope-mce-provider-ragas>=0.1.0",
+    "ioc-scope-mce-provider-native>=0.1.0",
+    "ioc-scope-mce-provider-sdk>=0.1.0",
+    "ioc-scope-mce-provider-deepeval>=0.1.0",
+    "ioc-scope-mce-provider-opik>=0.1.0",
+    "ioc-scope-mce-provider-ragas>=0.1.0",
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]
@@ -71,9 +71,9 @@ where = ["src"]
 "mce.engine" = ["data/*.json"]
 
 [tool.uv.sources]
-scope-mce-provider-native = { workspace = true }
-scope-mce-provider-sdk = { workspace = true }
-scope-mce-provider-deepeval = { workspace = true }
-scope-mce-provider-opik = { workspace = true }
-scope-mce-provider-ragas = { workspace = true }
+ioc-scope-mce-provider-native = { workspace = true }
+ioc-scope-mce-provider-sdk = { workspace = true }
+ioc-scope-mce-provider-deepeval = { workspace = true }
+ioc-scope-mce-provider-opik = { workspace = true }
+ioc-scope-mce-provider-ragas = { workspace = true }
 

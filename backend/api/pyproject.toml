@@ -1,8 +1,8 @@
 [project]
-name = "scope-api"
+name = "ioc-scope-api"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "SCOPE backend API service"
@@ -24,7 +24,7 @@ dependencies = [
     "umap-learn>=0.5.7",
     "uvicorn>=0.41.0",
     "ruff<=0.15.22",
-    "scope-ontology[models,verify]>=1.0.6",
+    "ioc-scope-ontology[models,verify]>=1.1.0",
 ]
 
 
@@ -43,8 +43,8 @@ dev = "scope.app:main"
 dev = [
     "fakeredis>=2.0.0",
     "httpx>=0.28.1",
-    "scope-mce-provider-native",
-    "scope-mce-provider-sdk",
+    "ioc-scope-mce-provider-native",
+    "ioc-scope-mce-provider-sdk",
     "pytest>=9.0.2",
 ]
 

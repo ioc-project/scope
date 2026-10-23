@@ -19,28 +19,28 @@ members = [
     "grouping-worker",
     "hierarchical-grouping-worker",
     "intelligence-worker",
+    "ioc-scope-api",
+    "ioc-scope-lib",
+    "ioc-scope-mce",
+    "ioc-scope-mce-client",
+    "ioc-scope-mce-core",
+    "ioc-scope-mce-helper",
+    "ioc-scope-mce-legacy",
+    "ioc-scope-mce-provider-deepeval",
+    "ioc-scope-mce-provider-native",
+    "ioc-scope-mce-provider-opik",
+    "ioc-scope-mce-provider-ragas",
+    "ioc-scope-mce-provider-sdk",
+    "ioc-scope-ontology",
     "mce-worker",
     "norm",
     "norm-worker",
     "normal-behaviour-worker",
-    "scope-api",
-    "scope-lib",
-    "scope-mce",
-    "scope-mce-client",
-    "scope-mce-core",
-    "scope-mce-helper",
-    "scope-mce-legacy",
-    "scope-mce-provider-deepeval",
-    "scope-mce-provider-native",
-    "scope-mce-provider-opik",
-    "scope-mce-provider-ragas",
-    "scope-mce-provider-sdk",
-    "scope-ontology",
     "stateful-eval-worker",
     "stateful-evals",
     "worker-base",
 ]
-overrides = [{ name = "scope-mce-core", editable = "mce/mce-core" }]
+overrides = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
 
 [[package]]
 name = "absl-py"
@@ -147,12 +147,12 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem", extra = ["analysis", "grouping", "llm"] },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-ontology", extra = ["models"] },
     { name = "worker-base" },
 ]
 
@@ -170,6 +170,8 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["analysis", "grouping", "llm"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -179,8 +181,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -211,12 +211,12 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem", extra = ["analysis"] },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-ontology", extra = ["models"] },
     { name = "worker-base" },
 ]
 
@@ -234,6 +234,8 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["analysis"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -243,8 +245,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -639,11 +639,11 @@ dependencies = [
     { name = "click" },
     { name = "ioc-accord-mce-metrics" },
     { name = "ioc-concord-mce-metrics" },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-mce" },
+    { name = "ioc-scope-mce-client" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-mce" },
-    { name = "scope-mce-client" },
     { name = "worker-base" },
 ]
 
@@ -658,13 +658,13 @@ requires-dist = [
     { name = "click", specifier = ">=8.0" },
     { name = "ioc-accord-mce-metrics", git = "ssh://git@github.com/cisco-eti/ioc-core-l9-extensions.git?subdirectory=evals%2Faccord_custom_evals%2Faccord-mce-metrics&branch=feat%2Fadding-mce-metrics-plugin" },
     { name = "ioc-concord-mce-metrics", git = "ssh://git@github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Fconcord%2Fmce-metrics&branch=main" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-mce", editable = "mce/mce-meta" },
+    { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-mce", editable = "mce/mce-meta" },
-    { name = "scope-mce-client", editable = "mce/mce-client" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -676,11 +676,11 @@ source = { editable = "workers/cognitive-failure-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },
+    { name = "ioc-scope-api" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
     { name = "worker-base" },
 ]
 
@@ -697,6 +697,7 @@ dev = [
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -706,7 +707,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -728,12 +728,12 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem", extra = ["grouping", "llm"] },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-ontology", extra = ["models"] },
     { name = "worker-base" },
 ]
 
@@ -751,6 +751,8 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["grouping", "llm"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -760,8 +762,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1123,8 +1123,8 @@ source = { editable = "workers/embedding-worker" }
 dependencies = [
     { name = "click" },
     { name = "dem", extra = ["embedding"] },
+    { name = "ioc-scope-api" },
     { name = "python-dotenv" },
-    { name = "scope-api" },
     { name = "worker-base" },
 ]
 
@@ -1144,6 +1144,7 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["embedding"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.20.0" },
@@ -1151,7 +1152,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1360,10 +1360,10 @@ source = { editable = "workers/grouping-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },
+    { name = "ioc-scope-api" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "scope-api" },
     { name = "worker-base" },
 ]
 
@@ -1380,6 +1380,7 @@ dev = [
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -1388,7 +1389,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1464,11 +1464,11 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem", extra = ["grouping", "llm"] },
+    { name = "ioc-scope-api" },
     { name = "numpy" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "scope-api" },
     { name = "worker-base" },
 ]
 
@@ -1486,6 +1486,7 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["grouping", "llm"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
@@ -1495,7 +1496,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1698,10 +1698,10 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem" },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
     { name = "pika" },
     { name = "python-dotenv" },
-    { name = "scope-api" },
-    { name = "scope-ontology", extra = ["models"] },
     { name = "worker-base" },
 ]
 
@@ -1719,6 +1719,8 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1726,8 +1728,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1748,6 +1748,404 @@ dependencies = [
     { name = "openai" },
     { name = "oxp-mce-core" },
     { name = "python-dotenv" },
+]
+
+[[package]]
+name = "ioc-scope-api"
+version = "1.0.0"
+source = { editable = "api" }
+dependencies = [
+    { name = "clickhouse-connect" },
+    { name = "clickhouse-sqlalchemy" },
+    { name = "fastapi" },
+    { name = "ioc-scope-ontology", extra = ["models", "verify"] },
+    { name = "neo4j" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "redis" },
+    { name = "requests" },
+    { name = "ruff" },
+    { name = "sqlalchemy" },
+    { name = "umap-learn" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "fakeredis" },
+    { name = "httpx" },
+    { name = "ioc-scope-mce-provider-native" },
+    { name = "ioc-scope-mce-provider-sdk" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "clickhouse-connect", specifier = ">=0.11.0" },
+    { name = "clickhouse-sqlalchemy", specifier = ">=0.3.2" },
+    { name = "fastapi", specifier = ">=0.129.0" },
+    { name = "ioc-scope-ontology", extras = ["models", "verify"], editable = "../ontology" },
+    { name = "neo4j", specifier = ">=6.1.0" },
+    { name = "numba", specifier = ">=0.60.0" },
+    { name = "numpy", specifier = ">=2.3.5" },
+    { name = "packaging", specifier = ">=26.0" },
+    { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "redis", specifier = ">=5.0.0" },
+    { name = "requests", specifier = ">=2.32.5" },
+    { name = "ruff", specifier = "<=0.15.22" },
+    { name = "sqlalchemy", specifier = ">=2.0.46" },
+    { name = "umap-learn", specifier = ">=0.5.7" },
+    { name = "uvicorn", specifier = ">=0.41.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "fakeredis", specifier = ">=2.0.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "ioc-scope-mce-provider-native", editable = "mce/mce-provider-native" },
+    { name = "ioc-scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
+    { name = "pytest", specifier = ">=9.0.2" },
+]
+
+[[package]]
+name = "ioc-scope-lib"
+version = "1.0.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "dem", extra = ["all"] },
+    { name = "ioc-scope-mce" },
+    { name = "norm" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-docker" },
+    { name = "pytest-mock" },
+    { name = "requests-mock" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dem", extras = ["all"], editable = "dem" },
+    { name = "ioc-scope-mce", editable = "mce/mce-meta" },
+    { name = "norm", editable = "norm" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=7.0.0" },
+    { name = "pytest-asyncio", specifier = ">=0.21.0" },
+    { name = "pytest-docker", specifier = ">=3.2.5" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "requests-mock" },
+    { name = "ruff", specifier = "<=0.15.22" },
+]
+
+[[package]]
+name = "ioc-scope-mce"
+version = "2.0.0rc1"
+source = { editable = "mce/mce-meta" }
+dependencies = [
+    { name = "ioc-scope-mce-client" },
+    { name = "ioc-scope-mce-core" },
+    { name = "ioc-scope-mce-helper" },
+    { name = "ioc-scope-mce-legacy" },
+    { name = "ioc-scope-mce-provider-deepeval" },
+    { name = "ioc-scope-mce-provider-native" },
+    { name = "ioc-scope-mce-provider-opik" },
+    { name = "ioc-scope-mce-provider-ragas" },
+    { name = "ioc-scope-mce-provider-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "ioc-scope-mce-helper", editable = "mce/mce-helper" },
+    { name = "ioc-scope-mce-legacy", editable = "mce/mce-legacy" },
+    { name = "ioc-scope-mce-provider-deepeval", editable = "mce/mce-provider-deepeval" },
+    { name = "ioc-scope-mce-provider-native", editable = "mce/mce-provider-native" },
+    { name = "ioc-scope-mce-provider-opik", editable = "mce/mce-provider-opik" },
+    { name = "ioc-scope-mce-provider-ragas", editable = "mce/mce-provider-ragas" },
+    { name = "ioc-scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
+]
+
+[[package]]
+name = "ioc-scope-mce-client"
+version = "0.1.0"
+source = { editable = "mce/mce-client" }
+dependencies = [
+    { name = "click" },
+    { name = "fastapi" },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-mce-core" },
+    { name = "ioc-scope-mce-helper" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "uvicorn" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "fastapi", specifier = ">=0.111.0" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "ioc-scope-mce-helper", editable = "mce/mce-helper" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "uvicorn", specifier = ">=0.30.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
+name = "ioc-scope-mce-core"
+version = "2.0.0rc1"
+source = { editable = "mce/mce-core" }
+dependencies = [
+    { name = "click" },
+    { name = "ioc-scope-ontology" },
+    { name = "networkx" },
+    { name = "packaging" },
+    { name = "pandas" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "pyyaml" },
+    { name = "rdflib" },
+    { name = "requests" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "black", marker = "extra == 'dev'" },
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "fastapi", marker = "extra == 'all'", specifier = ">=0.111.0" },
+    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.111.0" },
+    { name = "flake8", marker = "extra == 'dev'" },
+    { name = "httpx", marker = "extra == 'dev'" },
+    { name = "ioc-scope-mce-provider-deepeval", marker = "extra == 'all'", editable = "mce/mce-provider-deepeval" },
+    { name = "ioc-scope-mce-provider-deepeval", marker = "extra == 'deepeval'", editable = "mce/mce-provider-deepeval" },
+    { name = "ioc-scope-mce-provider-native", marker = "extra == 'all'", editable = "mce/mce-provider-native" },
+    { name = "ioc-scope-mce-provider-native", marker = "extra == 'llm'", editable = "mce/mce-provider-native" },
+    { name = "ioc-scope-mce-provider-opik", marker = "extra == 'all'", editable = "mce/mce-provider-opik" },
+    { name = "ioc-scope-mce-provider-opik", marker = "extra == 'opik'", editable = "mce/mce-provider-opik" },
+    { name = "ioc-scope-mce-provider-ragas", marker = "extra == 'all'", editable = "mce/mce-provider-ragas" },
+    { name = "ioc-scope-mce-provider-ragas", marker = "extra == 'ragas'", editable = "mce/mce-provider-ragas" },
+    { name = "ioc-scope-mce-provider-sdk", marker = "extra == 'all'", editable = "mce/mce-provider-sdk" },
+    { name = "ioc-scope-ontology", editable = "../ontology" },
+    { name = "mypy", marker = "extra == 'dev'" },
+    { name = "neo4j", marker = "extra == 'neo4j'", specifier = ">=6.1.0" },
+    { name = "networkx", specifier = ">=3.0.0" },
+    { name = "packaging", specifier = ">=23.0" },
+    { name = "pandas", specifier = ">=1.5.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "rdflib", specifier = ">=7.0.0" },
+    { name = "requests", specifier = ">=2.28.0" },
+    { name = "typer", specifier = ">=0.9.0" },
+    { name = "uvicorn", marker = "extra == 'all'", specifier = ">=0.30.0" },
+    { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30.0" },
+]
+provides-extras = ["dev", "neo4j", "deepeval", "llm", "opik", "ragas", "server", "all"]
+
+[[package]]
+name = "ioc-scope-mce-helper"
+version = "0.1.0"
+source = { editable = "mce/mce-helper" }
+dependencies = [
+    { name = "ioc-scope-mce-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
+
+[[package]]
+name = "ioc-scope-mce-legacy"
+version = "0.1.0"
+source = { editable = "mce/mce-legacy" }
+dependencies = [
+    { name = "click" },
+    { name = "ioc-scope-mce-core" },
+    { name = "ioc-scope-mce-provider-native" },
+    { name = "ioc-scope-mce-provider-sdk" },
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "ioc-scope-mce-provider-native", editable = "mce/mce-provider-native" },
+    { name = "ioc-scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
+    { name = "requests", specifier = ">=2.28.0" },
+]
+
+[[package]]
+name = "ioc-scope-mce-provider-deepeval"
+version = "0.1.0"
+source = { editable = "mce/mce-provider-deepeval" }
+dependencies = [
+    { name = "deepeval" },
+    { name = "instructor" },
+    { name = "ioc-scope-mce-core" },
+    { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "deepeval", specifier = ">=3.3.9" },
+    { name = "instructor", specifier = ">=1.11.3" },
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "openai", specifier = ">=1.0.0" },
+]
+
+[[package]]
+name = "ioc-scope-mce-provider-native"
+version = "0.1.0"
+source = { editable = "mce/mce-provider-native" }
+dependencies = [
+    { name = "ioc-scope-mce-core" },
+    { name = "openai" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "openai", specifier = ">=1.0.0" },
+]
+
+[[package]]
+name = "ioc-scope-mce-provider-opik"
+version = "0.1.0"
+source = { editable = "mce/mce-provider-opik" }
+dependencies = [
+    { name = "ioc-scope-mce-core" },
+    { name = "nltk" },
+    { name = "opik" },
+    { name = "rouge-score" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "nltk" },
+    { name = "opik", specifier = ">=1.8.27" },
+    { name = "rouge-score" },
+]
+
+[[package]]
+name = "ioc-scope-mce-provider-ragas"
+version = "0.1.0"
+source = { editable = "mce/mce-provider-ragas" }
+dependencies = [
+    { name = "ioc-scope-mce-core" },
+    { name = "langchain-openai" },
+    { name = "numpy" },
+    { name = "ragas" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "langchain-openai" },
+    { name = "numpy", specifier = ">=1.26.0" },
+    { name = "ragas", specifier = ">=0.2.0,<0.3.0" },
+    { name = "scikit-learn", specifier = ">=1.0.0" },
+    { name = "scipy", specifier = ">=1.7.0" },
+]
+
+[[package]]
+name = "ioc-scope-mce-provider-sdk"
+version = "0.1.0"
+source = { editable = "mce/mce-provider-sdk" }
+dependencies = [
+    { name = "ioc-scope-mce-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
+
+[[package]]
+name = "ioc-scope-ontology"
+version = "1.1.0"
+source = { editable = "../ontology" }
+dependencies = [
+    { name = "rdflib" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+eval = [
+    { name = "pyshacl" },
+    { name = "rdflib" },
+]
+eval-full = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+    { name = "pyshacl" },
+    { name = "rdflib" },
+]
+models = [
+    { name = "pydantic" },
+]
+verify = [
+    { name = "pyshacl" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pydantic" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "opentelemetry-api", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
+    { name = "opentelemetry-sdk", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
+    { name = "pydantic", marker = "extra == 'models'", specifier = ">=2.0" },
+    { name = "pyshacl", marker = "extra == 'eval'", specifier = ">=0.25.0" },
+    { name = "pyshacl", marker = "extra == 'eval-full'", specifier = ">=0.25.0" },
+    { name = "pyshacl", marker = "extra == 'verify'", specifier = ">=0.25.0" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "rdflib", specifier = ">=6.0.0" },
+    { name = "rdflib", marker = "extra == 'eval'", specifier = ">=6.0.0" },
+    { name = "rdflib", marker = "extra == 'eval-full'", specifier = ">=6.0.0" },
+]
+provides-extras = ["dev", "eval", "eval-full", "models", "verify"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pydantic", specifier = ">=2.13.5" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "ruff", specifier = "<=0.15.22" },
 ]
 
 [[package]]
@@ -2178,11 +2576,11 @@ source = { editable = "workers/mce-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },
+    { name = "ioc-scope-mce" },
+    { name = "ioc-scope-mce-client" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "scope-mce" },
-    { name = "scope-mce-client" },
     { name = "worker-base" },
 ]
 
@@ -2199,6 +2597,8 @@ dev = [
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-mce", editable = "mce/mce-meta" },
+    { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2207,8 +2607,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-mce", editable = "mce/mce-meta" },
-    { name = "scope-mce-client", editable = "mce/mce-client" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -2421,9 +2819,9 @@ name = "norm"
 version = "1.0.0"
 source = { editable = "norm" }
 dependencies = [
+    { name = "ioc-scope-ontology" },
     { name = "neo4j" },
     { name = "pydantic" },
-    { name = "scope-ontology" },
 ]
 
 [package.optional-dependencies]
@@ -2450,6 +2848,7 @@ graph = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ioc-scope-ontology", editable = "../ontology" },
     { name = "neo4j", specifier = ">=6.3.1" },
     { name = "norm", extras = ["dev"], marker = "extra == 'all'", editable = "norm" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2461,7 +2860,6 @@ requires-dist = [
     { name = "rdflib", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "rdflib", marker = "extra == 'graph'", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.10" },
-    { name = "scope-ontology", editable = "../ontology" },
 ]
 provides-extras = ["graph", "dev", "all"]
 
@@ -2472,12 +2870,12 @@ source = { editable = "workers/norm-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology" },
     { name = "norm", extra = ["graph"] },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "scope-api" },
-    { name = "scope-ontology" },
     { name = "worker-base" },
 ]
 
@@ -2492,6 +2890,8 @@ dev = [
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", editable = "../ontology" },
     { name = "norm", extras = ["graph"], editable = "norm" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2499,8 +2899,6 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -2513,12 +2911,12 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "dem", extra = ["analysis"] },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-ontology", extra = ["models"] },
     { name = "worker-base" },
 ]
 
@@ -2536,6 +2934,8 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["analysis"], editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2545,8 +2945,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -3722,404 +4120,6 @@ wheels = [
 ]
 
 [[package]]
-name = "scope-api"
-version = "1.0.0"
-source = { editable = "api" }
-dependencies = [
-    { name = "clickhouse-connect" },
-    { name = "clickhouse-sqlalchemy" },
-    { name = "fastapi" },
-    { name = "neo4j" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "redis" },
-    { name = "requests" },
-    { name = "ruff" },
-    { name = "scope-ontology", extra = ["models", "verify"] },
-    { name = "sqlalchemy" },
-    { name = "umap-learn" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "fakeredis" },
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "scope-mce-provider-native" },
-    { name = "scope-mce-provider-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "clickhouse-connect", specifier = ">=0.11.0" },
-    { name = "clickhouse-sqlalchemy", specifier = ">=0.3.2" },
-    { name = "fastapi", specifier = ">=0.129.0" },
-    { name = "neo4j", specifier = ">=6.1.0" },
-    { name = "numba", specifier = ">=0.60.0" },
-    { name = "numpy", specifier = ">=2.3.5" },
-    { name = "packaging", specifier = ">=26.0" },
-    { name = "pydantic-settings", specifier = ">=2.13.1" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "redis", specifier = ">=5.0.0" },
-    { name = "requests", specifier = ">=2.32.5" },
-    { name = "ruff", specifier = "<=0.15.22" },
-    { name = "scope-ontology", extras = ["models", "verify"], editable = "../ontology" },
-    { name = "sqlalchemy", specifier = ">=2.0.46" },
-    { name = "umap-learn", specifier = ">=0.5.7" },
-    { name = "uvicorn", specifier = ">=0.41.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "fakeredis", specifier = ">=2.0.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "scope-mce-provider-native", editable = "mce/mce-provider-native" },
-    { name = "scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
-]
-
-[[package]]
-name = "scope-lib"
-version = "1.0.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "dem", extra = ["all"] },
-    { name = "norm" },
-    { name = "scope-mce" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-docker" },
-    { name = "pytest-mock" },
-    { name = "requests-mock" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dem", extras = ["all"], editable = "dem" },
-    { name = "norm", editable = "norm" },
-    { name = "scope-mce", editable = "mce/mce-meta" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=7.0.0" },
-    { name = "pytest-asyncio", specifier = ">=0.21.0" },
-    { name = "pytest-docker", specifier = ">=3.2.5" },
-    { name = "pytest-mock", specifier = ">=3.15.1" },
-    { name = "requests-mock" },
-    { name = "ruff", specifier = "<=0.15.22" },
-]
-
-[[package]]
-name = "scope-mce"
-version = "2.0.0rc1"
-source = { editable = "mce/mce-meta" }
-dependencies = [
-    { name = "scope-mce-client" },
-    { name = "scope-mce-core" },
-    { name = "scope-mce-helper" },
-    { name = "scope-mce-legacy" },
-    { name = "scope-mce-provider-deepeval" },
-    { name = "scope-mce-provider-native" },
-    { name = "scope-mce-provider-opik" },
-    { name = "scope-mce-provider-ragas" },
-    { name = "scope-mce-provider-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "scope-mce-client", editable = "mce/mce-client" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-    { name = "scope-mce-helper", editable = "mce/mce-helper" },
-    { name = "scope-mce-legacy", editable = "mce/mce-legacy" },
-    { name = "scope-mce-provider-deepeval", editable = "mce/mce-provider-deepeval" },
-    { name = "scope-mce-provider-native", editable = "mce/mce-provider-native" },
-    { name = "scope-mce-provider-opik", editable = "mce/mce-provider-opik" },
-    { name = "scope-mce-provider-ragas", editable = "mce/mce-provider-ragas" },
-    { name = "scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
-]
-
-[[package]]
-name = "scope-mce-client"
-version = "0.1.0"
-source = { editable = "mce/mce-client" }
-dependencies = [
-    { name = "click" },
-    { name = "fastapi" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "scope-api" },
-    { name = "scope-mce-core" },
-    { name = "scope-mce-helper" },
-    { name = "uvicorn" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.0.0" },
-    { name = "fastapi", specifier = ">=0.111.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "scope-api", editable = "api" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-    { name = "scope-mce-helper", editable = "mce/mce-helper" },
-    { name = "uvicorn", specifier = ">=0.30.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "scope-mce-core"
-version = "2.0.0rc1"
-source = { editable = "mce/mce-core" }
-dependencies = [
-    { name = "click" },
-    { name = "networkx" },
-    { name = "packaging" },
-    { name = "pandas" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "rdflib" },
-    { name = "requests" },
-    { name = "scope-ontology" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "black", marker = "extra == 'dev'" },
-    { name = "click", specifier = ">=8.0.0" },
-    { name = "fastapi", marker = "extra == 'all'", specifier = ">=0.111.0" },
-    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.111.0" },
-    { name = "flake8", marker = "extra == 'dev'" },
-    { name = "httpx", marker = "extra == 'dev'" },
-    { name = "mypy", marker = "extra == 'dev'" },
-    { name = "neo4j", marker = "extra == 'neo4j'", specifier = ">=6.1.0" },
-    { name = "networkx", specifier = ">=3.0.0" },
-    { name = "packaging", specifier = ">=23.0" },
-    { name = "pandas", specifier = ">=1.5.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pydantic-settings", specifier = ">=2.10.1" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
-    { name = "rdflib", specifier = ">=7.0.0" },
-    { name = "requests", specifier = ">=2.28.0" },
-    { name = "scope-mce-provider-deepeval", marker = "extra == 'all'", editable = "mce/mce-provider-deepeval" },
-    { name = "scope-mce-provider-deepeval", marker = "extra == 'deepeval'", editable = "mce/mce-provider-deepeval" },
-    { name = "scope-mce-provider-native", marker = "extra == 'all'", editable = "mce/mce-provider-native" },
-    { name = "scope-mce-provider-native", marker = "extra == 'llm'", editable = "mce/mce-provider-native" },
-    { name = "scope-mce-provider-opik", marker = "extra == 'all'", editable = "mce/mce-provider-opik" },
-    { name = "scope-mce-provider-opik", marker = "extra == 'opik'", editable = "mce/mce-provider-opik" },
-    { name = "scope-mce-provider-ragas", marker = "extra == 'all'", editable = "mce/mce-provider-ragas" },
-    { name = "scope-mce-provider-ragas", marker = "extra == 'ragas'", editable = "mce/mce-provider-ragas" },
-    { name = "scope-mce-provider-sdk", marker = "extra == 'all'", editable = "mce/mce-provider-sdk" },
-    { name = "scope-ontology", editable = "../ontology" },
-    { name = "typer", specifier = ">=0.9.0" },
-    { name = "uvicorn", marker = "extra == 'all'", specifier = ">=0.30.0" },
-    { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30.0" },
-]
-provides-extras = ["dev", "neo4j", "deepeval", "llm", "opik", "ragas", "server", "all"]
-
-[[package]]
-name = "scope-mce-helper"
-version = "0.1.0"
-source = { editable = "mce/mce-helper" }
-dependencies = [
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "scope-mce-core", editable = "mce/mce-core" }]
-
-[[package]]
-name = "scope-mce-legacy"
-version = "0.1.0"
-source = { editable = "mce/mce-legacy" }
-dependencies = [
-    { name = "click" },
-    { name = "requests" },
-    { name = "scope-mce-core" },
-    { name = "scope-mce-provider-native" },
-    { name = "scope-mce-provider-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.0.0" },
-    { name = "requests", specifier = ">=2.28.0" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-    { name = "scope-mce-provider-native", editable = "mce/mce-provider-native" },
-    { name = "scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
-]
-
-[[package]]
-name = "scope-mce-provider-deepeval"
-version = "0.1.0"
-source = { editable = "mce/mce-provider-deepeval" }
-dependencies = [
-    { name = "deepeval" },
-    { name = "instructor" },
-    { name = "openai" },
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "deepeval", specifier = ">=3.3.9" },
-    { name = "instructor", specifier = ">=1.11.3" },
-    { name = "openai", specifier = ">=1.0.0" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-]
-
-[[package]]
-name = "scope-mce-provider-native"
-version = "0.1.0"
-source = { editable = "mce/mce-provider-native" }
-dependencies = [
-    { name = "openai" },
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "openai", specifier = ">=1.0.0" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-]
-
-[[package]]
-name = "scope-mce-provider-opik"
-version = "0.1.0"
-source = { editable = "mce/mce-provider-opik" }
-dependencies = [
-    { name = "nltk" },
-    { name = "opik" },
-    { name = "rouge-score" },
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "nltk" },
-    { name = "opik", specifier = ">=1.8.27" },
-    { name = "rouge-score" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-]
-
-[[package]]
-name = "scope-mce-provider-ragas"
-version = "0.1.0"
-source = { editable = "mce/mce-provider-ragas" }
-dependencies = [
-    { name = "langchain-openai" },
-    { name = "numpy" },
-    { name = "ragas" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "langchain-openai" },
-    { name = "numpy", specifier = ">=1.26.0" },
-    { name = "ragas", specifier = ">=0.2.0,<0.3.0" },
-    { name = "scikit-learn", specifier = ">=1.0.0" },
-    { name = "scipy", specifier = ">=1.7.0" },
-    { name = "scope-mce-core", editable = "mce/mce-core" },
-]
-
-[[package]]
-name = "scope-mce-provider-sdk"
-version = "0.1.0"
-source = { editable = "mce/mce-provider-sdk" }
-dependencies = [
-    { name = "scope-mce-core" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "scope-mce-core", editable = "mce/mce-core" }]
-
-[[package]]
-name = "scope-ontology"
-version = "1.0.6"
-source = { editable = "../ontology" }
-dependencies = [
-    { name = "rdflib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-eval = [
-    { name = "pyshacl" },
-    { name = "rdflib" },
-]
-eval-full = [
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-sdk" },
-    { name = "pyshacl" },
-    { name = "rdflib" },
-]
-models = [
-    { name = "pydantic" },
-]
-verify = [
-    { name = "pyshacl" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pydantic" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentelemetry-api", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
-    { name = "opentelemetry-sdk", marker = "extra == 'eval-full'", specifier = ">=1.20.0" },
-    { name = "pydantic", marker = "extra == 'models'", specifier = ">=2.0" },
-    { name = "pyshacl", marker = "extra == 'eval'", specifier = ">=0.25.0" },
-    { name = "pyshacl", marker = "extra == 'eval-full'", specifier = ">=0.25.0" },
-    { name = "pyshacl", marker = "extra == 'verify'", specifier = ">=0.25.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "rdflib", specifier = ">=6.0.0" },
-    { name = "rdflib", marker = "extra == 'eval'", specifier = ">=6.0.0" },
-    { name = "rdflib", marker = "extra == 'eval-full'", specifier = ">=6.0.0" },
-]
-provides-extras = ["dev", "eval", "eval-full", "models", "verify"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pydantic", specifier = ">=2.13.5" },
-    { name = "pytest", specifier = ">=8.4.2" },
-    { name = "ruff", specifier = "<=0.15.22" },
-]
-
-[[package]]
 name = "sentence-transformers"
 version = "6.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4248,10 +4248,10 @@ source = { editable = "workers/stateful-eval-worker" }
 dependencies = [
     { name = "aio-pika" },
     { name = "click" },
+    { name = "ioc-scope-api" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "scope-api" },
     { name = "stateful-evals" },
     { name = "worker-base" },
 ]
@@ -4269,6 +4269,7 @@ dev = [
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -4277,7 +4278,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
     { name = "stateful-evals", editable = "stateful-evals" },
     { name = "worker-base", editable = "worker-base" },
 ]
@@ -4796,10 +4796,10 @@ version = "1.0.0"
 source = { editable = "worker-base" }
 dependencies = [
     { name = "aio-pika" },
+    { name = "ioc-scope-api" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "ruff" },
-    { name = "scope-api" },
 ]
 
 [package.optional-dependencies]
@@ -4813,6 +4813,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -4820,7 +4821,6 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "ruff", specifier = "<=0.15.22" },
-    { name = "scope-api", editable = "api" },
 ]
 provides-extras = ["dev"]
 

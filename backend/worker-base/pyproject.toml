@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "worker-base"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Base worker framework for RabbitMQ-based message processing"
@@ -27,7 +27,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "aio_pika>=8.0.0",
     "pika>=1.3.0",
-    "scope-api",
+    "ioc-scope-api",
     "ruff<=0.15.22",
 ]
 
@@ -40,7 +40,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

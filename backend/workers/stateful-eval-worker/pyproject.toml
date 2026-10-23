@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "stateful-eval-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "In-process stateful evaluation worker — runs temporal metric computation directly as a library, bypassing the HTTP service"
@@ -22,7 +22,7 @@ requires-python = ">=3.11"
 dependencies = [
     "worker-base",
     "stateful-evals",
-    "scope-api",
+    "ioc-scope-api",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -49,7 +49,7 @@ Repository = "https://github.com/agntcy/telemetry-hub"
 [tool.uv.sources]
 worker-base = { workspace = true }
 stateful-evals = { workspace = true }
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/stateful_eval_worker"]

@@ -45,7 +45,7 @@ The ontologies, the shapes and Python helpers to load, validate and query them a
 itself, so a change to a `.ttl` file is picked up by the next `uv sync`.
 
 ```bash
-pip install scope-ontology
+pip install ioc-scope-ontology
 ```
 
 The source files are in

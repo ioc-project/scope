@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "norm-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Standalone normalization worker for processing telemetry sessions"
@@ -25,9 +25,9 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "norm[graph]",
-    "scope-api",
+    "ioc-scope-api",
     "worker-base",
-    "scope-ontology",
+    "ioc-scope-ontology>=1.1.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",

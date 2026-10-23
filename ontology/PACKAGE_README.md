@@ -24,7 +24,7 @@ knowledge-graph instances against the ontology.
 ## Install
 
 ```bash
-pip install scope-ontology
+pip install ioc-scope-ontology
 ```
 
 ## Usage

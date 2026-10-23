@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "intelligence-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Standalone intelligence worker for executing insight templates"
@@ -17,8 +17,8 @@ readme = "README.md"
 
 requires-python = ">=3.11"
 dependencies = [
-    "scope-api",
-    "scope-ontology[models]>=1.0.6",
+    "ioc-scope-api",
+    "ioc-scope-ontology[models]>=1.1.0",
     "dem",
     "worker-base",
     "python-dotenv>=1.0.0",
@@ -40,7 +40,7 @@ dev = [
 intelligence-worker-cli = "intelligence_worker.cli:main"
 
 [tool.uv.sources]
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 dem = { workspace = true }
 worker-base = { workspace = true }
 

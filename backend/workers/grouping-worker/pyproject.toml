@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 name = "grouping-worker"
 version = "1.0.0"
 authors = [
-    { name = "Outshift Open", email = "oss@cisco.com" }
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
 description = "Standalone quick-grouping worker"
@@ -24,7 +24,7 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "scope-api",
+    "ioc-scope-api",
     "worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -46,7 +46,7 @@ dev = [
 grouping-worker-cli = "grouping_worker.cli:main"
 
 [tool.uv.sources]
-scope-api = { workspace = true }
+ioc-scope-api = { workspace = true }
 worker-base = { workspace = true }
 
 [project.urls]

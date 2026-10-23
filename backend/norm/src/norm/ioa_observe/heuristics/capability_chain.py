@@ -74,6 +74,7 @@ def chain_capability_calls(registry: Registry) -> None:
             start_time=last.endTime,
             end_time=agent_call.endTime,
             bridge_kind="capability-chain-boundary",
+            keep="to",  # the agent's own final State stays; the last capability call joins it
         )
 
         for previous, current in zip(ordered, ordered[1:]):

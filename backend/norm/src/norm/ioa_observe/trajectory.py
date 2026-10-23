@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from scope_ontology.models.edges import (
     correspondsToTransition,
     executesProcessing,
@@ -80,9 +82,11 @@ def bridge_states_if_mismatched(
     start_time: float,
     end_time: float,
     bridge_kind: str,
+    keep: Literal["from", "to"] = "from",
 ) -> None:
-    """If the State at from_state_id's content differs from the State at
-    to_state_id's content, bridge them with a synthesized ProcessingCall
+    """If the State at from_state_id's content is the same as the State at
+    to_state_id's, merge them into one State (see ``keep``). If it differs,
+    bridge them with a synthesized ProcessingCall
     attached to attach_to_id (via hasProcessingCall) whose own initial/final
     states *reuse* the two existing States, rather than asserting a false
     direct link between them.
@@ -111,7 +115,10 @@ def bridge_states_if_mismatched(
     if from_state is None or to_state is None:
         return
     if from_state.content == to_state.content:
-        return  # already continuous -- nothing to bridge
+        if from_state_id != to_state_id:
+            kept, dropped = (from_state_id, to_state_id) if keep == "from" else (to_state_id, from_state_id)
+            registry.merge_node_into(State, dropped, kept)
+        return
 
     call_id = _hash_id("processingcall", bridge_kind, from_state_id, to_state_id)
     if registry.get(ProcessingCall, call_id) is not None:

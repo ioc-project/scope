@@ -43,7 +43,7 @@ The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` 
 - **Ingestion**: [the telemetry path](docs/ingestion/index.md), [normalization](docs/ingestion/normalization/index.md) and [the ontology](https://ioc-project.github.io/scope/ontologies.html).
 - **Analysis**: [the analysis engines](docs/analysis/index.md), [pipelines](docs/analysis/pipelines.md), [workers](docs/analysis/workers/index.md) and [components](docs/analysis/components/index.md).
 - **Platform**: [the platform](docs/platform/index.md), [API](docs/platform/api/index.md) and [UI](docs/platform/ui/index.md).
-- **Tutorials**: [instrument your app](docs/tutorials/instrument-your-app.md) and [deploy SCOPE](docs/tutorials/deploy-scope.md).
+- **Tutorials**: [your first trace](docs/tutorials/first-trace.md), [instrument your app](docs/tutorials/instrument-your-app.md) and [deploy SCOPE](docs/tutorials/deploy-scope.md).
 - Preview locally: `pip install -r docs/requirements.txt && mkdocs serve`.
 
 The ontology reference documentation (Widoco and WebVOWL) is generated separately:

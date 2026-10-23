@@ -19,28 +19,28 @@ from ioa_observe.sdk.tracing import session_start
 RATES = {"EUR": 0.859}  # example rate
 
 
-@tool(name="lookup_rate")
+@tool(name="lookup_rate", description="Looks up the USD exchange rate of a currency")
 def lookup_rate(currency: str) -> float:
     return RATES[currency]
 
 
-@tool(name="convert_currency")
+@tool(name="convert_currency", description="Converts an amount with an exchange rate, rounded to cents")
 def convert_currency(amount: float, rate: float) -> float:
     return round(amount * rate, 2)
 
 
-@agent(name="rate_provider")
+@agent(name="rate_provider", description="Looks up the exchange rate for the requested currency")
 def rate_provider(currency: str) -> float:
     return lookup_rate(currency)
 
 
-@agent(name="currency_assistant")
+@agent(name="currency_assistant", description="Converts the amount with the rate it is handed and writes the answer")
 def assistant(amount: float, rate: float) -> str:
     converted = convert_currency(amount, rate)
     return f"{amount:.2f} USD = {converted:.2f} EUR (example rate)"
 
 
-@graph(name="currency_conversion")
+@graph(name="currency_conversion", description="Converts US dollars to euros with two cooperating agents")
 def run(amount: float) -> str:
     return assistant(amount, rate_provider("EUR"))
 

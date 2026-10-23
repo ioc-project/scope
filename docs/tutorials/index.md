@@ -3,6 +3,15 @@
 <p class="eyebrow">Walkthroughs for instrumenting a system and reading what SCOPE produces</p>
 
 
+## Your first trace
+
+The walkthrough starts the whole stack with Docker Compose, sends the trace of a small two-agent
+application, and follows it to the knowledge graph in Neo4j and to the dashboard.
+
+<div class="button-row" markdown>
+[Follow your first trace from `docker compose up` to the dashboard](first-trace.md){ .md-button .md-button--primary }
+</div>
+
 ## Instrument your app
 
 The tutorial covers manual Observe SDK setup,
@@ -26,6 +35,7 @@ either Docker Compose or Kubernetes.
 
 | Walkthrough | Status |
 |---|---|
+| [Your first trace](first-trace.md) | Available |
 | [Instrument your app](instrument-your-app.md) | Available |
 | [Deploying SCOPE](deploy-scope.md) | Available |
 | Ingesting a first session and inspecting the execution model | In preparation |

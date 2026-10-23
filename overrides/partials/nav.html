@@ -1,10 +1,14 @@
 {#-
-  Override of Material's partials/nav.html (mkdocs-material 9.7.7): the sidebar is never "lifted" to the
-  current tab, so it lists the whole site tree on every page (the header tabs stay as a shortcut).
+  Override of Material's partials/nav.html (mkdocs-material 9.7.7): on the home page the sidebar only lists the
+  titles of the main sections, like the header tabs; on every other page it is "lifted" to the current tab, so it
+  only lists the navigation within the current section.
   Re-copy the upstream file if mkdocs-material is upgraded.
 -#}
 {% import "partials/nav-item.html" as item with context %}
 {% set class = "md-nav md-nav--primary" %}
+{% if "navigation.tabs" in features and not page.is_homepage %}
+  {% set class = class ~ " md-nav--lifted" %}
+{% endif %}
 {% if "toc.integrate" in features %}
   {% set class = class ~ " md-nav--integrated" %}
 {% endif %}
@@ -21,9 +25,20 @@
     </div>
   {% endif %}
   <ul class="md-nav__list" data-md-scrollfix>
-    {% for nav_item in nav.items %}
-      {% set path = "__nav_" ~ loop.index %}
-      {{ item.render(nav_item, path, 1) }}
-    {% endfor %}
+    {% if page and page.is_homepage %}
+      {% for nav_item in nav.items %}
+        {% set target = nav_item.children[0] if nav_item.children else nav_item %}
+        <li class="md-nav__item{% if nav_item.active %} md-nav__item--active{% endif %}">
+          <a href="{{ target.url | url }}" class="md-nav__link{% if nav_item.active %} md-nav__link--active{% endif %}"{% if nav_item.active %} aria-current="page"{% endif %}>
+            <span class="md-ellipsis">{{ nav_item.title }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    {% else %}
+      {% for nav_item in nav.items %}
+        {% set path = "__nav_" ~ loop.index %}
+        {{ item.render(nav_item, path, 1) }}
+      {% endfor %}
+    {% endif %}
   </ul>
 </nav>

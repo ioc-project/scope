@@ -85,7 +85,7 @@ extra_css:
 
 # The tabs of the header banner: the landing page, then the four top-level topics.
 nav:
-  - Home: index.md
+  - Overview: index.md
   - Ingestion:
       - ingestion/index.md
       - Normalization:

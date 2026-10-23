@@ -137,6 +137,6 @@ nav:
           - Run the UI standalone: platform/ui/standalone.md
   - Getting Started:
       - tutorials/index.md
-      - Your first trace: tutorials/first-trace.md
       - Instrument your app: tutorials/instrument-your-app.md
       - Deploy SCOPE: tutorials/deploy-scope.md
+      - Your first trace: tutorials/first-trace.md

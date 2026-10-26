@@ -10,9 +10,6 @@ import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined';
 import PowerOutlinedIcon from '@mui/icons-material/PowerOutlined';
 import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import CompareArrowsOutlinedIcon from '@mui/icons-material/CompareArrowsOutlined';
-
 import SemanticGrouping from './SemanticGrouping';
 import { useParams } from 'react-router-dom';
 import { TopicHierarchy } from './TopicHierarchy';
@@ -20,19 +17,15 @@ import { SemanticGroupDetails } from '@/components/SemanticGroupDetails/Semantic
 import { ResourcesUsage } from './ResourcesUsage';
 import {
   ApplicationReasoningPathGraph,
-  SemanticGroupsInsightsTable
+  SessionsInsightsTable
 } from '@/components';
-import CognitiveObservability from '@/components/CognitiveObservability';
-import CognitionProtocolsComparison from '@/components/CognitionProtocolsComparison';
 import { FeatureFlagKey, getFeatureFlags } from '@/config/featureFlags';
 
 const ANALYZE_TABS = [
   'What agents are working on',
   'How they are failing',
   'What resources they are using',
-  'How they are reasoning',
-  'Cognitive observability',
-  'Cognition protocols'
+  'How they are reasoning'
 ] as const;
 
 type AnalyzeTabName = (typeof ANALYZE_TABS)[number];
@@ -43,9 +36,7 @@ const ANALYZE_TAB_FLAGS: Partial<Record<AnalyzeTabName, FeatureFlagKey>> = {
   'What agents are working on': 'semantic_groups',
   'How they are failing': 'insights',
   'What resources they are using': 'waste_estimation',
-  'How they are reasoning': 'neurosymbolic_eval',
-  'Cognitive observability': 'cognitive_observability',
-  'Cognition protocols': 'cognition_protocols'
+  'How they are reasoning': 'neurosymbolic_eval'
 };
 
 const ANALYZE_TAB_META: Record<
@@ -67,14 +58,6 @@ const ANALYZE_TAB_META: Record<
   'How they are failing': {
     label: 'Failure modes',
     icon: ReportProblemOutlinedIcon
-  },
-  'Cognitive observability': {
-    label: 'Cognitive observability',
-    icon: VisibilityOutlinedIcon
-  },
-  'Cognition protocols': {
-    label: 'Cognition protocols',
-    icon: CompareArrowsOutlinedIcon
   }
 };
 
@@ -90,7 +73,7 @@ const ANALYZE_TAB_SECTIONS: { title: string; tabs: AnalyzeTabName[] }[] = [
   },
   {
     title: 'Performance',
-    tabs: ['How they are failing', 'Cognitive observability', 'Cognition protocols']
+    tabs: ['How they are failing']
   }
 ];
 
@@ -236,15 +219,11 @@ const AnalyzeTabContent = memo(({ tab }: { tab: AnalyzeTabName }) => {
         </Stack>
       );
     case 'How they are failing':
-      return <SemanticGroupsInsightsTable />;
+      return <SessionsInsightsTable />;
     case 'What resources they are using':
       return <ResourcesUsage />;
     case 'How they are reasoning':
       return <ApplicationReasoningPathGraph masName={applicationId ?? ''} />;
-    case 'Cognitive observability':
-      return <CognitiveObservability />;
-    case 'Cognition protocols':
-      return <CognitionProtocolsComparison />;
   }
 });
 

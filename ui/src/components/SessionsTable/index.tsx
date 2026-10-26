@@ -4,8 +4,12 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Session, SessionWithStatefulEval } from '@/types/scope.type';
-import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
+import { Session, CompletedSessions } from '@/types/scope.type';
+import {
+  useApplicationSessionsWithStatefulEval,
+  useSessionsWithCognitionProtocols
+} from '@/api/scopeApi';
+import { hasCognitionProtocol } from '../CognitionProtocolsSummary/utils';
 import { SessionsTable } from './SessionsTable.tsx';
 import { Stack, SxProps, useTheme } from '@mui/material';
 import { useDebouncedValue } from '@/utils';
@@ -18,6 +22,8 @@ interface SessionsTablePropsWrapper {
   endDate: number | null;
   enableSearch?: boolean;
   onSessionClick?: (session: Session) => void;
+  // Click on a Cognition protocol tag of a session.
+  onProtocolClick?: (session: Session) => void;
   defaultHiddenColumns?: string[];
   filteredSessionIds?: string[];
   title?: string;
@@ -52,6 +58,7 @@ export const SessionsTableWrapper = ({
   endDate,
   enableSearch = false,
   onSessionClick,
+  onProtocolClick,
   defaultHiddenColumns = [],
   title,
   filteredSessionIds,
@@ -76,12 +83,39 @@ export const SessionsTableWrapper = ({
     semanticGroupId
   );
 
-  const sessionsWithStatefulEval: SessionWithStatefulEval[] = useMemo(() => {
+  // Cognition (L9) protocols of the sessions of the same interval. They only
+  // enrich the table: a failure here must not prevent the sessions from showing.
+  const { data: cognitionProtocolsData } = useSessionsWithCognitionProtocols(
+    applicationId ?? applicationIdFromParams ?? '',
+    debouncedStartDate ?? undefined,
+    debouncedEndDate ?? undefined
+  );
+
+  // Session id -> protocols, only for the sessions with a protocol enabled or activated.
+  const cognitionProtocolsBySessionId = useMemo(() => {
+    const protocolSessions = (cognitionProtocolsData?.sessions ?? []).filter(
+      hasCognitionProtocol
+    );
+    return new Map(
+      protocolSessions.map((session) => [
+        session.sessionId,
+        session.cognitionProtocols
+      ])
+    );
+  }, [cognitionProtocolsData?.sessions]);
+
+  const sessionsWithStatefulEval: CompletedSessions[] = useMemo(() => {
     if (!sessionsData?.sessionList) return [];
 
-    const sessions = sessionsData.sessionList.map((session) => {
+    const sessions = sessionsData.sessionList.map((rawSession) => {
+      const session = {
+        ...rawSession,
+        cognitionProtocols: cognitionProtocolsBySessionId.get(
+          rawSession.sessionId
+        )
+      };
       const statefulEval = (session as any).statefulEval;
-      if (!statefulEval) return session as SessionWithStatefulEval;
+      if (!statefulEval) return session as CompletedSessions;
 
       let parsedValue: any = null;
       try {
@@ -113,17 +147,17 @@ export const SessionsTableWrapper = ({
           value: parsedValue?.value,
           reasoningJson
         }
-      } as SessionWithStatefulEval;
+      } as CompletedSessions;
     });
 
-    const sessionsWithStatefulEvalFiltered: SessionWithStatefulEval[] =
+    const sessionsWithStatefulEvalFiltered: CompletedSessions[] =
       filteredSessionIds
         ? sessions.filter((session) =>
             filteredSessionIds.includes(session.sessionId)
           )
         : sessions;
 
-    const sessionsWithStatefulEvalFilteredByAgent: SessionWithStatefulEval[] =
+    const sessionsWithStatefulEvalFilteredByAgent: CompletedSessions[] =
       agentId
         ? (sessionsWithStatefulEvalFiltered.filter((session) =>
             session.agents?.some((agent) => agent === agentId)
@@ -131,7 +165,12 @@ export const SessionsTableWrapper = ({
         : sessionsWithStatefulEvalFiltered;
 
     return sessionsWithStatefulEvalFilteredByAgent;
-  }, [sessionsData?.sessionList, filteredSessionIds, agentId]);
+  }, [
+    sessionsData?.sessionList,
+    cognitionProtocolsBySessionId,
+    filteredSessionIds,
+    agentId
+  ]);
 
   return (
     <Stack direction="column" gap={'8px'} sx={containerSx}>
@@ -161,6 +200,7 @@ export const SessionsTableWrapper = ({
         startDate={startDate ? dayjs.unix(startDate) : null}
         endDate={endDate ? dayjs.unix(endDate) : null}
         onSessionClick={onSessionClick}
+        onProtocolClick={onProtocolClick}
         // onReload={() => executeQuery()}
         defaultHiddenColumns={defaultHiddenColumns}
         title={title}

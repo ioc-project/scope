@@ -1920,44 +1920,41 @@ def _build_cognitive_metrics(
     return [found[n] for n in COGNITIVE_METRIC_NAMES if n in found]
 
 
-def _as_str_list(raw: object) -> list[str]:
-    """Coerce a stored remediation property (list, JSON string or text) to ``list[str]``."""
-    if raw is None:
-        return []
-    if isinstance(raw, str):
-        try:
-            raw = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            return [raw] if raw.strip() else []
-    if isinstance(raw, str):
-        return [raw] if raw.strip() else []
-    if isinstance(raw, (list, tuple)):
-        return [str(r) for r in raw if r is not None and str(r).strip()]
-    return []
+# Confidence levels of a failure report, lowest first.
+_FAILURE_CONFIDENCE_RANK = {"low": 0, "medium": 1, "high": 2}
 
 
 def _build_cognitive_failures(raw_failures: object) -> list[CognitiveFailure]:
-    """Map ``CognitiveFailuresReport`` node properties to :class:`CognitiveFailure`."""
+    """Map ``CognitiveFailureReport`` node properties to :class:`CognitiveFailure`.
+
+    The name is the challenge code. A failure detected at several calls of a session is reported
+    once, with its highest confidence. Most confident first.
+    """
     if not isinstance(raw_failures, (list, tuple)):
         return []
 
-    failures: list[CognitiveFailure] = []
+    by_name: dict[str, CognitiveFailure] = {}
     for props in raw_failures:
         if not isinstance(props, dict):
             continue
-        name = props.get("name")
-        confidence = props.get("presenceProbability")
-        if not name or isinstance(confidence, bool) or not isinstance(confidence, Real):
+        name = props.get("name") or props.get("code")
+        confidence = str(props.get("confidence") or "").lower()
+        if not name or confidence not in _FAILURE_CONFIDENCE_RANK:
             continue
-        failures.append(
-            CognitiveFailure(
+        known = by_name.get(str(name))
+        if known is None or (
+            _FAILURE_CONFIDENCE_RANK[confidence] > _FAILURE_CONFIDENCE_RANK[known.confidence]
+        ):
+            by_name[str(name)] = CognitiveFailure(
                 name=str(name),
-                confidence=float(confidence),
-                remediations=_as_str_list(props.get("remediation")),
-                description=str(props.get("description") or ""),
+                confidence=confidence,
+                reasoning=str(props.get("reasoning") or ""),
             )
-        )
-    return sorted(failures, key=lambda f: f.confidence, reverse=True)
+    return sorted(
+        by_name.values(),
+        key=lambda f: _FAILURE_CONFIDENCE_RANK[f.confidence],
+        reverse=True,
+    )
 
 
 def _get_application_sessions_with_cognitive_observability(
@@ -1972,7 +1969,7 @@ def _get_application_sessions_with_cognitive_observability(
     """Return the sessions of an application with their cognitive observability.
 
     Metrics come from ``Session-[:hasMetric]->Metric`` nodes and failures from
-    the session's ``CognitiveFailuresReport`` nodes (one node per failure).
+    the session's ``CognitiveFailureReport`` nodes (one node per failure).
     """
     del dialect  # Neo4j-only query.
     start_epoch, end_epoch = parse_epoch_range(start_time, end_time)

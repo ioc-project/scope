@@ -9,6 +9,8 @@ import { useCallback, useMemo } from 'react';
 import { SessionLatentSpace } from './SessionLatentSpace';
 import { transformLatentSpaceResponse } from '@/utils/latentSpace';
 import {
+  CognitiveFailuresBanner,
+  CognitiveFailuresList,
   WidgetCard,
   MetricSelectorDropdown,
   useMetricSelector,
@@ -20,8 +22,11 @@ import {
   useImpactAssessmentSession,
   useSemanticGroups,
   useSessionLatentSpace,
+  useSessionsWithCognitiveObservability,
   useSessionStatefulEval
 } from '@/api/scopeApi';
+import { useTimeRangeStore } from '@/store';
+import { compareFailures } from '@/common/cognitiveFailureConfidence';
 import { Spinner } from '@open-ui-kit/core';
 import { metricCatalog } from '@/common';
 import { Unit } from '@/types/scope.type';
@@ -38,6 +43,33 @@ export const SessionAnalysisTab = () => {
 
   const insightsEnabled = useFeatureFlag('insights');
   const impactAssessmentEnabled = useFeatureFlag('impact_assessment');
+  const cognitiveObservabilityEnabled = useFeatureFlag(
+    'cognitive_observability'
+  );
+
+  // The cognitive failures of the session. Without the feature flag the
+  // application id is empty, which disables the request.
+  const { startDate, endDate } = useTimeRangeStore();
+  const {
+    data: cognitiveSessions,
+    isLoading: isCognitiveFailuresLoading,
+    isError: isCognitiveFailuresError
+  } = useSessionsWithCognitiveObservability(
+    cognitiveObservabilityEnabled ? (applicationId ?? '') : '',
+    startDate,
+    endDate,
+    sessionId
+  );
+
+  // Undefined while the session has no data. Highest confidence first.
+  const cognitiveFailures = useMemo(() => {
+    const session = cognitiveSessions?.sessions?.find(
+      (s) => s.sessionId === sessionId
+    );
+    return session
+      ? [...(session.cognitiveFailures ?? [])].sort(compareFailures)
+      : undefined;
+  }, [cognitiveSessions?.sessions, sessionId]);
 
   const {
     data: latentSpaceResponse,
@@ -182,6 +214,14 @@ export const SessionAnalysisTab = () => {
         gap={'32px'}
         sx={{ paddingTop: '16px', width: '100%', height: '100%' }}
       >
+        {cognitiveObservabilityEnabled && (
+          <CognitiveFailuresBanner
+            failures={cognitiveFailures}
+            isLoading={isCognitiveFailuresLoading}
+            isError={isCognitiveFailuresError}
+          />
+        )}
+
         <MetricSelectorDropdown {...metricSelector} />
 
         <Grid container spacing={'8px'} columns={10}>
@@ -207,6 +247,10 @@ export const SessionAnalysisTab = () => {
             );
           })}
         </Grid>
+
+        {cognitiveObservabilityEnabled && (
+          <CognitiveFailuresList failures={cognitiveFailures} />
+        )}
 
         {impactAssessmentEnabled &&
           (isImpactAssessmentSessionLoading ? (

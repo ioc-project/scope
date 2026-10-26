@@ -30,6 +30,12 @@ export interface SessionWithStatefulEval extends Session {
     | null;
 }
 
+export interface CompletedSessions extends SessionWithStatefulEval {
+  // L9 / Cognition protocols of the session. Absent or empty: no protocol
+  // was enabled in the session.
+  cognitionProtocols?: SessionCognitionProtocolStatus[] | null;
+}
+
 export interface WastefulSession {
   sessionId: string;
   timestamp: string;
@@ -685,20 +691,6 @@ export interface WastedResourcesFeatureScore {
   score: number;
 }
 
-export interface SemanticGroupsInsight {
-  groupName: string;
-  groupSummary: string;
-  groupId: string;
-  sessionIds: string[];
-  createdAt: string;
-  description: string;
-  insightId: string;
-  name: string;
-  labels: string[];
-  priority: string;
-  targetNodeId: string;
-}
-
 export interface SessionInsight {
   duration: number;
   endTime: string;
@@ -711,6 +703,13 @@ export interface SessionInsight {
   labels: string[];
   priority: string;
   targetNodeId: string;
+}
+
+// A row of the sessions insights table: a session insight, or a cognitive
+// failure of a session shaped like one (`name` is the failure code and
+// `description` its reasoning). `cognitiveFailure` is only set for the latter.
+export interface SessionInsightRow extends SessionInsight {
+  cognitiveFailure?: CognitiveFailure | null;
 }
 
 export interface ReasoningPathResponse {
@@ -938,11 +937,18 @@ export interface CognitiveObservabilityMetric {
   value: SingleValueData;
 }
 
+// How sure the cognitive-failure detector is about a failure.
+export type CognitiveFailureConfidence = 'low' | 'medium' | 'high';
+
 export interface CognitiveFailure {
+  // Taxonomy code of the failure, e.g. 'IR-1', 'DC-4', 'CC-3' (not a
+  // human-readable name; see COGNITIVE_FAILURE_TAXONOMY for the title).
   name: string;
-  confidence: number;
-  description?: string | null;
-  remediations?: string[] | null;
+  // A failure detected at several calls of a session is reported once, with
+  // its highest confidence.
+  confidence: CognitiveFailureConfidence;
+  // The detector's reasoning for why the failure was flagged in this session.
+  reasoning: string;
 }
 
 // ---------------------------------------------------------------------------

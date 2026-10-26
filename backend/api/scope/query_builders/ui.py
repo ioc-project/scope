@@ -3162,9 +3162,8 @@ def neo4j_sessions_with_cognitive_observability_query(
 
     One row per session: ``sessionId, startTime, duration, cost, agents, tokens,
     sessionMetrics, failures``.  ``failures`` holds the raw properties of the
-    session's ``CognitiveFailuresReport`` / ``ChallengeDetectionReport`` nodes (one per failure).  The
-    relationship is matched undirected/untyped, as for the other session-attached
-    nodes in this module.
+    session's ``CognitiveFailureReport`` nodes (one per failure), which the cognitive failure worker
+    attaches to the session by ``reportsOn``.
     """
     stmt = """
     MATCH (s:Session)-[:executesSession]->(ma:MAS) WHERE ma.id = $application_id
@@ -3202,10 +3201,7 @@ def neo4j_sessions_with_cognitive_observability_query(
             source: sm.source,
             reasoning: sm.reasoning
         }) WHERE x.name IS NOT NULL] AS sessionMetrics
-    OPTIONAL MATCH (s)-[]-(f)
-        WHERE f:CognitiveFailuresReport
-           OR f:ChallengeDetectionReport
-           OR f.type = 'ChallengeDetectionReport'
+    OPTIONAL MATCH (f:CognitiveFailureReport)-[:reportsOn]->(s)
     WITH
         s,
         cost,

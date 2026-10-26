@@ -9,7 +9,8 @@ import {
   SessionDetails,
   SessionsTable,
   WidgetCard,
-  SessionsInsightsList
+  SessionsInsightsList,
+  CognitionProtocolsSummary
 } from '@/components';
 import LiveSessionDetails from '@/components/LiveSessionDetails';
 import { Spinner, Tabs, Tab } from '@open-ui-kit/core';
@@ -71,6 +72,16 @@ const CollectTab = () => {
       PATHS.applicationCollectSession
         .replace(':applicationId', applicationId ?? '')
         .replace(':sessionId', encodeURIComponent(session.sessionId))
+    );
+  };
+
+  // The Cognition protocol tags open the Cognition protocols tab of the session.
+  const handleProtocolClick = (session: Session) => {
+    navigate(
+      PATHS.applicationCollectSessionTab
+        .replace(':applicationId', applicationId ?? '')
+        .replace(':sessionId', encodeURIComponent(session.sessionId))
+        .replace(':sessionTab', 'cognition-protocols')
     );
   };
 
@@ -209,7 +220,7 @@ const CollectTab = () => {
                 </Stack>
               ) : (
                 <>
-                  <Stack direction={'row'} gap={'16px'}>
+                  <Stack direction={'row'} gap={'16px'} flexWrap={'wrap'}>
                     <WidgetCard
                       title={'Duration (avg)'}
                       content={
@@ -234,6 +245,11 @@ const CollectTab = () => {
                         </Typography>
                       }
                     />
+                    <CognitionProtocolsSummary
+                      applicationId={applicationId ?? ''}
+                      startDate={debouncedStartDate}
+                      endDate={debouncedEndDate}
+                    />
                   </Stack>
 
                   <Box sx={{ width: '100%', overflow: 'auto' }}>
@@ -243,12 +259,8 @@ const CollectTab = () => {
                       endDate={endDate}
                       enableSearch={true}
                       onSessionClick={handleSessionClick}
-                      defaultHiddenColumns={[
-                        'agents',
-                        'llms',
-                        'tokens',
-                        'duration'
-                      ]}
+                      onProtocolClick={handleProtocolClick}
+                      defaultHiddenColumns={['agents', 'llms', 'duration']}
                       showDateInterval={false}
                       title={'Session List'}
                     />

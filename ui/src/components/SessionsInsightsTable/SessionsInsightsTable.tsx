@@ -20,8 +20,16 @@ import {
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { SessionInsight } from '@/types/scope.type';
+import { SessionInsightRow } from '@/types/scope.type';
 import { Tags } from '@/components';
+import {
+  getCognitiveFailureLabel,
+  getCognitiveFailureTaxonomy
+} from '@/common/cognitiveFailureTaxonomy';
+import {
+  CONFIDENCE_COLORS,
+  CONFIDENCE_LABELS
+} from '@/common/cognitiveFailureConfidence';
 import { formatDurationMs } from '@/utils/stringUtils';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 import { ExecutionTrace } from '@/components/ExecutionTrace';
@@ -29,12 +37,12 @@ import { colorTokens } from '@/theme/colors';
 import { PATHS } from '@/routes/routes';
 import { useNavigate, useParams } from 'react-router-dom';
 
-type MRT_ColumnDefList = TableProps<SessionInsight>['columns'];
+type MRT_ColumnDefList = TableProps<SessionInsightRow>['columns'];
 
 interface SessionsInsightsTableProps {
-  data: SessionInsight[];
+  data: SessionInsightRow[];
   isLoading: boolean;
-  onSessionClick?: (session: SessionInsight) => void;
+  onSessionClick?: (session: SessionInsightRow) => void;
 }
 
 export const SessionsInsightsTable = ({
@@ -53,8 +61,8 @@ export const SessionsInsightsTable = ({
     () => [
       {
         accessorKey: 'sessionId',
-        header: 'Session ID',
-        size: 250,
+        header: 'ID',
+        size: 108,
         accessorFn: ({ sessionId }) => (
           <Tooltip title={sessionId} placement={'top'}>
             <Typography
@@ -73,26 +81,58 @@ export const SessionsInsightsTable = ({
       {
         accessorKey: 'name',
         header: 'Insight',
-        size: 200,
-        accessorFn: ({ name }) => (
-          <Tooltip title={name} placement={'top'}>
-            <Typography
-              variant={'body2'}
-              sx={{
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {name}
-            </Typography>
-          </Tooltip>
-        )
+        size: 280,
+        accessorFn: ({ name, cognitiveFailure }) => {
+          // A cognitive failure: a tag with its title, code and confidence
+          // level; the tooltip is the general description of the failure.
+          if (cognitiveFailure) {
+            const label = `${getCognitiveFailureLabel(cognitiveFailure.name)}: ${
+              CONFIDENCE_LABELS[cognitiveFailure.confidence] ??
+              cognitiveFailure.confidence
+            }`;
+            return (
+              <Tooltip
+                title={
+                  getCognitiveFailureTaxonomy(cognitiveFailure.name)?.summary ??
+                  label
+                }
+                placement={'top'}
+              >
+                <Box>
+                  <Tag
+                    color={
+                      CONFIDENCE_COLORS[cognitiveFailure.confidence] ??
+                      TagBackgroundColorVariants.AccentAWeak
+                    }
+                    size={GeneralSize.Medium}
+                  >
+                    {label}
+                  </Tag>
+                </Box>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <Tooltip title={name} placement={'top'}>
+              <Typography
+                variant={'body2'}
+                sx={{
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {name}
+              </Typography>
+            </Tooltip>
+          );
+        }
       },
       {
         accessorKey: 'description',
         header: 'Description',
-        size: 300,
+        size: 150,
         accessorFn: ({ description }) => (
           <Tooltip title={description} placement={'top'}>
             <Typography
@@ -113,6 +153,8 @@ export const SessionsInsightsTable = ({
         header: 'Priority',
         size: 120,
         accessorFn: ({ priority }) => {
+          // Cognitive failure rows have no priority.
+          if (!priority) return null;
           const colorMap: Record<string, TagBackgroundColorVariants> = {
             high: TagBackgroundColorVariants.AccentFWeak,
             medium: TagBackgroundColorVariants.AccentEWeak,
@@ -159,16 +201,17 @@ export const SessionsInsightsTable = ({
         accessorKey: 'duration',
         header: 'Duration',
         size: 120,
-        accessorFn: ({ duration }) => (
-          <Typography variant={'body2'}>
-            {formatDurationMs(duration)}
-          </Typography>
-        )
+        accessorFn: ({ duration, cognitiveFailure }) =>
+          cognitiveFailure ? null : (
+            <Typography variant={'body2'}>
+              {formatDurationMs(duration)}
+            </Typography>
+          )
       },
       {
         accessorKey: 'createdAt',
         header: 'Created',
-        size: 180,
+        size: 140,
         accessorFn: ({ createdAt }) => (
           <Typography variant={'body2'}>
             {createdAt ? format(new Date(createdAt), 'MMM d, yyyy HH:mm') : ''}
@@ -210,33 +253,12 @@ export const SessionsInsightsTable = ({
     muiTableBodyRowProps: ({ row }) => {
       return {
         sx: {
-          cursor: 'pointer',
-          backgroundColor: colorTokens.greyBackgroundDark,
-          '& > td': {
-            backgroundColor: `${colorTokens.greyBackgroundDark} !important`
-          }
+          cursor: 'pointer'
         },
         onClick: () => {
           onSessionClick?.(row.original);
         }
       };
-    },
-    muiTablePaperProps: {
-      sx: {
-        padding: '12px',
-        backgroundColor: colorTokens.greyBackgroundDark,
-        elevation: 0
-      }
-    },
-    muiTableHeadCellProps: {
-      sx: { backgroundColor: colorTokens.greyBackgroundDark, color: '#ffffff' }
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        backgroundColor: colorTokens.greyBackgroundDark,
-        color: '#ffffff',
-        height: '40px'
-      }
     }
   });
 

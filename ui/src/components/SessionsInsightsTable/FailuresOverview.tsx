@@ -7,16 +7,17 @@ import { useMemo } from 'react';
 import { Stack, Typography } from '@open-ui-kit/core';
 import { Box, LinearProgress, useTheme } from '@mui/material';
 import InfoOutlineIcon from '@mui/icons-material/InfoOutline';
-import { CustomTooltip, RemediationTags, WidgetCard } from '@/components';
-import { COGNITIVE_FAILURE_DESCRIPTIONS } from '@/common/cognitiveFailures';
-import { SessionsWithCognitiveObservability } from '@/types/scope.type';
+import { CustomTooltip } from '@/components/CustomTooltip';
+import { WidgetCard } from '@/components/WidgetCard/WidgetCard';
+import {
+  getCognitiveFailureLabel,
+  getCognitiveFailureTaxonomy
+} from '@/common/cognitiveFailureTaxonomy';
+import { SessionWithCognitiveObservability } from '@/types/scope.type';
 import { getScoreColor } from '@/utils/metrics';
-import { getFailuresAboveThreshold } from './utils';
 
-interface CognitiveObservabilityOverviewProps {
-  sessionsWithCognitiveObservability?: SessionsWithCognitiveObservability;
-  // Failures count only when their confidence is above this fraction (0-1).
-  threshold: number;
+interface FailuresOverviewProps {
+  sessions?: SessionWithCognitiveObservability[];
   selectedFailure?: string | null;
   onSelectFailure?: (failure: string | null) => void;
 }
@@ -42,43 +43,33 @@ const RatioBar = ({ ratio, color }: { ratio: number; color: string }) => {
   );
 };
 
-export const CognitiveObservabilityOverview = ({
-  sessionsWithCognitiveObservability,
-  threshold,
+// The share of sessions with cognitive failures, and one card per failure.
+// Selecting a card filters the table below to that failure.
+export const FailuresOverview = ({
+  sessions,
   selectedFailure = null,
   onSelectFailure
-}: CognitiveObservabilityOverviewProps) => {
+}: FailuresOverviewProps) => {
   const theme = useTheme();
-  const sessions = sessionsWithCognitiveObservability?.sessions;
-  const thresholdPercent = Math.round(threshold * 100);
 
   const stats = useMemo(() => {
     const totalSessions = sessions?.length ?? 0;
     const counts = new Map<string, number>();
-    // Union of the remediations of every occurrence of a failure.
-    const remediationsByFailure = new Map<string, Set<string>>();
     let sessionsWithFailure = 0;
 
     (sessions ?? []).forEach((session) => {
-      const failures = getFailuresAboveThreshold(session, threshold);
-      if (failures.length > 0) sessionsWithFailure += 1;
-
-      // Each failure counts at most once per session.
-      new Set(failures.map((failure) => failure.name)).forEach((name) =>
-        counts.set(name, (counts.get(name) ?? 0) + 1)
+      const names = new Set(
+        (session.cognitiveFailures ?? []).map((failure) => failure.name)
       );
-      failures.forEach((failure) => {
-        const set = remediationsByFailure.get(failure.name) ?? new Set();
-        (failure.remediations ?? []).forEach((r) => set.add(r));
-        remediationsByFailure.set(failure.name, set);
-      });
+      if (names.size > 0) sessionsWithFailure += 1;
+      // Each failure counts at most once per session.
+      names.forEach((name) => counts.set(name, (counts.get(name) ?? 0) + 1));
     });
 
     const failures = Array.from(counts, ([name, count]) => ({
       name,
       count,
-      ratio: totalSessions > 0 ? count / totalSessions : 0,
-      remediations: Array.from(remediationsByFailure.get(name) ?? []).sort()
+      ratio: totalSessions > 0 ? count / totalSessions : 0
     })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
     return {
@@ -88,7 +79,7 @@ export const CognitiveObservabilityOverview = ({
       sessionsWithFailureRatio:
         totalSessions > 0 ? sessionsWithFailure / totalSessions : 0
     };
-  }, [sessions, threshold]);
+  }, [sessions]);
 
   const primary = theme.palette.vars.interactivePrimaryDefaultDefault;
 
@@ -99,7 +90,7 @@ export const CognitiveObservabilityOverview = ({
         <CustomTooltip
           title={
             <Typography variant={'caption'}>
-              Select a failure to filter the sessions below.
+              Select a failure to filter the table below.
             </Typography>
           }
           placement={'top'}
@@ -115,7 +106,9 @@ export const CognitiveObservabilityOverview = ({
       <Stack direction="row" sx={{ width: '100%' }}>
         <WidgetCard
           title={'Sessions with failures'}
-          description={`The percentage of sessions with at least one cognitive failure above ${thresholdPercent}% confidence.`}
+          description={
+            'The percentage of sessions with at least one cognitive failure.'
+          }
           content={
             <Stack direction="column" gap="8px" sx={{ width: '100%' }}>
               <Stack direction="row" gap="4px" alignItems="baseline">
@@ -149,13 +142,13 @@ export const CognitiveObservabilityOverview = ({
           gap: '8px'
         }}
       >
-        {stats.failures.map(({ name, count, ratio, remediations }) => {
+        {stats.failures.map(({ name, count, ratio }) => {
           const isSelected = selectedFailure === name;
           return (
             <WidgetCard
               key={name}
-              title={name}
-              description={COGNITIVE_FAILURE_DESCRIPTIONS[name]}
+              title={getCognitiveFailureLabel(name)}
+              description={getCognitiveFailureTaxonomy(name)?.summary}
               onClick={() => onSelectFailure?.(isSelected ? null : name)}
               content={
                 <Stack direction="column" gap="8px" sx={{ width: '100%' }}>
@@ -163,7 +156,6 @@ export const CognitiveObservabilityOverview = ({
                     {`${count} / ${stats.totalSessions} sessions`}
                   </Typography>
                   <RatioBar ratio={ratio} color={primary} />
-                  <RemediationTags remediations={remediations} />
                 </Stack>
               }
               cardSx={{

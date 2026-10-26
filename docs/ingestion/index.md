@@ -36,7 +36,9 @@ semantic-convention-compliant spans can be ingested, whatever produces them:
   package decorates agent, tool and workflow functions and emits spans to an
   OTLP/HTTP collector.
 - **[Insight module for agentic systems](https://github.com/outshift-open/insight-module-for-agentic-systems/)**
-  — telemetry from this module is supported out of the box.
+  — an OpenTelemetry plugin for OpenClaw-style systems, and the alternative to the
+  Observe SDK when the MAS is not an application you instrument with decorators.
+  Its telemetry is supported out of the box.
 - **Other emitters** — vendor SDKs, framework auto-instrumentation and custom
   emitters are all admissible, as are the boundary-level traces propagated in
   black-box mode.
@@ -142,3 +144,4 @@ analysis composable.
 - [Insight module for agentic systems](https://github.com/outshift-open/insight-module-for-agentic-systems/)
 - [`ioc-project/scope`](https://github.com/ioc-project/scope) — SCOPE repo, under Apache 2.0 license
 - [Instrumenting a MAS: tutorial](../tutorials/instrument-your-app.md)
+- [Instrumenting an OpenClaw-style MAS: tutorial](tutorials/instrument-openclaw.md)

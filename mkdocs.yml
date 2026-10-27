@@ -140,3 +140,4 @@ nav:
       - Instrument your app: tutorials/instrument-your-app.md
       - Deploy SCOPE: tutorials/deploy-scope.md
       - Your first trace: tutorials/first-trace.md
+      - Semantic analysis: tutorials/semantic-analysis.md

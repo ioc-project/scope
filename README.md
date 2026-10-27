@@ -39,7 +39,7 @@ OTLP_HTTP_ENDPOINT=http://localhost:4318 uv run main.py 100
 
 The session shows up a few seconds after the example exits. The [first-trace tutorial](docs/tutorials/first-trace.md) walks through each step with screenshots, and explains how to query the knowledge graph.
 
-**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md).
+**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md); to see how SCOPE evaluates sessions against their peers, follow the [semantic analysis tutorial](docs/tutorials/semantic-analysis.md).
 
 ## How it works
 
@@ -56,7 +56,7 @@ The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` 
 - **Ingestion**: [the telemetry path](docs/ingestion/index.md), [normalization](docs/ingestion/normalization/index.md) and [the ontology](https://ioc-project.github.io/scope/ontologies.html).
 - **Analysis**: [the analysis engines](docs/analysis/index.md), [pipelines](docs/analysis/pipelines.md), [workers](docs/analysis/workers/index.md) and [components](docs/analysis/components/index.md).
 - **Platform**: [the platform](docs/platform/index.md), [API](docs/platform/api/index.md) and [UI](docs/platform/ui/index.md).
-- **Tutorials**: [your first trace](docs/tutorials/first-trace.md), [instrument your app](docs/tutorials/instrument-your-app.md) and [deploy SCOPE](docs/tutorials/deploy-scope.md).
+- **Tutorials**: [your first trace](docs/tutorials/first-trace.md), [semantic analysis](docs/tutorials/semantic-analysis.md), [instrument your app](docs/tutorials/instrument-your-app.md) and [deploy SCOPE](docs/tutorials/deploy-scope.md).
 - Preview locally: `pip install -r docs/requirements.txt && mkdocs serve`.
 
 The ontology reference documentation (Widoco and WebVOWL) is generated separately:

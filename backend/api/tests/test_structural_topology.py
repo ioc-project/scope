@@ -24,8 +24,16 @@ class FakeDb:
 
 
 AGENTS = [
-    {"agentId": "currency_assistant", "agentName": "currency_assistant", "agentDescription": "Converts"},
-    {"agentId": "rate_provider", "agentName": "rate_provider", "agentDescription": None},
+    {
+        "agentId": "currency_assistant",
+        "agentName": "currency_assistant",
+        "agentDescription": "Converts",
+    },
+    {
+        "agentId": "rate_provider",
+        "agentName": "rate_provider",
+        "agentDescription": None,
+    },
 ]
 
 
@@ -50,16 +58,25 @@ def test_the_agents_of_the_application_become_the_nodes() -> None:
 
 def test_an_application_without_agents_has_no_topology() -> None:
     assert _get_application_structural_topology(FakeDb([]), application_id="x") == {}
-    assert _get_application_structural_topology(FakeDb([{"agentId": ""}]), application_id="x") == {}
+    assert (
+        _get_application_structural_topology(
+            FakeDb([{"agentId": ""}]), application_id="x"
+        )
+        == {}
+    )
 
 
 def test_a_database_error_is_reported() -> None:
     with pytest.raises(DatabaseError, match="currency-demo"):
-        _get_application_structural_topology(FakeDb(error=RuntimeError("down")), application_id="currency-demo")
+        _get_application_structural_topology(
+            FakeDb(error=RuntimeError("down")), application_id="currency-demo"
+        )
 
 
 def test_the_query_is_scoped_to_the_application_through_its_mas() -> None:
-    query, params = ui_queries.structural_agents_by_application_query(application_id="app-1")
+    query, params = ui_queries.structural_agents_by_application_query(
+        application_id="app-1"
+    )
 
     assert "MAS {id: $applicationId}" in query and "belongsToMAS" in query
     assert "Processing" not in query and params == {"applicationId": "app-1"}
@@ -85,7 +102,9 @@ def _no_cache(monkeypatch):
 
 def _topology(declared):
     ui, kg = FakeClient(declared), FakeClient(None)
-    result = endpoints.application_topology("app", ui_client=ui, kg_client=kg, redis_client=None)
+    result = endpoints.application_topology(
+        "app", ui_client=ui, kg_client=kg, redis_client=None
+    )
     return result, ui, kg
 
 
@@ -107,7 +126,9 @@ def test_without_a_declared_graph_the_structural_one_is_returned(declared) -> No
 # ---------------------------------------------------------------- live topology of an application
 
 
-def test_the_live_sessions_of_an_application_match_the_prefixed_event_session_ids() -> None:
+def test_the_live_sessions_of_an_application_match_the_prefixed_event_session_ids() -> (
+    None
+):
     """Event session ids are "<application>_<uuid>"; the traces' session_id has no prefix."""
     from scope.query_builders import live_topology as lt
 

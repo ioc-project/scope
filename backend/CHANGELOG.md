@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The `mce` worker computed one session at a time.** `MCEWrapper.process_mce_session` was `async` but called the blocking
+  evaluation directly, which held the event loop: whatever `MAX_INFLIGHT_MESSAGES` said, sessions went through one after the
+  other, about 8 seconds each with the default metrics. It now runs the evaluation in a thread, and the engine that the sessions
+  share is built once. A burst of 33 sessions had its metrics in 68 seconds instead of 260.
+- **Workers were capped at 16 sessions at a time, below their `MAX_INFLIGHT_MESSAGES`.** The handlers hand their blocking work to
+  `asyncio.to_thread`, whose pool holds `min(32, cpus + 4)` threads (16 on a 12-CPU host), so a worker allowed 32, 64 or 128
+  messages in flight never ran more than 16. `BaseWorker` now sizes the pool to `max_inflight_messages`.
+- **`Connection pool is full, discarding connection: clickhouse` in the logs.** The ClickHouse client of the workers shared
+  clickhouse-connect's default pool of 8 HTTP connections, and the `norm` worker, which reads the spans of many sessions
+  at once, opened more and threw the extra ones away after each request. `ClickHouseConnector` now has its own pool,
+  of 32 connections by default (`CLICKHOUSE_POOL_SIZE` sets it).
+- **Neo4j writes no longer lose a session to a deadlock.** When several workers wrote the same shared nodes at once (a
+  burst of sessions writing the same agents, tools and model), Neo4j rolled one of the transactions back with a
+  transient error (`DeadlockDetected`), and the `norm` worker dropped the whole session. `Neo4JConnector` now tries a query
+  again, up to five times with a short random wait, when Neo4j reports a transient error. The same burst on a new
+  database could also fail on the index that two sessions create at the same time
+  (`EquivalentSchemaRuleAlreadyExists`): that error is now what it says, the index exists.
 - **Normalization: identical boundary States are one State.** When a call started with what the previous step
   produced (a tool called with its agent's input, a tool returning what its agent returns, a handoff that passes
   its output on unchanged), `norm` kept two State nodes with the same content and no edge between them, so the

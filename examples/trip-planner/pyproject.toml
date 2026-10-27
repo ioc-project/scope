@@ -1,0 +1,11 @@
+[project]
+name = "trip-planner"
+version = "0.1.0"
+description = "A LangGraph moderator and three specialist agents answering trip questions, instrumented to be traced by SCOPE"
+requires-python = ">=3.11"
+dependencies = [
+    "ioa-observe-sdk==1.0.56",
+    "langchain>=1.0",
+    "langchain-openai>=0.3",
+    "langgraph>=0.6",
+]

@@ -13,6 +13,14 @@ traces and analysis ingestion.
 [Instrument an agent manually or with a coding harness](instrument-your-app.md){ .md-button .md-button--primary }
 </div>
 
+## Instrument an OpenClaw-style MAS
+
+The tutorial configures the Insight Module plugin for OpenClaw-style gateways,
+enables provider-SDK auto-instrumentation and verifies the exported traces. It
+also shows how to adapt the approach to other agent runtimes.
+
+[Instrument an OpenClaw-style MAS](instrument-openclaw.md){ .md-button .md-button--primary }
+
 ## Deploy SCOPE
 
 The tutorial deploys the full stack, from the collector to the dashboard, with
@@ -36,6 +44,7 @@ application, and follows it to the knowledge graph in Neo4j and to the dashboard
 | Walkthrough | Status |
 |---|---|
 | [Instrument your app](instrument-your-app.md) | Available |
+| [Instrument an OpenClaw-style MAS](instrument-openclaw.md) | Available |
 | [Deploying SCOPE](deploy-scope.md) | Available |
 | [Your first trace](first-trace.md) | Available |
 | Exploring a session in the dashboard | In preparation |

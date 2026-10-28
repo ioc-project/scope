@@ -26,7 +26,6 @@ import {
   CostEfficiencyGrouppedSessions,
   WastefulSession,
   WastedResourcesFeatureScore,
-  SemanticGroupsInsight,
   SessionInsight,
   ReasoningPathResponse,
   AppReasoningPathResponse,
@@ -953,40 +952,6 @@ export const useWastedResourcesFeatureScores = (
     queryKey: ['wastedResourcesFeatureScores', sessionId],
     queryFn: () => fetchWastedResourcesFeatureScores(sessionId),
     enabled
-  });
-};
-
-const fetchSemanticGroupsInsights = async (
-  applicationName: string,
-  startTime: number,
-  endTime: number
-): Promise<SemanticGroupsInsight[]> => {
-  const params = new URLSearchParams({
-    start_time: String(startTime),
-    end_time: String(endTime)
-  });
-  const url = `${OCE_API_BASE_URL}/waste-estimation/${encodeURIComponent(applicationName)}/semantic-groups-insights?${params.toString()}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch semantic group insights: ${response.statusText}`
-    );
-  }
-
-  return response.json();
-};
-
-export const useSemanticGroupsInsights = (
-  applicationName: string,
-  startTime: number,
-  endTime: number
-) => {
-  return useQuery<SemanticGroupsInsight[]>({
-    queryKey: ['semanticGroupsInsights', applicationName, startTime, endTime],
-    queryFn: () =>
-      fetchSemanticGroupsInsights(applicationName, startTime, endTime),
-    enabled: !!applicationName
   });
 };
 

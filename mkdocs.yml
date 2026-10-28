@@ -138,6 +138,7 @@ nav:
   - Getting Started:
       - tutorials/index.md
       - Instrument your app: tutorials/instrument-your-app.md
+      - Instrument OpenClaw-style MAS: tutorials/instrument-openclaw.md
       - Deploy SCOPE: tutorials/deploy-scope.md
       - Your first trace: tutorials/first-trace.md
       - Semantic analysis: tutorials/semantic-analysis.md

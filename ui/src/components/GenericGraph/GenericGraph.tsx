@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Graph, NodeData, EdgeData } from '@antv/g6';
-import { Box, useTheme, Stack } from '@mui/material';
+import { Box, useTheme, Stack, alpha } from '@mui/material';
 import { GenericGraphDrawer } from './GenericGraphDrawer';
 import { GenericGraphProps } from './types';
 import { transformDataToG6Graph, getStatusColor } from '@/utils';
@@ -27,6 +27,7 @@ export const GenericGraph = ({
   nodeProps,
   edgeProps,
   waitForLayout = false,
+  showNodeLabelTooltip = false,
   onGraphReady,
   resolveNodeClickData
 }: GenericGraphProps) => {
@@ -259,6 +260,44 @@ export const GenericGraph = ({
         'hover-activate'
       ],
       plugins: [
+        ...(showNodeLabelTooltip
+          ? [
+              {
+                type: 'tooltip',
+                trigger: 'hover',
+                position: 'bottom',
+                offset: [0, 14],
+                // Mirrors the default MUI <Tooltip> look. This replaces G6's
+                // default '.tooltip' style, so layout/positioning rules are
+                // restated here.
+                style: {
+                  '.tooltip': {
+                    position: 'absolute',
+                    'z-index': 1500,
+                    transition: 'visibility 0.15s, left 0.15s, top 0.15s',
+                    'box-sizing': 'border-box',
+                    'min-width': 'auto',
+                    'max-width': '300px',
+                    padding: '4px 8px',
+                    'border-radius': `${theme.shape.borderRadius}px`,
+                    'background-color': alpha(theme.palette.grey[700], 0.92),
+                    color: theme.palette.common.white,
+                    'box-shadow': 'none',
+                    'font-family': theme.typography.fontFamily,
+                    'font-size': theme.typography.pxToRem(11),
+                    'font-weight': theme.typography.fontWeightMedium,
+                    'line-height': '1.4em',
+                    'word-wrap': 'break-word',
+                    'text-align': 'left'
+                  }
+                },
+                // Only nodes get a tooltip (edges/combos are ignored)
+                enable: (event: any) => event.targetType === 'node',
+                getContent: async (_event: any, items: any[]) =>
+                  String(items?.[0]?.data?.label ?? items?.[0]?.id ?? '')
+              }
+            ]
+          : []),
         {
           type: 'toolbar',
           position: 'top-right',
@@ -344,7 +383,7 @@ export const GenericGraph = ({
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waitForLayout, isEmpty]);
+  }, [waitForLayout, isEmpty, showNodeLabelTooltip]);
 
   // Initialize graph when data changes
   useEffect(() => {

@@ -334,12 +334,11 @@ class CognitiveObservabilityMetric(BaseModel):
 
 
 class CognitiveFailure(BaseModel):
-    """A cognitive failure detected for a session (one ``CognitiveFailuresReport``)."""
+    """A cognitive failure detected for a session (one ``CognitiveFailureReport``)."""
 
     name: str
-    confidence: float
-    description: str = ""
-    remediations: list[str] = []
+    confidence: Literal["low", "medium", "high"]
+    reasoning: str = ""
 
 
 class CognitiveSessionItem(CollectSessionItem):

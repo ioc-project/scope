@@ -9,39 +9,53 @@ SCOPE analyses OpenTelemetry traces from a multi-agent system. It is the
 need to be installed alongside them. The SDK sends telemetry to an OTLP/HTTP
 collector, which stores the spans for SCOPE to process.
 
-## Instrumenting a multi-agent system
+## Choose an instrumentation
 
-The reference instrumentation is the [AGNTCY Observe SDK](https://github.com/agntcy/observe).
-It supports Python agent applications, including LangGraph, LlamaIndex and custom
-orchestrators, with instrumentation for A2A, SLIM and MCP interactions.
+Two SDKs are supported. Both emit OpenTelemetry to an OTLP/HTTP collector, so the
+rest of the path is identical.
 
-### Observe SDK and the Insight Module
+| | **AGNTCY Observe SDK** | **Insight Module for Agentic Systems** |
+|---|---|---|
+| Best for | Python agent apps you own and can edit (LangGraph, LlamaIndex, custom orchestrators) | OpenClaw-style gateways and agent runtimes, where you configure a plugin rather than edit agent code |
+| Language | Python | Node.js / TypeScript (OpenClaw plugin) |
+| How it hooks in | Decorators (`@graph`, `@agent`, `@task`, `@tool`) and `session_start()` | OpenClaw plugin config, plus an optional `NODE_OPTIONS` preload for provider SDKs |
+| Protocol coverage | A2A, SLIM and MCP instrumentors | Request, agent-turn, tool, LLM and outbound-message spans; Anthropic, OpenAI, Bedrock and Vertex AI SDKs |
+| Tutorial | This page | [Instrument an OpenClaw-style MAS](instrument-openclaw.md) |
 
-Instrumentation and analysis are separate responsibilities. The **Observe SDK**
-runs inside the agent application and emits OpenTelemetry data. The **Insight
-Module** is on the analysis side: exporting spans is the input to analysis, not
-proof that an execution has been ingested or an insight produced. This site's
-[SCOPE overview](../index.md#how-scope-works) describes the session reconstruction,
-knowledge graph and analysis pipeline, with findings exposed by its API and UI.
-Do not install the analysis platform in each agent to enable instrumentation.
+The Observe SDK is the reference instrumentation. The
+[Insight Module](https://github.com/outshift-open/insight-module-for-agentic-systems)
+is the alternative when the MAS is an OpenClaw-style system. The module can also
+emit `ioa_observe.*` attributes, so its spans carry the same topology fields as
+Observe SDK spans.
+
+Instrumentation and analysis are separate responsibilities. Both SDKs run inside
+(or beside) the agent application and emit OpenTelemetry data. Exporting spans is
+the input to analysis, not proof that an execution has been ingested or an insight
+produced. This site's [SCOPE overview](../index.md#how-scope-works) describes the
+session reconstruction, knowledge graph and analysis pipeline. Do not install the
+analysis platform in each agent to enable instrumentation.
 
 The reference data path is:
 
 ```text
-Agent application + Observe SDK
+Agent application + Observe SDK (or Insight Module)
   -> OTLP/HTTP collector
   -> telemetry store (ClickHouse in the reference deployment)
   -> SCOPE ingestion and analysis
   -> knowledge graph, insights, API and dashboard
 ```
 
-Use the [SDK setup guide](https://github.com/agntcy/observe/blob/main/GETTING-STARTED.md)
-for application instrumentation and the [SCOPE repository](https://github.com/ioc-project/scope)
-for the analysis deployment. Other OpenTelemetry emitters are admissible through
-the [ingestion pipeline](../ingestion/index.md#ingestion); the SDK is the reference,
-not a prerequisite for adopting SCOPE.
+For the Observe SDK, use the
+[SDK setup guide](https://github.com/agntcy/observe/blob/main/GETTING-STARTED.md).
+For the analysis deployment, use the
+[SCOPE repository](https://github.com/ioc-project/ioc-scope). Other OpenTelemetry
+emitters are admissible through the [ingestion pipeline](../ingestion.md#ingestion);
+neither SDK is a prerequisite for adopting IoC.
 
-## Manual instrumentation
+The sections below cover the **Observe SDK**. For OpenClaw, go to
+[Instrument an OpenClaw-style MAS](instrument-openclaw.md).
+
+## Manual instrumentation (Observe SDK)
 
 ### 1. Prepare the collector and application
 
@@ -277,6 +291,8 @@ Evaluate both unchanged application behaviour and the expected span relationship
 
 ## Related
 
+- [Instrument an OpenClaw-style MAS](instrument-openclaw.md) — the Insight Module alternative
 - [AGNTCY Observe SDK](https://github.com/agntcy/observe) - SDK source, installation and local collector stack
+- [Instrumentation and ingestion](../ingestion/index.md) — overview of SCOPE's ingestion pipeline and modes
 - [SDK integration guide](https://github.com/agntcy/observe/blob/main/GETTING-STARTED.md) - framework and transport examples
 - [Tutorials and Demos](index.md) — the other SCOPE walkthroughs

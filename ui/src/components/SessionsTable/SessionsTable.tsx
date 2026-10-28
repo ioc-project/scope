@@ -20,7 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { format } from 'date-fns';
-import { SessionWithStatefulEval } from '@/types/scope.type';
+import { CompletedSessions } from '@/types/scope.type';
 import { CircleBadge, ExecutionTrace, SessionStatus, Tags } from '@/components';
 import { Dayjs } from 'dayjs';
 import { formatDurationMs } from '@/utils/stringUtils';
@@ -28,8 +28,10 @@ import { useTheme } from '@mui/material/styles';
 import { getMetricPulseColor } from '@/utils/metrics';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { StatusTag } from '../CognitionProtocols/primitives';
+import { shortProtocolName } from '../CognitionProtocolsSummary/utils';
 
-type MRT_ColumnDefList = TableProps<SessionWithStatefulEval>['columns'];
+type MRT_ColumnDefList = TableProps<CompletedSessions>['columns'];
 
 // Columns whose data comes from stateful-eval (trajectory scoring). Dropped
 // when the stateful_eval feature flag is off.
@@ -41,13 +43,15 @@ const STATEFUL_EVAL_COLUMN_KEYS = [
 ];
 
 interface SessionsTableProps {
-  data: SessionWithStatefulEval[];
+  data: CompletedSessions[];
   isLoading: boolean;
   isError?: boolean;
   onReload?: () => void;
   startDate: Dayjs | null;
   endDate: Dayjs | null;
-  onSessionClick?: (session: SessionWithStatefulEval) => void;
+  onSessionClick?: (session: CompletedSessions) => void;
+  // Click on a Cognition protocol tag (instead of the row).
+  onProtocolClick?: (session: CompletedSessions) => void;
   showDateInterval?: boolean;
   defaultHiddenColumns?: string[];
   title?: string;
@@ -76,6 +80,7 @@ export const SessionsTable = ({
   startDate,
   endDate,
   onSessionClick,
+  onProtocolClick,
   showDateInterval = true,
   defaultHiddenColumns = [],
   title
@@ -84,6 +89,9 @@ export const SessionsTable = ({
   const [columnVisibility, setColumnVisibility] = useState<MRT_VisibilityState>(
     {
       id: false,
+      cost: false,
+      fatalErrors: false,
+      minorErrors: false,
       ...defaultHiddenColumns.reduce((acc: Record<string, boolean>, column) => {
         acc[column] = false;
         return acc;
@@ -99,8 +107,8 @@ export const SessionsTable = ({
     () => [
       {
         accessorKey: 'sessionId',
-        header: 'Session ID',
-        size: 124,
+        header: 'ID',
+        size: 98,
         accessorFn: ({ sessionId }) => {
           return (
             <Tooltip title={sessionId} placement={'top'}>
@@ -121,7 +129,7 @@ export const SessionsTable = ({
       {
         accessorKey: 'timestamp',
         header: 'Timestamp',
-        size: 115,
+        size: 132,
         accessorFn: ({ timestamp }) => {
           return (
             <Typography variant={'body2'}>
@@ -141,22 +149,19 @@ export const SessionsTable = ({
         }
       },
       {
+        accessorKey: 'status',
+        header: 'Status',
+        size: 96,
+        accessorFn: ({ statefulEval }) => {
+          const status = statefulEval?.reasoningJson
+            ?.trajectory_score as number;
+          return <SessionStatus status={status} />;
+        }
+      },
+      {
         accessorKey: 'agents',
         header: 'Agents',
         accessorFn: ({ agents }) => {
-          const overflowAgents = structuredClone(agents ?? []);
-          overflowAgents.shift();
-
-          const OverflowTooltip = (
-            <Stack direction="column" gap={'4px'}>
-              {overflowAgents.map((agent) => (
-                <Typography variant="caption" key={agent}>
-                  {agent}
-                </Typography>
-              ))}
-            </Stack>
-          );
-
           return (
             <Stack
               gap="10px"
@@ -228,30 +233,46 @@ export const SessionsTable = ({
         }
       },
       {
-        accessorKey: 'tokens',
-        header: 'Tokens',
-        accessorFn: ({ tokens }) => {
-          return (
-            <Typography variant={'body2'}>
-              {tokens.toLocaleString('en-US')}
-            </Typography>
+        accessorKey: 'cognitionProtocols',
+        header: 'Cognition Protocols',
+        enableSorting: false,
+        size: 158,
+        accessorFn: (session) => {
+          const protocols = (session.cognitionProtocols ?? []).filter(
+            (protocol) => protocol.enabled || protocol.activated
           );
-        }
-      },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        size: 70,
-        accessorFn: ({ statefulEval }) => {
-          const status = statefulEval?.reasoningJson
-            ?.trajectory_score as number;
-          return <SessionStatus status={status} />;
+          if (protocols.length === 0) return null;
+
+          return (
+            <Stack
+              direction="row"
+              gap="6px"
+              flexWrap="wrap"
+              onClick={(event) => {
+                // Opens the Cognition protocols tab of the session, not the
+                // row's default tab.
+                if (!onProtocolClick) return;
+                event.stopPropagation();
+                onProtocolClick(session);
+              }}
+            >
+              {protocols.map((protocol) => (
+                <StatusTag
+                  key={protocol.protocol}
+                  label={`${shortProtocolName(protocol.protocol)}: ${
+                    protocol.activated ? 'Activated' : 'Not activated'
+                  }`}
+                  tone={protocol.activated ? 'positive' : 'info'}
+                />
+              ))}
+            </Stack>
+          );
         }
       },
       {
         accessorKey: 'metricPulse',
         header: 'Metric Pulse',
-        size: 100,
+        size: 120,
         accessorFn: ({ statefulEval }) => {
           const intentRecognitionFatal =
             statefulEval?.reasoningJson?.fatal_failures?.find(
@@ -399,6 +420,18 @@ export const SessionsTable = ({
         }
       },
       {
+        accessorKey: 'tokens',
+        header: 'Tokens',
+        size: 108,
+        accessorFn: ({ tokens }) => {
+          return (
+            <Typography variant={'body2'}>
+              {tokens.toLocaleString('en-US')}
+            </Typography>
+          );
+        }
+      },
+      {
         accessorKey: 'cost',
         header: 'Cost',
         size: 70,
@@ -438,7 +471,7 @@ export const SessionsTable = ({
       //   }
       // }
     ],
-    []
+    [onProtocolClick]
   );
 
   const visibleColumns = useMemo<MRT_ColumnDefList>(

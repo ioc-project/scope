@@ -56,6 +56,8 @@ export interface GenericGraphProps {
   edgeProps?: EdgePropsOverrides;
   /** If true, shows a loading spinner until the layout finishes computing (useful for force layouts) */
   waitForLayout?: boolean;
+  /** If true, hovering a node shows a tooltip with its full label (useful when labels are truncated) */
+  showNodeLabelTooltip?: boolean;
   /** Callback fired with the Graph instance after render completes */
   onGraphReady?: (graph: Graph) => void;
   /** Custom resolver for node click data shown in drawer. If provided, overrides the default. */

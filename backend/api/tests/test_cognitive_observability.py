@@ -33,18 +33,12 @@ def _row():
             {"name": "Goal Alignment", "result": None, "value": None},
         ],
         "failures": [
-            {
-                "name": "Incomplete Synthesis",
-                "presenceProbability": 0.6,
-                "remediation": ["A"],
-                "description": "desc A",
-            },
-            {
-                "name": "Task Delegation Failure",
-                "presenceProbability": 0.95,
-                "remediation": '["B", "C"]',
-            },
-            {"name": "No probability", "code": "X"},
+            {"name": "IR-1", "code": "IR-1", "confidence": "medium", "reasoning": "lost it"},
+            {"name": "IR-1", "code": "IR-1", "confidence": "high", "reasoning": "lost it again"},
+            {"name": "CC-3", "code": "CC-3", "confidence": "low", "reasoning": "weak"},
+            {"code": "DC-4", "confidence": "HIGH", "reasoning": "no name"},
+            {"name": "No confidence", "code": "X"},
+            {"name": "Bad confidence", "code": "Y", "confidence": "sure"},
         ],
     }
 
@@ -67,11 +61,11 @@ def test_sessions_with_cognitive_observability_mapping():
         ("Task Completion", 0.5, "PERCENTAGE"),
     ]
     assert [
-        (f.name, f.confidence, f.description, f.remediations)
-        for f in session.cognitiveFailures
+        (f.name, f.confidence, f.reasoning) for f in session.cognitiveFailures
     ] == [
-        ("Task Delegation Failure", 0.95, "", ["B", "C"]),
-        ("Incomplete Synthesis", 0.6, "desc A", ["A"]),
+        ("IR-1", "high", "lost it again"),
+        ("DC-4", "high", "no name"),
+        ("CC-3", "low", "weak"),
     ]
 
 

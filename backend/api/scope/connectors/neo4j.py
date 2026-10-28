@@ -5,17 +5,31 @@
 from __future__ import annotations
 
 import logging
+import random
 import re
+import time as _time
 from datetime import date, datetime, time, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional, TypeVar
 from urllib.parse import urlparse
 
 import neo4j.time
 from neo4j import GraphDatabase
+from neo4j.exceptions import TransientError
 
 from scope.connectors.base import Connector
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+
+# Neo4j rolls a transaction back and says "retry me" (TransientError) when two writers
+# collide, typically a deadlock on the nodes they share. Several workers write the same
+# structural nodes at once, so a query is tried again a few times before it fails.
+TRANSIENT_ATTEMPTS = 5
+TRANSIENT_BACKOFF_SECONDS = 0.2
+# The first retries are routine under concurrency (two sessions collide about once each), so they are
+# logged at INFO; from this attempt on, something is wrong enough to be worth a WARNING.
+TRANSIENT_WARN_FROM_ATTEMPT = 3
 
 
 SEMANTICGROUP_NODE_CHILDREN_NODES = "childrenNodes"
@@ -137,6 +151,36 @@ class Neo4JConnector(Connector):
 
     # ── query execution ───────────────────────────────────────────────────
 
+    @staticmethod
+    def _retry_transient(run: Callable[[], T]) -> T:
+        """Call ``run``, again after a short random wait when Neo4j reports a transient error.
+
+        A transient error means the transaction was rolled back, so running it again is safe.
+        """
+        for attempt in range(1, TRANSIENT_ATTEMPTS + 1):
+            try:
+                return run()
+            except TransientError as exc:
+                if attempt == TRANSIENT_ATTEMPTS:
+                    raise
+                delay = (
+                    TRANSIENT_BACKOFF_SECONDS
+                    * 2 ** (attempt - 1)
+                    * (0.5 + random.random())
+                )
+                logger.log(
+                    logging.WARNING
+                    if attempt >= TRANSIENT_WARN_FROM_ATTEMPT
+                    else logging.INFO,
+                    "Neo4j transient error (%s), trying again in %.2fs (attempt %d of %d)",
+                    getattr(exc, "code", "unknown"),
+                    delay,
+                    attempt,
+                    TRANSIENT_ATTEMPTS,
+                )
+                _time.sleep(delay)
+        raise AssertionError("unreachable")  # pragma: no cover
+
     def execute(self, query: str, params: Optional[Dict[str, Any]] = None) -> Any:
         self.ensure_connected()
         if logger.isEnabledFor(logging.DEBUG):
@@ -144,9 +188,13 @@ class Neo4JConnector(Connector):
                 "Executing query:\n***********************\n%s",
                 _render_query_with_params(query, params),
             )
-        with self._client.session(database=self._database) as session:
-            result = session.run(query, parameters=params or {})
-            return [_convert_neo4j_types(record.data()) for record in result]
+
+        def run() -> Any:
+            with self._client.session(database=self._database) as session:
+                result = session.run(query, parameters=params or {})
+                return [_convert_neo4j_types(record.data()) for record in result]
+
+        return self._retry_transient(run)
 
     def execute_command(
         self, command: str, params: Optional[Dict[str, Any]] = None
@@ -158,8 +206,12 @@ class Neo4JConnector(Connector):
                 "Executing command:\n***********************\n%s",
                 _render_query_with_params(command, params),
             )
-        with self._client.session(database=self._database) as session:
-            session.run(command, parameters=params or {}).consume()
+
+        def run() -> None:
+            with self._client.session(database=self._database) as session:
+                session.run(command, parameters=params or {}).consume()
+
+        self._retry_transient(run)
 
     @property
     def driver(self):

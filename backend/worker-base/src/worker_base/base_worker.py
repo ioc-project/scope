@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 import aio_pika
@@ -246,9 +247,24 @@ class BaseWorker:
             "output_path": output_path,
         }
 
+    def _size_thread_pool(self) -> None:
+        """Let as many blocking calls run at once as there are messages in flight.
+
+        Handlers hand their blocking work to ``asyncio.to_thread``, which uses the event loop's default
+        pool: ``min(32, cpus + 4)`` threads, 16 on a 12-CPU host. A worker allowed 64 messages in flight
+        would still process 16 at a time. The pool is sized to ``max_inflight_messages`` instead.
+        """
+        asyncio.get_running_loop().set_default_executor(
+            ThreadPoolExecutor(
+                max_workers=self.max_inflight_messages,
+                thread_name_prefix=f"{self.name or 'worker'}-handler",
+            )
+        )
+
     async def run_worker(self):
         connection = None
         inflight_tasks: set[asyncio.Task] = set()
+        self._size_thread_pool()
         try:
             connection = await aio_pika.connect_robust(self.rabbitmq_url)
             self.channel = await connection.channel()

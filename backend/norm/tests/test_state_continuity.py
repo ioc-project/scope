@@ -26,13 +26,17 @@ from scope_ontology.models.nodes import ProcessingCall, State
 
 from norm import load_otel_export, normalize, verify_kg
 from norm.ioa_observe.registry import Registry
-from norm.ioa_observe.trajectory import add_state_pair_transition, bridge_states_if_mismatched
+from norm.ioa_observe.trajectory import (
+    add_state_pair_transition,
+    bridge_states_if_mismatched,
+)
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "currency_demo.otel_export.jsonl"
 
 
 def _flow(nodes, edges):
-    """Nodes (States and Transitions) reachable from the session's first State through inputTo/leadsTo."""
+    """Nodes (States and Transitions) reachable from the session's first State through
+    inputTo/leadsTo."""
     by_id = {n["id"]: n for n in nodes}
     forward = defaultdict(set)
     for e in edges:
@@ -69,7 +73,9 @@ def test_every_state_is_on_the_chain_from_the_session_input(currency_kg) -> None
     reachable, final = _flow(nodes, edges)
     states = {n["id"] for n in nodes if n["node_type"] == "State"}
 
-    assert states == {i for i in reachable if i in states}, "States are cut off from the session's chain"
+    assert states == {i for i in reachable if i in states}, (
+        "States are cut off from the session's chain"
+    )
     assert final in reachable
 
 
@@ -78,16 +84,30 @@ def test_a_tool_shares_its_boundary_states_with_its_agent(currency_kg) -> None:
     by_id = {n["id"]: n for n in nodes}
 
     def boundary(call_name_part: str, edge_type: str) -> str:
-        call = next(n["id"] for n in nodes if call_name_part in n.get("name", "") and n["node_type"].endswith("Call"))
-        return next(e["target_id"] for e in edges if e["edge_type"] == edge_type and e["source_id"] == call)
+        call = next(
+            n["id"]
+            for n in nodes
+            if call_name_part in n.get("name", "") and n["node_type"].endswith("Call")
+        )
+        return next(
+            e["target_id"] for e in edges if e["edge_type"] == edge_type and e["source_id"] == call
+        )
 
     # lookup_rate is called with what rate_provider received and returns what it returns
-    assert boundary("rate_provider call", "hasInitialState") == boundary("lookup_rate", "hasInitialState")
-    assert boundary("rate_provider call", "hasFinalState") == boundary("lookup_rate", "hasFinalState")
+    assert boundary("rate_provider call", "hasInitialState") == boundary(
+        "lookup_rate", "hasInitialState"
+    )
+    assert boundary("rate_provider call", "hasFinalState") == boundary(
+        "lookup_rate", "hasFinalState"
+    )
     # convert_currency receives what currency_assistant received, but returns a number that is
     # not the sentence the agent writes: still two States, bridged
-    assert boundary("currency_assistant call", "hasInitialState") == boundary("convert_currency", "hasInitialState")
-    assert boundary("currency_assistant call", "hasFinalState") != boundary("convert_currency", "hasFinalState")
+    assert boundary("currency_assistant call", "hasInitialState") == boundary(
+        "convert_currency", "hasInitialState"
+    )
+    assert boundary("currency_assistant call", "hasFinalState") != boundary(
+        "convert_currency", "hasFinalState"
+    )
     assert by_id[boundary("convert_currency", "hasFinalState")]["content"] == "85.9"
 
 
@@ -144,7 +164,11 @@ def test_identical_states_are_merged_into_the_one_the_flow_comes_from() -> None:
     assert registry.edge_target(hasInitialState, "b") == final_a
     assert registry.edge_target(hasFinalState, "a") == final_a
     # b's transition now takes the merged State as input, and a's leads to it
-    assert (inputTo, final_a, registry.edge_target(correspondsToTransition, "b")) in registry.edges
+    assert (
+        inputTo,
+        final_a,
+        registry.edge_target(correspondsToTransition, "b"),
+    ) in registry.edges
     assert any(t is leadsTo and tid == final_a for t, _s, tid in registry.edges)
     assert (hasState, "b", final_a) in registry.edges
     assert not registry.all_of(ProcessingCall)

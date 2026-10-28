@@ -20,7 +20,10 @@ except ModuleNotFoundError:
     redis_lib = None
 
 from scope.connectors.base import Connector
-from scope.connectors.clickhouse import ClickHouseConnector
+from scope.connectors.clickhouse import (
+    DEFAULT_POOL_SIZE as DEFAULT_CLICKHOUSE_POOL_SIZE,
+    ClickHouseConnector,
+)
 from scope.connectors.neo4j import Neo4JConnector
 from scope.connectors.sqlalchemy import SQLAlchemyConnector
 from scope.core.config import settings
@@ -73,6 +76,9 @@ def _get_db_singleton() -> ClickHouseConnector:
             username=(os.getenv("CLICKHOUSE_USERNAME") or settings.CLICKHOUSE_USERNAME),
             password=os.getenv("CLICKHOUSE_PASSWORD", settings.CLICKHOUSE_PASSWORD),
             database=os.getenv("CLICKHOUSE_DATABASE", settings.CLICKHOUSE_DATABASE),
+            pool_size=int(
+                os.getenv("CLICKHOUSE_POOL_SIZE", str(DEFAULT_CLICKHOUSE_POOL_SIZE))
+            ),
         )
         _db_connector.connect()
         logger.info("ClickHouse singleton connector initialised")

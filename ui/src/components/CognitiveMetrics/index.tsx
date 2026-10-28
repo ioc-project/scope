@@ -3,27 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useMemo } from 'react';
-import { useParams } from 'react-router';
-import { Banner, EmptyState, Skeleton } from '@open-ui-kit/core';
-import { Stack, Typography } from '@mui/material';
-// Cognitive metrics are hidden for now; the code is kept commented out to be restored later.
-// import { Divider, OverflowTooltip } from '@open-ui-kit/core';
-// import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
-// import { Box, LinearProgress, useTheme } from '@mui/material';
-import {
-  RemediationTags,
-  ScoreSeverityBadgeLabel,
-  WidgetCard
-} from '@/components';
-import { useSessionsWithCognitiveObservability } from '@/api/scopeApi';
-import { useTimeRangeStore } from '@/store';
-import { FAILURE_CONFIDENCE_THRESHOLD } from '@/common/cognitiveFailures';
-// import { COGNITIVE_METRIC_GROUPS } from '@/common/cognitiveFailures';
-// import { getScoreColor } from '@/utils/metrics';
-// import { CognitiveObservabilityMetric, Unit } from '@/types/scope.type';
-import { COGNITIVE_FAILURE_DESCRIPTIONS } from '@/common/cognitiveFailures';
-
+// Cognitive metrics are hidden for now; the code is kept commented out to be
+// restored later (it came from the session's Cognitive Observability tab).
+// It used the `cognitiveObservabilityMetrics` of the session returned by
+// `useSessionsWithCognitiveObservability`, and needed these imports:
+//   import { useMemo } from 'react';
+//   import { Stack, Typography } from '@mui/material';
+//   import { Divider, OverflowTooltip } from '@open-ui-kit/core';
+//   import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
+//   import { Box, LinearProgress, useTheme } from '@mui/material';
+//   import { ScoreSeverityBadgeLabel } from '@/components';
+//   import { COGNITIVE_METRIC_GROUPS } from '@/common/cognitiveMetricGroups';
+//   import { getScoreColor } from '@/utils/metrics';
+//   import { CognitiveObservabilityMetric, Unit } from '@/types/scope.type';
 /*
 const toScore = (metric: CognitiveObservabilityMetric): number =>
   metric.value.unit === Unit.Percentage
@@ -32,40 +24,9 @@ const toScore = (metric: CognitiveObservabilityMetric): number =>
 
 const average = (scores: number[]): number =>
   scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-*/
 
-const formatPercent = (fraction: number) => `${Math.round(fraction * 100)}%`;
-
-export const CognitiveObservabilityTab = () => {
   // const theme = useTheme();
-  const { sessionId, applicationId } = useParams();
-  const { startDate, endDate } = useTimeRangeStore();
 
-  const { data, isLoading, isError } = useSessionsWithCognitiveObservability(
-    applicationId ?? '',
-    startDate,
-    endDate,
-    sessionId
-  );
-
-  const session = useMemo(
-    () => data?.sessions?.find((s) => s.sessionId === sessionId),
-    [data?.sessions, sessionId]
-  );
-
-  const failures = useMemo(
-    () =>
-      [...(session?.cognitiveFailures ?? [])].sort(
-        (a, b) => b.confidence - a.confidence
-      ),
-    [session?.cognitiveFailures]
-  );
-
-  const highConfidenceFailures = failures.filter(
-    (failure) => failure.confidence > FAILURE_CONFIDENCE_THRESHOLD
-  ).length;
-
-  /*
   // Metrics split into the configured groups; metrics outside every group go
   // into an extra "Other" column so none is hidden.
   const metricGroups = useMemo(() => {
@@ -101,89 +62,7 @@ export const CognitiveObservabilityTab = () => {
         ]
       : groups;
   }, [session?.cognitiveObservabilityMetrics]);
-  */
 
-  if (isLoading) {
-    return (
-      <Stack direction="column" gap="16px" sx={{ paddingTop: '16px' }}>
-        <Skeleton variant="rounded" height={48} />
-        <Stack direction="row" gap="16px">
-          <Skeleton variant="rounded" width={300} height={120} />
-          <Skeleton variant="rounded" width={300} height={120} />
-          <Skeleton variant="rounded" width={300} height={120} />
-        </Stack>
-        <Skeleton variant="rounded" height={240} />
-      </Stack>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Banner
-        status="negative"
-        text="Failed to load cognitive observability data."
-      />
-    );
-  }
-
-  if (!session) {
-    return <EmptyState title="No data found" description="" />;
-  }
-
-  return (
-    <Stack direction="column" gap="24px" sx={{ paddingTop: '16px' }}>
-      <Banner
-        status={
-          highConfidenceFailures > 0
-            ? 'warning'
-            : failures.length > 0
-              ? 'info'
-              : 'success'
-        }
-        text={
-          failures.length === 0
-            ? 'No cognitive failures detected for this session.'
-            : `${failures.length} cognitive failure${
-                failures.length === 1 ? '' : 's'
-              } detected, ${highConfidenceFailures} with confidence above ${
-                FAILURE_CONFIDENCE_THRESHOLD * 100
-              }%.`
-        }
-      />
-
-      <Stack direction="column" gap="8px">
-        <Typography variant={'h6'}>Cognitive Failures</Typography>
-        {failures.length === 0 ? (
-          <Typography variant={'body2'}>
-            No cognitive failures detected for this session.
-          </Typography>
-        ) : (
-          <Stack direction="row" gap="8px" sx={{ flexWrap: 'wrap' }}>
-            {failures.map((failure) => (
-              <WidgetCard
-                key={failure.name}
-                title={failure.name}
-                description={
-                  failure.description ||
-                  COGNITIVE_FAILURE_DESCRIPTIONS[failure.name]
-                }
-                content={
-                  <Stack direction="column" gap="8px" sx={{ width: '100%' }}>
-                    <ScoreSeverityBadgeLabel
-                      score={failure.confidence * 100}
-                      label={formatPercent(failure.confidence)}
-                    />
-                    <RemediationTags remediations={failure.remediations} />
-                  </Stack>
-                }
-                cardSx={{ width: '350px' }}
-              />
-            ))}
-          </Stack>
-        )}
-      </Stack>
-
-      {/*
       <Stack direction="column" gap="8px">
         <Typography variant={'h6'}>Cognitive Metrics</Typography>
         {metricGroups.every((group) => group.metrics.length === 0) ? (
@@ -295,7 +174,6 @@ export const CognitiveObservabilityTab = () => {
           </Stack>
         )}
       </Stack>
-      */}
-    </Stack>
-  );
-};
+*/
+
+export {};

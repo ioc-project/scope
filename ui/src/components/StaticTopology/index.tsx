@@ -20,6 +20,9 @@ import { isToolDataArray } from '@/utils';
 
 const FILTERED_NODE_IDS: string[] = ['__start__', '__end__', 'finalize'];
 
+const NODE_MAX_WIDTH = 200;
+const NODE_LABEL_HORIZONTAL_PADDING = 16;
+
 const transformTopologyToGraphData = (
   topology: StaticTopologyType,
   agentToolsData?: ApplicationAgentToolsResponse
@@ -320,10 +323,17 @@ export const StaticTopology = () => {
           }
         }}
         */
+        showNodeLabelTooltip
         nodeProps={{
           style: {
+            size: [NODE_MAX_WIDTH, 60],
             fill: getNodeFill,
-            stroke: getNodeStroke
+            stroke: getNodeStroke,
+            // Truncate long labels with an ellipsis on a single line
+            labelWordWrap: true,
+            labelMaxLines: 1,
+            labelMaxWidth: NODE_MAX_WIDTH - NODE_LABEL_HORIZONTAL_PADDING * 2,
+            labelPadding: [0, NODE_LABEL_HORIZONTAL_PADDING]
           }
         }}
         edgeProps={{

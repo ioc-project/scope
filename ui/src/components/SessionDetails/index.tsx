@@ -8,10 +8,8 @@ import { useNavigate, useParams, useLocation } from 'react-router';
 import { Box, Stack } from '@mui/material';
 import { ReasoningPathGraph, TabPanel } from '@/components';
 import { OverviewTab } from './OverviewTab';
-import { ExecutionTreeTab } from './ExecutionTreeTab';
 import { ConversationTab } from './ConversationTab';
 import { SessionAnalysisTab } from './SessionAnalysisTab';
-import { CognitiveObservabilityTab } from './CognitiveObservabilityTab';
 import { CognitionProtocolsTab } from './CognitionProtocolsTab';
 import { useApplicationSessionsWithStatefulEval } from '@/api/scopeApi';
 import { DEFAULT_START_DATE, DEFAULT_END_DATE } from '@/common';
@@ -22,10 +20,8 @@ import { Tabs, Tab } from '@open-ui-kit/core';
 export const SESSION_TAB_KEYS = [
   'overview',
   'analysis',
-  'cognitive-observability',
   'cognition-protocols',
   'reasoning-path',
-  'execution-graph',
   'conversation'
 ] as const;
 export type SessionTab = (typeof SESSION_TAB_KEYS)[number];
@@ -64,9 +60,6 @@ const SessionDetails = ({
   const location = useLocation();
 
   const neurosymbolicEnabled = useFeatureFlag('neurosymbolic_eval');
-  const cognitiveObservabilityEnabled = useFeatureFlag(
-    'cognitive_observability'
-  );
   const cognitionProtocolsEnabled = useFeatureFlag('cognition_protocols');
   const [isReasoningPathTabVisible, setIsReasoningPathTabVisible] =
     useState<boolean>(false);
@@ -113,12 +106,6 @@ const SessionDetails = ({
         render: () => <SessionAnalysisTab />
       },
       {
-        key: 'cognitive-observability',
-        label: 'Cognitive Observability',
-        visible: cognitiveObservabilityEnabled,
-        render: () => <CognitiveObservabilityTab />
-      },
-      {
         key: 'cognition-protocols',
         label: 'Cognition Protocols',
         visible: cognitionProtocolsEnabled,
@@ -129,12 +116,6 @@ const SessionDetails = ({
         label: 'Reasoning Path',
         visible: isReasoningPathTabVisible,
         render: () => sessionId && <ReasoningPathGraph sessionId={sessionId} />
-      },
-      {
-        key: 'execution-graph',
-        label: 'Execution Graph',
-        visible: true,
-        render: () => <ExecutionTreeTab />
       },
       {
         key: 'conversation',
@@ -149,7 +130,6 @@ const SessionDetails = ({
       duration,
       isReasoningPathTabVisible,
       sessionId,
-      cognitiveObservabilityEnabled,
       cognitionProtocolsEnabled
     ]
   );

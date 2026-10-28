@@ -11,7 +11,7 @@ import { SessionsTableWrapper } from './SessionsTable';
 import { LiveSessionsTableWrapper } from './LiveSessionsTable';
 import SessionDetails from './SessionDetails';
 import { OutlierMetricsTableWrapper as OutlierMetricsTable } from './OutlierMetricsTable';
-import { SemanticGroupsInsightsTableWrapper as SemanticGroupsInsightsTable } from './SemanticGroupsInsightsTable';
+import { SessionsInsightsTableWrapper as SessionsInsightsTable } from './SessionsInsightsTable';
 
 export * from './CustomTooltip';
 export * from './DateTimePicker';
@@ -53,10 +53,10 @@ export * from './StaticTopology';
 export * from './GenericGraph';
 export * from './LiveTopology';
 export * from './LiveSessionDetails';
-export * from './CognitiveObservability';
-export * from './CognitiveFailureDescription';
+export * from './CognitiveFailuresBanner';
+export * from './CognitiveFailuresList';
 export * from './ScoreSeverityBadgeLabel';
-export * from './RemediationTags';
+export * from './CognitionProtocolsSummary';
 
 export { ApplicationCard, Tags };
 export { PageWithTitle, SpanDrawer };
@@ -64,4 +64,4 @@ export { SessionsTableWrapper as SessionsTable };
 export { LiveSessionsTableWrapper as LiveSessionsTable };
 export { SessionDetails };
 export { OutlierMetricsTable };
-export { SemanticGroupsInsightsTable };
+export { SessionsInsightsTable };

@@ -60,7 +60,7 @@ via CLI flags / environment variables:
 | `EMBEDDING_INPUT_QUEUE` | `--input-queue` | Input queue name (default `new_session_to_embedding`) |
 | `EMBEDDING_OUTPUT_QUEUE` | `--output-queue` | Output queue(s), comma-separated (default `new_session_to_grouping`) |
 | `EMBEDDING_FEEDBACK_QUEUE` | `--feedback-queue` | Optional feedback queue |
-| `EMBEDDING_EMBEDDER_TYPE` | `--embedder-type` | `SentenceTransformerEmbedder` (default) or `OpenAIEmbedder` |
+| `EMBEDDING_EMBEDDER_TYPE` | `--embedder-type` | `SentenceTransformerEmbedder` (default of the CLI) or `OpenAIEmbedder` (set by the Compose file and the chart). `SentenceTransformerEmbedder` runs the model in the process and needs the `local` extra, which the default image does not install |
 | `EMBEDDING_MODEL` | `--embedding-model` | Model identifier (default `all-MiniLM-L6-v2`; e.g. `azure/text-embedding-3-small` for `OpenAIEmbedder`) |
 | `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` / `NEO4J_DATABASE` | — | Neo4j connection, used by the KG DAL |
 | `AI_GATEWAY_API_KEY` / `AI_GATEWAY_BASE_URL` | — | Required when using `OpenAIEmbedder` |

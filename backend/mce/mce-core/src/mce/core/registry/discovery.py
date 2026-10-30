@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import logging
+import os
 import pkgutil
 import importlib
 import inspect
@@ -32,6 +33,15 @@ logger = logging.getLogger(__name__)
 
 # Entry-point group name (same as telemetry-hub for cross-compatibility)
 _PLUGIN_GROUP = "metrics_computation_engine.plugins"
+
+# Packages whose plugins are not loaded, comma separated. A venv that runs the MCE next to another package that
+# registers plugins in the same group, for metrics of a different engine (the stateful evaluation's), would otherwise
+# import them, and everything they bring, only for the MCE to skip them.
+_IGNORED_PLUGIN_PACKAGES_ENV = "MCE_IGNORED_PLUGIN_PACKAGES"
+
+
+def _normalize_package_name(name: str) -> str:
+    return name.strip().lower().replace("_", "-").replace(".", "-")
 
 # Module-level cache: None means "not yet computed", list means already computed.
 _DISCOVERY_CACHE: list[Metric] | None = None
@@ -652,8 +662,17 @@ def _discover_plugin_metrics() -> list[Metric]:
     ensuring cross-compatibility between both projects.
     """
     plugins: list[Metric] = []
+    ignored = {
+        _normalize_package_name(name)
+        for name in os.environ.get(_IGNORED_PLUGIN_PACKAGES_ENV, "").split(",")
+        if name.strip()
+    }
     eps = entry_points(group=_PLUGIN_GROUP)
     for ep in eps:
+        package = getattr(getattr(ep, "dist", None), "name", None)
+        if ignored and isinstance(package, str) and _normalize_package_name(package) in ignored:
+            logger.debug("Plugin %s of %s is ignored (%s)", ep.name, package, _IGNORED_PLUGIN_PACKAGES_ENV)
+            continue
         try:
             cls = ep.load()
             if not inspect.isclass(cls):

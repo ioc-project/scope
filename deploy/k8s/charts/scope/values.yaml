@@ -769,9 +769,6 @@ workers:
         cpu: "1"
 
   cognition-protocols:
-    # Enabled by default, but its image is not published by CI yet: it needs the ACCORD and CONCORD metric
-    # packages, which are private git dependencies, so the image is built with an SSH agent (see the worker's
-    # Dockerfile). Until the image is available to the cluster, set enabled to false to avoid an ImagePullBackOff.
     # While enabled, its input queue is added to the embedding worker's output queues.
     enabled: true
     replicaCount: 1

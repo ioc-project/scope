@@ -68,11 +68,13 @@ You need:
 !!! note "Keeping the cost down"
     Besides the judge metrics of the metrics computation engine (MCE), which the analysis needs, every session goes through two more workers that
     call your model for each session: the stateful evaluation and the cognitive-failure detection. To skip them
-    for this walkthrough, stop them before loading the sessions:
+    for this walkthrough, stop them before loading the sessions. The stateful evaluation runs next to the MCE in the
+    `eval` service: restart it with only the MCE.
 
     ```bash
     cd deploy/docker-compose
-    docker compose stop stateful-eval cognitive-failure cognition-protocols
+    docker compose stop cognitive-failure cognition-protocols
+    EVAL_WORKERS=mce docker compose up -d eval
     ```
 
 ## 1. Run one trace of the trip planner
@@ -130,16 +132,16 @@ count every session the `norm` worker has processed so far:
 
 ```bash
 cd deploy/docker-compose
-docker compose logs norm | grep -c "Completed processing"
+docker compose logs ingestion | grep -c "Completed processing"
 ```
 
 Give the metrics a few more minutes: the judged ones are the slowest.
 
 ## 3. Trigger the grouping
 
-The grouping is done by the `hierarchical-grouping` worker. It wakes up every 15 minutes
-(`PERIODIC_TRIGGER_INTERVAL_SECONDS` in `docker-compose.yml`), and only groups an application once it has 20 sessions
-with an embedding (`HIERARCHICAL_GROUPING_MIN_SAMPLES`). Rather than wait, send it the message that its timer would
+The grouping is done by the `hierarchical-grouping` worker, which runs in the `semantic-analysis` service. It wakes up
+every 15 minutes (`HIERARCHICAL_GROUPING_PERIODIC_TRIGGER_INTERVAL_SECONDS` in `docker-compose.yml`), and only groups an
+application once it has 20 sessions with an embedding (`HIERARCHICAL_GROUPING_MIN_SAMPLES`). Rather than wait, send it the message that its timer would
 send, with the name of the application. Use the `RABBITMQ_USERNAME` and `RABBITMQ_PASSWORD` of your `.env`:
 
 ```bash
@@ -161,7 +163,7 @@ anomaly analyses on it. That takes a few minutes:
 
 ```bash
 cd deploy/docker-compose
-docker compose logs hierarchical-grouping | grep "semantic groups"
+docker compose logs semantic-analysis | grep "semantic groups"
 ```
 
 ```text
@@ -317,8 +319,9 @@ For the routes session it reads, for example, *"The score is 0.00 because the ou
 
 ```bash
 cd deploy/docker-compose
-docker compose start stateful-eval cognitive-failure cognition-protocols   # if you stopped them
-docker compose down -v                                                    # to delete the data as well
+docker compose start cognitive-failure cognition-protocols   # if you stopped them
+docker compose up -d eval                                     # with the stateful evaluation again
+docker compose down -v                                        # to delete the data as well
 ```
 
 ## Where to go next

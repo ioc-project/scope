@@ -1,0 +1,23 @@
+{
+  "nameTemplate": "Recurring $failureName ($code) in group \"$groupName\"",
+  "descriptionTemplate": "The cognitive failure $failureName ($code) was detected, with medium or high confidence, in $affected of the $groupSize sessions of group \"$groupName\" ($sharePercent%).",
+  "kgQuery": [
+    "MATCH (sg:SemanticGroup)-[:containsSession]->(s:Session)",
+    "WITH sg, count(DISTINCT s) AS groupSize",
+    "MATCH (sg)-[:containsSession]->(failed:Session)<-[:reportsOn]-(r:CognitiveFailureReport)",
+    "WHERE r.confidence IN ['medium', 'high']",
+    "WITH sg, groupSize, r.code AS code, head(collect(r.name)) AS reportName, count(DISTINCT failed) AS affected",
+    "WHERE affected >= 2 AND toFloat(affected) / groupSize >= 0.3",
+    "RETURN sg.id AS groupId,",
+    "  sg.groupName AS groupName,",
+    "  code,",
+    "  coalesce(reportName, code) AS failureName,",
+    "  affected,",
+    "  groupSize,",
+    "  toInteger(round(100.0 * affected / groupSize)) AS sharePercent"
+  ],
+  "labels": ["Cognitive Failure", "Reliability", "$code"],
+  "scope": "SemanticGroup",
+  "priority": "P2",
+  "targetNodeId": "$groupId"
+}

@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 from scope_ontology import OntologyValidationError, verify_kg_object
 from scope_ontology.models.edges import (
     aboutMetric,
+    concerns,
     containsSession,
     hasContext,
     hasMedioidSession,
@@ -1835,7 +1836,14 @@ def ingest_insights(
     current_ids_by_target_template: Dict[Tuple[str, str, str], set] = {}
 
     for insight in insights:
-        verification = verify_kg_object(insight)
+        # ``concerns`` is mandatory on an Insight. It is not stored (the target's ``hasInsight`` edge below is what
+        # the graph keeps), so it is asserted here for the shape to see the target the insight is attached to.
+        concerns_edges = (
+            [concerns(source_id=insight.id, target_id=insight.targetNodeId)]
+            if insight.targetNodeId
+            else []
+        )
+        verification = verify_kg_object(insight, edges=concerns_edges)
         if not verification.conforms:
             raise OntologyValidationError(verification)
 

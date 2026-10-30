@@ -31,9 +31,7 @@ COPY mce /app/mce
 COPY api /app/api
 COPY --from=ontology . /ontology
 
-RUN uv sync --package analysis-worker --frozen --no-editable \
-    --no-install-package numba \
-    --no-install-package llvmlite
+RUN uv sync --package analysis-worker --frozen --no-editable
 
 # ── Run stage ─────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS runner

@@ -25,8 +25,8 @@ from dataclasses import asdict, dataclass, is_dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from metrics_computation_engine.llm_judge.llm import LLMClient
 from metrics_computation_engine.models.requests import LLMJudgeConfig
+from stateful_evals_be.llm_client import LLMClient
 from stateful_evals_be.evaluation.cost_estimator import (
     estimate_token_cost,
     estimate_usage_cost_usd,

@@ -145,3 +145,40 @@ def test_abstract_metric_is_skipped():
         result = _discover_plugin_metrics()
 
     assert result == []
+
+
+# ---------------------------------------------------------------------------
+# _discover_plugin_metrics — packages whose plugins are ignored
+# ---------------------------------------------------------------------------
+
+
+def _entry_point(name: str, package: str, cls):
+    ep = MagicMock(spec=EntryPoint)
+    ep.name = name
+    ep.value = f"{package}.module:{name}"
+    ep.dist = MagicMock()
+    ep.dist.name = package
+    ep.load.return_value = cls
+    return ep
+
+
+def test_plugins_of_an_ignored_package_are_not_even_loaded(monkeypatch):
+    """Loading a plugin imports its package: the ones that are ignored must not be loaded at all."""
+    monkeypatch.setenv("MCE_IGNORED_PLUGIN_PACKAGES", "mdt_metrics, other")
+    ignored = _entry_point("Groundedness", "mdt-metrics", _StubMetric)
+    kept = _entry_point("StubMetric", "my-plugins", _StubMetric)
+
+    with patch("mce.core.registry.discovery.entry_points", return_value=[ignored, kept]):
+        result = _discover_plugin_metrics()
+
+    assert len(result) == 1
+    ignored.load.assert_not_called()
+    kept.load.assert_called_once()
+
+
+def test_every_plugin_is_loaded_when_none_is_ignored(monkeypatch):
+    monkeypatch.delenv("MCE_IGNORED_PLUGIN_PACKAGES", raising=False)
+    eps = [_entry_point("A", "mdt-metrics", _StubMetric), _entry_point("B", "my-plugins", _StubMetric)]
+
+    with patch("mce.core.registry.discovery.entry_points", return_value=eps):
+        assert len(_discover_plugin_metrics()) == 2

@@ -30,9 +30,7 @@ COPY mce /app/mce
 COPY api /app/api
 COPY --from=ontology . /ontology
 
-RUN uv sync --package mce-worker --frozen --no-editable \
-    --no-install-package numba \
-    --no-install-package llvmlite
+RUN uv sync --package mce-worker --frozen --no-editable
 
 # ── LLM price table ──────────────────────────────────────────────────────────
 # The price table the MCE bills with is refreshed from LiteLLM on every

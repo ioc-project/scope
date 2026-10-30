@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The `mce` worker computed one session at a time.** `MCEWrapper.process_mce_session` was `async` but called the blocking
+  evaluation directly, which held the event loop: whatever `MAX_INFLIGHT_MESSAGES` said, sessions went through one after the
+  other, about 8 seconds each with the default metrics. It now runs the evaluation in a thread, and the engine that the sessions
+  share is built once. A burst of 33 sessions had its metrics in 68 seconds instead of 260.
+- **Workers were capped at 16 sessions at a time, below their `MAX_INFLIGHT_MESSAGES`.** The handlers hand their blocking work to
+  `asyncio.to_thread`, whose pool holds `min(32, cpus + 4)` threads (16 on a 12-CPU host), so a worker allowed 32, 64 or 128
+  messages in flight never ran more than 16. `BaseWorker` now sizes the pool to `max_inflight_messages`.
+- **`Connection pool is full, discarding connection: clickhouse` in the logs.** The ClickHouse client of the workers shared
+  clickhouse-connect's default pool of 8 HTTP connections, and the `norm` worker, which reads the spans of many sessions
+  at once, opened more and threw the extra ones away after each request. `ClickHouseConnector` now has its own pool,
+  of 32 connections by default (`CLICKHOUSE_POOL_SIZE` sets it).
+- **Neo4j writes no longer lose a session to a deadlock.** When several workers wrote the same shared nodes at once (a
+  burst of sessions writing the same agents, tools and model), Neo4j rolled one of the transactions back with a
+  transient error (`DeadlockDetected`), and the `norm` worker dropped the whole session. `Neo4JConnector` now tries a query
+  again, up to five times with a short random wait, when Neo4j reports a transient error. The same burst on a new
+  database could also fail on the index that two sessions create at the same time
+  (`EquivalentSchemaRuleAlreadyExists`): that error is now what it says, the index exists.
 - **Normalization: identical boundary States are one State.** When a call started with what the previous step
   produced (a tool called with its agent's input, a tool returning what its agent returns, a handoff that passes
   its output on unchanged), `norm` kept two State nodes with the same content and no edge between them, so the
@@ -46,6 +63,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Workers can run in one process, and Compose runs three services instead of eight.** `worker_base.runner` starts the
+  workers of a group in threads of one process, each with its own event loop, queues and options, so the interpreter and
+  the libraries they share are loaded once. The new images are `ingestion-worker` (norm, embedding),
+  `semantic-analysis-worker` (grouping, hierarchical-grouping, analysis, intelligence) and `eval-worker` (mce,
+  stateful-eval); the analysis worker, which forks a pool of CPU-bound processes, runs as a child process of its group.
+  `--workers` (or `INGESTION_WORKERS`, `SEMANTIC_ANALYSIS_WORKERS`, `EVAL_WORKERS`) picks some of them, and the settings
+  that all the workers read from one variable can be set per worker with its prefix (`NORM_MAX_INFLIGHT_MESSAGES`,
+  `HIERARCHICAL_GROUPING_PERIODIC_TRIGGER_INTERVAL_SECONDS`; `scoped_getenv` in `worker_base.utils`), and
+  `<WORKER>_ARGS` adds command line options. The single-worker images and CLIs are unchanged (and still needed for Argo
+  run-once mode); the Helm chart still deploys the single workers. On a 33-session replay the three services took 1.6 GB
+  against 2.0 GB for the eight containers, and the pipeline finished in 85 s against 101 s.
+- **The MCE can ignore the metric plugins of some packages (`MCE_IGNORED_PLUGIN_PACKAGES`).** It loads every package that
+  registers a metric in the `metrics_computation_engine.plugins` entry-point group and skips the ones that are not MCE
+  metrics, but loading is importing: in an image that also has the stateful evaluation (`eval-worker`), the MCE imported
+  `mdt-metrics` and `litellm` with it, which took its process from 102 MB to 388 MB after discovery. The `eval-worker` image
+  sets it to `mdt-metrics`; the metric catalog is the same (45 metrics).
+- **The stateful evaluation calls the judge model with the OpenAI SDK, not LiteLLM.** `metrics-computation-engine`'s
+  `LLMClient` is a thin wrapper around `litellm.completion`, and importing it (which `BaseMetric` and `Jury` do) loaded
+  LiteLLM, about 300 MB per process. `stateful_evals_be.llm_client.LLMClient` has the same constructor and `query`
+  signature and calls the `openai` SDK (Azure OpenAI when `api_version` is set); it replaces the package's module when
+  `stateful_evals_be` is imported. A parameter the endpoint refuses (`reasoning_effort`, `temperature`, `response_format`)
+  is dropped and the call retried, as LiteLLM's `drop_params` did. LiteLLM is still installed, since
+  `metrics-computation-engine` depends on it, but no longer imported.
+- **Insights from the cognitive failure detections.** Two intelligence-catalog templates read the
+  `CognitiveFailureReport` nodes: one insight per failure and session (priority from the detector's confidence), and one
+  per failure and semantic group when it is recurring (at least 2 sessions and 30% of the group, medium or high
+  confidence).
+- **Fixed: the intelligence worker failed with `Insight failed ontology validation: concerns: Less than 1 values`.**
+  `ingest_insights` validated each insight without its `concerns` edge to the node it is attached to, which the
+  ontology requires, so no insight could be written. It now passes that edge.
+- **`cognition-protocols-worker` depends on `ioc-scope-mce-core`, not the `ioc-scope-mce` meta package.** It only runs the
+  ACCORD and CONCORD plugin metrics, but the meta package installs every provider (native, sdk, deepeval, opik, ragas,
+  legacy), with `litellm`, `pyarrow`, `scipy`, `scikit-learn` and `pandas` behind them. The image's virtual environment goes
+  from 788 MB to 233 MB; the same 49 protocol metrics are discovered.
+- **`clickhouse-sqlalchemy` is an optional extra of `ioc-scope-api`.** Nothing imports it (span reads use
+  `clickhouse-connect`), but it pulled `asynch` (66 MB) into every worker image. The API image still installs it
+  (`clickhouse-sqlalchemy` extra), for a `SQLAlchemyConnector` pointed at a ClickHouse URL.
+- **`umap-learn` and `numba` are only installed in the API image.** They serve the UMAP projection of
+  `GET /sessions/{id}/latent-space`, but `ioc-scope-api` is also the knowledge-graph client of every worker, so all the worker
+  images carried them, with llvmlite, scikit-learn and scipy behind them. They are now the `latent-space` extra of
+  `ioc-scope-api`, which the API Dockerfile installs (`uv sync --extra latent-space`). The norm worker image goes from
+  970 MB to 494 MB, and no worker image has numba, llvmlite or umap any more (three Dockerfiles no longer need their
+  `--no-install-package numba` workaround). Without the extra, the latent-space endpoint answers 501 and names it.
+- **The embedding worker image no longer installs torch.** `dem.embedding` imported torch, transformers,
+  sentence-transformers, gensim and google-genai as soon as it was imported, so the worker paid about 360 MB of memory for
+  libraries that `OpenAIEmbedder` (the embedder of the Compose file and the Helm chart) never uses. Each embedder now imports
+  its library when it is built. `dem[embedding]` is the API embedders only (openai, google-genai); the local models
+  (`SentenceTransformerEmbedder`, `Qwen3Embedder`, `GensimEmbedder`) moved to the new `dem[embedding-local]` extra, and the
+  embedding worker has a matching `local` extra, which `Dockerfile.gpu` installs. The default image goes from 1.54 GB to
+  0.72 GB and the process from about 470 MB to about 105 MB. A local embedder without its libraries fails with a message
+  that names the extra. To use one in the default image, build a variant with `--extra local`.
+- **The cognition-protocols image builds without an SSH agent.** The ACCORD and CONCORD metric packages are read from the
+  public `ioc-project/cognition-protocols` repository over HTTPS (`ssh: [default]` is gone from the Compose file and the bake
+  target), and the image is part of the CI matrix like the others.
 - **Breaking: metrics are stored as the ontology's `Metric` + `MetricResult`.** A `MetricResult`
   (`result`, `reasoning`, `timestamp`, `evaluation*` cost fields) is linked to its `Metric` definition
   (one per metric name and provider, with `metricProvider`, `unit`, `valueRange`) by `ofMetricType`, and

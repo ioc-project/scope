@@ -60,7 +60,14 @@ Key methods/attributes a subclass uses:
 - `async run()` — starts the long-running RabbitMQ consumer (`run_worker()`): declares
   `input_queue`, sets QoS/prefetch from `max_inflight_messages`, and processes messages
   concurrently up to that limit, sending `start`/`complete`/`error` events to `feedback_queue` (if
-  set) around each `handle_message()` call.
+  set) around each `handle_message()` call. The event loop's thread pool, which `asyncio.to_thread` uses for
+  the blocking work of a handler, is sized to `max_inflight_messages` too: by default it would hold only
+  `min(32, cpus + 4)` threads and cap the worker below its limit.
+- `worker_base.runner` — runs several workers in one process (`Member`, `run_members`, `main`): each worker's CLI command
+  is started in a thread with an event loop of its own, and `env_scope` / `scoped_getenv` (in `worker_base.utils`) let
+  `NORM_MAX_INFLIGHT_MESSAGES` set the one worker whose CLI reads `MAX_INFLIGHT_MESSAGES`. A member marked `isolated`
+  runs as a child process instead (the analysis worker, which forks a pool of its own). The `ingestion-worker`,
+  `semantic-analysis-worker` and `eval-worker` packages are built on it.
 - `async run_argo_message(raw_input, output_path)` — single-message (or batch-of-messages, if
   `raw_input` is a JSON array) mode with no RabbitMQ involved: validates the input against
   `input_message_class`, calls `handle_message()`, and writes the serialized output message(s) to

@@ -6,15 +6,65 @@ import time
 from collections import OrderedDict
 from typing import Optional
 
-import gensim.downloader
 import numpy as np
-import torch
-from google import genai
-from openai import OpenAI
-from sentence_transformers import SentenceTransformer
-from transformers import AutoModel, AutoTokenizer
 
 from .cache import CacheManager
+
+# The embedders import their client library when they are built, not when this module is: the local models
+# need torch and transformers (the ``embedding-local`` extra), which an API-only deployment does not install and
+# should not pay about 400 MB of memory to import. ``_lazy`` and the module ``__getattr__`` resolve the names
+# below on first use, so ``dem.embedding.embedding.OpenAI`` and the like still work (and can be patched).
+_EXTRAS = {
+    "gensim": "embedding-local",
+    "torch": "embedding-local",
+    "SentenceTransformer": "embedding-local",
+    "AutoModel": "embedding-local",
+    "AutoTokenizer": "embedding-local",
+    "genai": "embedding",
+    "OpenAI": "embedding",
+}
+
+
+def __getattr__(name: str):
+    try:
+        if name == "gensim":
+            import gensim.downloader  # noqa: F401  (makes gensim.downloader available)
+
+            return gensim
+        if name == "torch":
+            import torch
+
+            return torch
+        if name == "SentenceTransformer":
+            from sentence_transformers import SentenceTransformer
+
+            return SentenceTransformer
+        if name in ("AutoModel", "AutoTokenizer"):
+            import transformers
+
+            return getattr(transformers, name)
+        if name == "genai":
+            from google import genai
+
+            return genai
+        if name == "OpenAI":
+            from openai import OpenAI
+
+            return OpenAI
+    except ImportError as exc:
+        raise ImportError(
+            f"{name} is needed by this embedder and is not installed: "
+            f"install dem[{_EXTRAS[name]}]. ({exc})"
+        ) from exc
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _lazy(name: str):
+    """Resolve one of the optional libraries above, honouring a value set on the module (a test's patch)."""
+    try:
+        return globals()[name]
+    except KeyError:
+        return __getattr__(name)
 
 
 class EmbeddingModel:
@@ -85,7 +135,8 @@ class EmbeddingModel:
 class SentenceTransformerEmbedder(EmbeddingModel):
     def __init__(self, model_id, cache_manager=None):
         super().__init__(model_id, cache_manager)
-        self.sbert_model = SentenceTransformer(self.model_id)
+        torch = _lazy("torch")
+        self.sbert_model = _lazy("SentenceTransformer")(self.model_id)
 
         self.tokenizer = self.sbert_model._modules["0"].tokenizer
         self.transformer_model = self.sbert_model._modules["0"].auto_model
@@ -140,6 +191,7 @@ class SentenceTransformerEmbedder(EmbeddingModel):
     def get_word_embedding_in_context(
         self, text: str, char_start: int, char_end: int
     ) -> np.ndarray:
+        torch = _lazy("torch")
         # Tokenize the input text with offset mapping
         tokens = self.tokenizer.encode_plus(
             text,
@@ -185,7 +237,7 @@ class SentenceTransformerEmbedder(EmbeddingModel):
 class GensimEmbedder(EmbeddingModel):
     def __init__(self, model_id, cache_manager=None):
         super().__init__(model_id, cache_manager)
-        self.model = gensim.downloader.load(self.model_id)
+        self.model = _lazy("gensim").downloader.load(self.model_id)
         self.embedding_dimension = self.model.vector_size
 
     def _internal_encode(self, sentences: list[str]) -> np.ndarray:
@@ -238,7 +290,7 @@ class OpenAIEmbedder(EmbeddingModel):
             )
 
             # Create client with optional base_url (for gateway support)
-            self.client = OpenAI(
+            self.client = _lazy("OpenAI")(
                 api_key=api_key_to_use,
                 base_url=base_url_to_use,
                 max_retries=max_retries,
@@ -283,7 +335,7 @@ class GoogleEmbedder(EmbeddingModel):
             api_key = os.getenv("GEMINI_API_KEY")
             if not api_key:
                 raise ValueError("Google API key not found.")
-            self.client = genai.Client(api_key=api_key)
+            self.client = _lazy("genai").Client(api_key=api_key)
             # Avoid eager network/API-key validation at startup.
             # Dimension is discovered lazily on first real encode call.
             self.embedding_dimension = None
@@ -328,6 +380,8 @@ class Qwen3Embedder(EmbeddingModel):
         super().__init__(model_id, cache_manager)
         self.batch_size = batch_size
         try:
+            torch = _lazy("torch")
+            AutoModel, AutoTokenizer = _lazy("AutoModel"), _lazy("AutoTokenizer")
             # Keep device as a simple string for test determinism when torch.device is patched
             device_obj = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             try:
@@ -360,6 +414,7 @@ class Qwen3Embedder(EmbeddingModel):
             raise Exception(f"Failed to load Qwen3 model {model_id}: {e}")
 
     def _internal_encode(self, sentences: list[str]) -> np.ndarray:
+        torch = _lazy("torch")
         all_sentence_embeddings = []
         # Process sentences in smaller batches to manage memory
         for i in range(0, len(sentences), self.batch_size):
@@ -424,6 +479,7 @@ class Qwen3Embedder(EmbeddingModel):
     def get_word_embedding_in_context(
         self, text: str, char_start: int, char_end: int
     ) -> np.ndarray:
+        torch = _lazy("torch")
         tokens = self.tokenizer.encode_plus(
             text,
             return_offsets_mapping=True,

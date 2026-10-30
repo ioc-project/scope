@@ -51,6 +51,7 @@ from __future__ import annotations
 import copy
 import logging
 import os
+import threading
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -319,6 +320,8 @@ class MCEWorkerService:
             kg_provider=kg_provider,
         )
         self._restricted_engine: MetricEngine | None = None  # Lazy
+        # Sessions may be processed in several threads: only one of them builds the engine.
+        self._engine_lock = threading.Lock()
         scope_summary = ", ".join(
             f"{k}={len(v)}" for k, v in self._cfg.scope_metrics.items()
         )
@@ -434,65 +437,68 @@ class MCEWorkerService:
         A shallow copy of each metric (and its metadata) is made so the global
         discovery cache is never mutated.
         """
-        if self._restricted_engine is None:
-            from mce.engine.engine import MetricEngine
-            from mce.core.registry.discovery import (
-                discover_all_metrics,
-                ensure_target_types,
-            )
-
-            # Build metric_id → YAML-declared ontology URIs.
-            metric_yaml_uris: dict[str, set[str]] = {}
-            for scope, names in self._cfg.scope_metrics.items():
-                uri = _YAML_SCOPE_TO_ONTOLOGY_URI.get(scope)
-                if uri is None:
-                    logger.warning(
-                        "Unknown YAML scope key '%s' — no ontology URI mapping. "
-                        "Metrics listed here will use their native target_types.",
-                        scope,
-                    )
-                    continue
-                for name in names:
-                    metric_yaml_uris.setdefault(name, set()).add(uri)
-
-            engine = MetricEngine(
-                max_workers=self._cfg.max_workers,
-                execution_strategy=self._cfg.execution_strategy,
-            )
-            for metric in discover_all_metrics():
-                if metric.metric_id not in self._cfg.all_metric_ids:
-                    continue
-                scoped = copy.copy(metric)
-                scoped.metadata = copy.copy(metric.metadata)
-                setattr(scoped, "_mce_max_workers", self._cfg.max_workers)
-                ensure_target_types(metric)
-                yaml_uris = metric_yaml_uris.get(metric.metric_id)
-                if yaml_uris:
-                    scoped.metadata.target_types = yaml_uris
-                else:
-                    scoped.metadata.target_types = copy.copy(
-                        metric.metadata.target_types
-                    )
-                engine.register_metric(scoped)
-            kg_provider = self._client._get_kg_provider()
-            engine.set_data_provider(kg_provider)
-
-            from mce.cli.helpers.compute_setup import setup_cache_manager
-
-            cache_manager = setup_cache_manager(
-                kg_provider,
-                no_cache_read=not self._cfg.cache_read,
-                no_cache_write=not self._cfg.cache_write,
-            )
-            engine.set_cache_manager(cache_manager)
-
-            self._restricted_engine = engine
-            logger.debug(
-                "Restricted engine built with %d metrics: %s",
-                len(self._cfg.all_metric_ids),
-                sorted(self._cfg.all_metric_ids),
-            )
+        with self._engine_lock:
+            if self._restricted_engine is None:
+                self._restricted_engine = self._build_restricted_engine()
         return self._restricted_engine
+
+    def _build_restricted_engine(self) -> "MetricEngine":
+        """Build the engine of :meth:`_get_restricted_engine`."""
+        from mce.engine.engine import MetricEngine
+        from mce.core.registry.discovery import (
+            discover_all_metrics,
+            ensure_target_types,
+        )
+
+        # Build metric_id → YAML-declared ontology URIs.
+        metric_yaml_uris: dict[str, set[str]] = {}
+        for scope, names in self._cfg.scope_metrics.items():
+            uri = _YAML_SCOPE_TO_ONTOLOGY_URI.get(scope)
+            if uri is None:
+                logger.warning(
+                    "Unknown YAML scope key '%s' — no ontology URI mapping. "
+                    "Metrics listed here will use their native target_types.",
+                    scope,
+                )
+                continue
+            for name in names:
+                metric_yaml_uris.setdefault(name, set()).add(uri)
+
+        engine = MetricEngine(
+            max_workers=self._cfg.max_workers,
+            execution_strategy=self._cfg.execution_strategy,
+        )
+        for metric in discover_all_metrics():
+            if metric.metric_id not in self._cfg.all_metric_ids:
+                continue
+            scoped = copy.copy(metric)
+            scoped.metadata = copy.copy(metric.metadata)
+            setattr(scoped, "_mce_max_workers", self._cfg.max_workers)
+            ensure_target_types(metric)
+            yaml_uris = metric_yaml_uris.get(metric.metric_id)
+            if yaml_uris:
+                scoped.metadata.target_types = yaml_uris
+            else:
+                scoped.metadata.target_types = copy.copy(metric.metadata.target_types)
+            engine.register_metric(scoped)
+        kg_provider = self._client._get_kg_provider()
+        engine.set_data_provider(kg_provider)
+
+        from mce.cli.helpers.compute_setup import setup_cache_manager
+
+        cache_manager = setup_cache_manager(
+            kg_provider,
+            no_cache_read=not self._cfg.cache_read,
+            no_cache_write=not self._cfg.cache_write,
+        )
+        engine.set_cache_manager(cache_manager)
+
+        logger.debug(
+            "Restricted engine built with %d metrics: %s",
+            len(self._cfg.all_metric_ids),
+            sorted(self._cfg.all_metric_ids),
+        )
+        return engine
 
     def _compute_session_results(self, session_id: str) -> tuple[list, list]:
         """Run metric computation and return (passed, failed) results.

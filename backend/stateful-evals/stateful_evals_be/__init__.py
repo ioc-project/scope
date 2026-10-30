@@ -4,6 +4,11 @@
 
 from typing import TYPE_CHECKING, Any
 
+from stateful_evals_be import llm_client as _llm_client
+
+# Before anything imports metrics_computation_engine: its LLMClient would load LiteLLM.
+_llm_client.install()
+
 if TYPE_CHECKING:
     from stateful_evals_be.api import (
         EvaluationEngine,

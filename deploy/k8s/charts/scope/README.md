@@ -121,10 +121,7 @@ run, and each one makes the judge prompt longer.
 ### 7. Cognition Protocols Worker
 
 The `cognition-protocols` worker detects which Cognition protocols (ACCORD, CONCORD) a session used, and evaluates
-the ones it used. It is **enabled by default**. Its image is not published by CI yet, because the packages with the
-protocol metrics are private git dependencies, so the image has to be built with an SSH agent that can read them
-(see its Dockerfile) and made available to the cluster. Until then, its pod cannot pull the image: turn the worker
-off.
+the ones it used. It is **enabled by default**. To turn it off:
 
 ```bash
 helm upgrade -i -n scope scope charts/scope \

@@ -1476,7 +1476,14 @@ def _get_session_latent_space(
     """Fetch state embeddings and project them to 2D using UMAP."""
     import numpy as np
     from fastapi import HTTPException
-    from umap import UMAP
+
+    try:
+        from umap import UMAP
+    except ImportError as exc:  # the `latent-space` extra is only installed in the API image
+        raise HTTPException(
+            status_code=501,
+            detail="The latent space needs umap-learn: install ioc-scope-api[latent-space].",
+        ) from exc
 
     query, params = ui_queries.latent_space_query(session_id=session_id)
     try:

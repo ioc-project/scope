@@ -1,6 +1,8 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
 
+import contextlib
+import contextvars
 import logging
 import os
 from urllib.parse import (
@@ -12,6 +14,33 @@ from urllib.parse import (
 DEFAULT_RABBITMQ_URL = "amqp://guest:guest@localhost/"
 DEFAULT_RABBITMQ_URL_WITH_PORT = "amqp://guest:guest@localhost:5672/"
 DEFAULT_RABBITMQ_PORT = "5672"
+
+
+_env_scope: contextvars.ContextVar[str | None] = contextvars.ContextVar("worker_env_scope", default=None)
+
+
+@contextlib.contextmanager
+def env_scope(prefix: str):
+    """Make ``scoped_getenv`` prefer ``<prefix>_<NAME>`` over ``<NAME>`` for the code that runs inside.
+
+    Several workers can run in one process (see ``worker_base.runner``), and a few settings that every worker reads from
+    the same variable (``MAX_INFLIGHT_MESSAGES``, ``PERIODIC_TRIGGER_INTERVAL_SECONDS``) must still be set per worker.
+    """
+    token = _env_scope.set(prefix)
+    try:
+        yield
+    finally:
+        _env_scope.reset(token)
+
+
+def scoped_getenv(name: str, default: str | None = None) -> str | None:
+    """``os.getenv`` that first looks for the variable with the prefix of the current ``env_scope``."""
+    prefix = _env_scope.get()
+    if prefix:
+        value = os.getenv(f"{prefix}_{name}")
+        if value not in (None, ""):
+            return value
+    return os.getenv(name, default)
 
 
 class ColoredFormatter(logging.Formatter):
@@ -137,7 +166,7 @@ def resolve_max_inflight_messages(
 
     `-1` means auto (= available CPU count), any non-positive value is rejected.
     """
-    env_value = os.getenv("MAX_INFLIGHT_MESSAGES")
+    env_value = scoped_getenv("MAX_INFLIGHT_MESSAGES")
     raw = env_value if env_value not in (None, "") else str(cli_value)
     parsed = int(raw)
     if parsed == -1:

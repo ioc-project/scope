@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 from scope_ontology import OntologyValidationError, verify_kg_object
 from scope_ontology.models.edges import (
     aboutMetric,
+    concerns,
     containsSession,
     hasContext,
     hasMedioidSession,
@@ -527,6 +528,10 @@ def _neo4j_props(values: Dict[str, Any]) -> Dict[str, Any]:
     return props
 
 
+# Neo4j's answer when an index that is being created already exists.
+_INDEX_ALREADY_EXISTS = "Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists"
+
+
 def ingest_normalized_kg(
     db: Connector,
     nodes: List[Dict[str, Any]],
@@ -587,9 +592,12 @@ def ingest_normalized_kg(
                     f"FOR (n:{node_type}) ON (n.id)"
                 )
             except Exception as exc:
-                raise DatabaseError(
-                    f"Failed to ensure index for '{node_type}': {exc}"
-                ) from exc
+                # Two sessions can create the same index at once on a new database: the
+                # loser is told that it already exists, which is what it wanted.
+                if getattr(exc, "code", "") != _INDEX_ALREADY_EXISTS:
+                    raise DatabaseError(
+                        f"Failed to ensure index for '{node_type}': {exc}"
+                    ) from exc
             _indexed_node_types.add(node_type)
 
         if node_type in _NAME_KEYED_NODE_TYPES:
@@ -1828,7 +1836,14 @@ def ingest_insights(
     current_ids_by_target_template: Dict[Tuple[str, str, str], set] = {}
 
     for insight in insights:
-        verification = verify_kg_object(insight)
+        # ``concerns`` is mandatory on an Insight. It is not stored (the target's ``hasInsight`` edge below is what
+        # the graph keeps), so it is asserted here for the shape to see the target the insight is attached to.
+        concerns_edges = (
+            [concerns(source_id=insight.id, target_id=insight.targetNodeId)]
+            if insight.targetNodeId
+            else []
+        )
+        verification = verify_kg_object(insight, edges=concerns_edges)
         if not verification.conforms:
             raise OntologyValidationError(verification)
 

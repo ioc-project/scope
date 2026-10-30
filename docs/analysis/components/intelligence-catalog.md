@@ -16,8 +16,8 @@ Unlike the other backend components, this isn't a Python library — it's a data
 ```
 intelligence-catalog/
 ├── insight-templates/
-│   ├── group/      # SemanticGroup-scoped templates (3 today)
-│   └── session/    # Session-scoped templates (6 today)
+│   ├── group/      # SemanticGroup-scoped templates (4 today)
+│   └── session/    # Session-scoped templates (7 today)
 ├── recommendations/  # empty (.gitkeep) — reserved for future remediation content
 └── root-causes/      # empty (.gitkeep) — reserved for future root-cause patterns
 ```
@@ -66,5 +66,18 @@ Session-scoped templates follow the same shape, reading from `Metric`, `AnomalyR
 1. Add a kebab-case JSON file under `insight-templates/group/` or `insight-templates/session/`.
 2. Make sure every `RETURN`-clause alias needed by the templates/labels/priority/targetNodeId is present — the loader rejects templates where a `$variable` isn't returned by the query.
 3. No build step is required: the catalog is read from disk at worker startup (`catalog_root` passed to `IntelligenceWrapper`), so a new template only needs redeploying/restarting the [intelligence-worker](../workers/intelligence-worker.md).
+
+### Cognitive failure templates
+
+Two templates turn the detections of the [cognitive-failure-worker](../workers/cognitive-failure-worker.md)
+(`CognitiveFailureReport` nodes) into insights:
+
+- `session/cognitive-failure-session.json`: one insight per failure and session, attached to the session. A failure
+  detected at several calls of a session is one insight, described by its most confident detection. The priority
+  follows that confidence: `P1` for high, `P2` for medium, `P3` for low (the template's `priority` is the `$priority`
+  variable of its query).
+- `group/recurring-cognitive-failure-group.json`: one insight per failure and semantic group, attached to the group,
+  when the failure was detected with medium or high confidence in at least 2 sessions and 30% of the sessions of the
+  group. Priority `P2`.
 
 See also [analysis](analysis.md) for the `ConsistencyReport`/`AnomalyReport` nodes these templates query against.

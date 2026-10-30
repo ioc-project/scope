@@ -16,8 +16,10 @@ members = [
     "consistency-worker",
     "dem",
     "embedding-worker",
+    "eval-worker",
     "grouping-worker",
     "hierarchical-grouping-worker",
+    "ingestion-worker",
     "intelligence-worker",
     "ioc-scope-api",
     "ioc-scope-lib",
@@ -36,6 +38,7 @@ members = [
     "norm",
     "norm-worker",
     "normal-behaviour-worker",
+    "semantic-analysis-worker",
     "stateful-eval-worker",
     "stateful-evals",
     "worker-base",
@@ -640,8 +643,8 @@ dependencies = [
     { name = "ioc-accord-mce-metrics" },
     { name = "ioc-concord-mce-metrics" },
     { name = "ioc-scope-api" },
-    { name = "ioc-scope-mce" },
     { name = "ioc-scope-mce-client" },
+    { name = "ioc-scope-mce-core" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "worker-base" },
@@ -656,11 +659,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0" },
-    { name = "ioc-accord-mce-metrics", git = "ssh://git@github.com/cisco-eti/ioc-core-l9-extensions.git?subdirectory=evals%2Faccord_custom_evals%2Faccord-mce-metrics&branch=feat%2Fadding-mce-metrics-plugin" },
-    { name = "ioc-concord-mce-metrics", git = "ssh://git@github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Fconcord%2Fmce-metrics&branch=main" },
+    { name = "ioc-accord-mce-metrics", git = "https://github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Faccord%2Fmce-metrics&branch=main" },
+    { name = "ioc-concord-mce-metrics", git = "https://github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Fconcord%2Fmce-metrics&branch=main" },
     { name = "ioc-scope-api", editable = "api" },
-    { name = "ioc-scope-mce", editable = "mce/mce-meta" },
     { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
+    { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
@@ -1015,9 +1018,11 @@ dev = [
     { name = "pytest-mock" },
 ]
 embedding = [
-    { name = "gensim" },
     { name = "google-genai" },
     { name = "openai" },
+]
+embedding-local = [
+    { name = "gensim" },
     { name = "sentence-transformers" },
     { name = "torch" },
     { name = "transformers" },
@@ -1041,9 +1046,10 @@ dev = [
 requires-dist = [
     { name = "dem", extras = ["analysis"], marker = "extra == 'all'", editable = "dem" },
     { name = "dem", extras = ["embedding"], marker = "extra == 'all'", editable = "dem" },
+    { name = "dem", extras = ["embedding-local"], marker = "extra == 'all'", editable = "dem" },
     { name = "dem", extras = ["grouping"], marker = "extra == 'all'", editable = "dem" },
     { name = "dem", extras = ["llm"], marker = "extra == 'all'", editable = "dem" },
-    { name = "gensim", marker = "extra == 'embedding'", specifier = ">=4.4.0" },
+    { name = "gensim", marker = "extra == 'embedding-local'", specifier = ">=4.4.0" },
     { name = "google-genai", marker = "extra == 'embedding'", specifier = ">=1.51.0" },
     { name = "hdbscan", marker = "extra == 'grouping'", specifier = ">=0.8.41" },
     { name = "neo4j", specifier = ">=5.28.2" },
@@ -1058,11 +1064,11 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'analysis'", specifier = ">=1.7.2,<1.9.0" },
     { name = "scikit-learn", marker = "extra == 'grouping'", specifier = ">=1.7.2,<1.9.0" },
     { name = "scipy", marker = "extra == 'analysis'", specifier = ">=1.0.0" },
-    { name = "sentence-transformers", marker = "extra == 'embedding'", specifier = ">=5.1.2" },
-    { name = "torch", marker = "extra == 'embedding'", specifier = ">=2.0.0" },
-    { name = "transformers", marker = "extra == 'embedding'", specifier = ">=4.57.1" },
+    { name = "sentence-transformers", marker = "extra == 'embedding-local'", specifier = ">=5.1.2" },
+    { name = "torch", marker = "extra == 'embedding-local'", specifier = ">=2.0.0" },
+    { name = "transformers", marker = "extra == 'embedding-local'", specifier = ">=4.57.1" },
 ]
-provides-extras = ["grouping", "llm", "embedding", "analysis", "all", "dev"]
+provides-extras = ["grouping", "llm", "embedding", "embedding-local", "analysis", "all", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1138,12 +1144,16 @@ dev = [
     { name = "pytest-mock" },
     { name = "ruff" },
 ]
+local = [
+    { name = "dem", extra = ["embedding-local"] },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["embedding"], editable = "dem" },
+    { name = "dem", extras = ["embedding-local"], marker = "extra == 'local'", editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1152,6 +1162,30 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
+    { name = "worker-base", editable = "worker-base" },
+]
+provides-extras = ["local", "dev"]
+
+[[package]]
+name = "eval-worker"
+version = "1.0.0"
+source = { editable = "workers/eval-worker" }
+dependencies = [
+    { name = "mce-worker" },
+    { name = "stateful-eval-worker" },
+    { name = "worker-base" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mce-worker", editable = "workers/mce-worker" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "stateful-eval-worker", editable = "workers/stateful-eval-worker" },
     { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
@@ -1656,6 +1690,30 @@ wheels = [
 ]
 
 [[package]]
+name = "ingestion-worker"
+version = "1.0.0"
+source = { editable = "workers/ingestion-worker" }
+dependencies = [
+    { name = "embedding-worker" },
+    { name = "norm-worker" },
+    { name = "worker-base" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "embedding-worker", editable = "workers/embedding-worker" },
+    { name = "norm-worker", editable = "workers/norm-worker" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "worker-base", editable = "worker-base" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1735,7 +1793,7 @@ provides-extras = ["dev"]
 [[package]]
 name = "ioc-accord-mce-metrics"
 version = "0.1.0"
-source = { git = "ssh://git@github.com/cisco-eti/ioc-core-l9-extensions.git?subdirectory=evals%2Faccord_custom_evals%2Faccord-mce-metrics&branch=feat%2Fadding-mce-metrics-plugin#2b796d8869d9220f6883e4906da746083b022e97" }
+source = { git = "https://github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Faccord%2Fmce-metrics&branch=main#01a5efd471ce77e5897bddfcaeac056b86ed0263" }
 dependencies = [
     { name = "oxp-mce-core" },
 ]
@@ -1743,7 +1801,7 @@ dependencies = [
 [[package]]
 name = "ioc-concord-mce-metrics"
 version = "0.1.0"
-source = { git = "ssh://git@github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Fconcord%2Fmce-metrics&branch=main#d68e1c4835150aa18b0d818b72b3eed61f285682" }
+source = { git = "https://github.com/ioc-project/cognition-protocols.git?subdirectory=protocols%2Fconcord%2Fmce-metrics&branch=main#01a5efd471ce77e5897bddfcaeac056b86ed0263" }
 dependencies = [
     { name = "openai" },
     { name = "oxp-mce-core" },
@@ -1756,11 +1814,9 @@ version = "1.0.0"
 source = { editable = "api" }
 dependencies = [
     { name = "clickhouse-connect" },
-    { name = "clickhouse-sqlalchemy" },
     { name = "fastapi" },
     { name = "ioc-scope-ontology", extra = ["models", "verify"] },
     { name = "neo4j" },
-    { name = "numba" },
     { name = "numpy" },
     { name = "packaging" },
     { name = "pydantic-settings" },
@@ -1769,8 +1825,16 @@ dependencies = [
     { name = "requests" },
     { name = "ruff" },
     { name = "sqlalchemy" },
-    { name = "umap-learn" },
     { name = "uvicorn" },
+]
+
+[package.optional-dependencies]
+clickhouse-sqlalchemy = [
+    { name = "clickhouse-sqlalchemy" },
+]
+latent-space = [
+    { name = "numba" },
+    { name = "umap-learn" },
 ]
 
 [package.dev-dependencies]
@@ -1779,17 +1843,19 @@ dev = [
     { name = "httpx" },
     { name = "ioc-scope-mce-provider-native" },
     { name = "ioc-scope-mce-provider-sdk" },
+    { name = "numba" },
     { name = "pytest" },
+    { name = "umap-learn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "clickhouse-connect", specifier = ">=0.11.0" },
-    { name = "clickhouse-sqlalchemy", specifier = ">=0.3.2" },
+    { name = "clickhouse-sqlalchemy", marker = "extra == 'clickhouse-sqlalchemy'", specifier = ">=0.3.2" },
     { name = "fastapi", specifier = ">=0.129.0" },
     { name = "ioc-scope-ontology", extras = ["models", "verify"], editable = "../ontology" },
     { name = "neo4j", specifier = ">=6.1.0" },
-    { name = "numba", specifier = ">=0.60.0" },
+    { name = "numba", marker = "extra == 'latent-space'", specifier = ">=0.60.0" },
     { name = "numpy", specifier = ">=2.3.5" },
     { name = "packaging", specifier = ">=26.0" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
@@ -1798,9 +1864,10 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "ruff", specifier = "<=0.15.22" },
     { name = "sqlalchemy", specifier = ">=2.0.46" },
-    { name = "umap-learn", specifier = ">=0.5.7" },
+    { name = "umap-learn", marker = "extra == 'latent-space'", specifier = ">=0.5.7" },
     { name = "uvicorn", specifier = ">=0.41.0" },
 ]
+provides-extras = ["clickhouse-sqlalchemy", "latent-space"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1808,7 +1875,9 @@ dev = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ioc-scope-mce-provider-native", editable = "mce/mce-provider-native" },
     { name = "ioc-scope-mce-provider-sdk", editable = "mce/mce-provider-sdk" },
+    { name = "numba", specifier = ">=0.60.0" },
     { name = "pytest", specifier = ">=9.0.2" },
+    { name = "umap-learn", specifier = ">=0.5.7" },
 ]
 
 [[package]]
@@ -3283,7 +3352,7 @@ wheels = [
 [[package]]
 name = "oxp-mce-core"
 version = "2.0.0rc1"
-source = { git = "ssh://git@github.com/outshift-open/observe-and-explain-platform.git?subdirectory=backend%2Fmce%2Fmce-core&branch=main#87c8c8a39ea0420e647d94650deec66607f191c6" }
+source = { git = "https://github.com/outshift-open/observe-and-explain-platform.git?subdirectory=backend%2Fmce%2Fmce-core&branch=main#e154d84d2e3f5e5d78c347083044dd3d4a354852" }
 dependencies = [
     { name = "click" },
     { name = "networkx" },
@@ -4120,6 +4189,34 @@ wheels = [
 ]
 
 [[package]]
+name = "semantic-analysis-worker"
+version = "1.0.0"
+source = { editable = "workers/semantic-analysis-worker" }
+dependencies = [
+    { name = "analysis-worker" },
+    { name = "grouping-worker" },
+    { name = "hierarchical-grouping-worker" },
+    { name = "intelligence-worker" },
+    { name = "worker-base" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "analysis-worker", editable = "workers/analysis-worker" },
+    { name = "grouping-worker", editable = "workers/grouping-worker" },
+    { name = "hierarchical-grouping-worker", editable = "workers/hierarchical-grouping-worker" },
+    { name = "intelligence-worker", editable = "workers/intelligence-worker" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "worker-base", editable = "worker-base" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "sentence-transformers"
 version = "6.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4288,9 +4385,9 @@ name = "stateful-evals"
 version = "1.0.0"
 source = { editable = "stateful-evals" }
 dependencies = [
-    { name = "litellm" },
     { name = "mdt-metrics" },
     { name = "metrics-computation-engine" },
+    { name = "openai" },
     { name = "pydantic" },
 ]
 
@@ -4308,9 +4405,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "clickhouse-connect", marker = "extra == 'import'", specifier = ">=0.8.0" },
-    { name = "litellm", specifier = ">=1.83.0" },
     { name = "mdt-metrics", directory = "stateful-evals/stateful_evals_be/plugins/mdt_metrics" },
     { name = "metrics-computation-engine", specifier = ">=1.2.7" },
+    { name = "openai", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
 ]
 provides-extras = ["import"]

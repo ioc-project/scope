@@ -10,23 +10,30 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "clickhouse-connect>=0.11.0",
-    "clickhouse-sqlalchemy>=0.3.2",
     "fastapi>=0.129.0",
     "neo4j>=6.1.0",
     "packaging>=26.0",
-    "numba>=0.60.0",
     "numpy>=2.3.5",
     "pydantic-settings>=2.13.1",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
     "redis>=5.0.0",
     "sqlalchemy>=2.0.46",
-    "umap-learn>=0.5.7",
     "uvicorn>=0.41.0",
     "ruff<=0.15.22",
     "ioc-scope-ontology[models,verify]>=1.1.0",
 ]
 
+[project.optional-dependencies]
+# The SQLAlchemy dialect for ClickHouse (and its asynch driver), for a SQLAlchemyConnector pointed at a ClickHouse URL.
+# Nothing imports it by default: the span reads use clickhouse-connect. Only the API image installs it.
+clickhouse-sqlalchemy = ["clickhouse-sqlalchemy>=0.3.2"]
+# The UMAP projection behind GET /sessions/{id}/latent-space. It pulls in numba and llvmlite, so only the API image
+# installs it: the workers depend on this package for the knowledge-graph client and do not need a projection.
+latent-space = [
+    "umap-learn>=0.5.7",
+    "numba>=0.60.0",
+]
 
 
 [build-system]
@@ -45,7 +52,9 @@ dev = [
     "httpx>=0.28.1",
     "ioc-scope-mce-provider-native",
     "ioc-scope-mce-provider-sdk",
+    "numba>=0.60.0",
     "pytest>=9.0.2",
+    "umap-learn>=0.5.7",
 ]
 
 [tool.uv]

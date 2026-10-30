@@ -1,8 +1,9 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
 
-# CPU-optimized image variant.
-# Uses CPU-only torch wheels to avoid large CUDA/NVIDIA runtime dependencies.
+# API-only image: the embeddings come from an OpenAI-compatible (or Google) endpoint, so torch and the other
+# local-model libraries (the dem[embedding-local] extra) are not installed. To run a SentenceTransformer, Qwen3
+# or gensim embedder, build a variant with that extra (and CPU-only torch wheels, to avoid the CUDA runtime).
 
 # ── Builder ──────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS builder
@@ -36,28 +37,6 @@ COPY api /app/api
 COPY --from=ontology . /ontology
 
 RUN uv sync --package embedding-worker --frozen --no-editable --no-dev \
-    --no-install-package torch \
-    --no-install-package numba \
-    --no-install-package llvmlite \
-    --no-install-package triton \
-    --no-install-package cuda-bindings \
-    --no-install-package cuda-toolkit \
-    --no-install-package nvidia-cublas \
-    --no-install-package nvidia-cuda-cupti \
-    --no-install-package nvidia-cuda-nvrtc \
-    --no-install-package nvidia-cuda-runtime \
-    --no-install-package nvidia-cudnn-cu13 \
-    --no-install-package nvidia-cufft \
-    --no-install-package nvidia-cufile \
-    --no-install-package nvidia-curand \
-    --no-install-package nvidia-cusolver \
-    --no-install-package nvidia-cusparse \
-    --no-install-package nvidia-cusparselt-cu13 \
-    --no-install-package nvidia-nccl-cu13 \
-    --no-install-package nvidia-nvjitlink \
-    --no-install-package nvidia-nvshmem-cu13 \
-    --no-install-package nvidia-nvtx \
-    && uv pip install --python /opt/venv/bin/python --no-cache-dir --index-url https://download.pytorch.org/whl/cpu --no-deps torch==2.11.0 \
     && find /opt/venv -type d \( -name __pycache__ -o -name tests -o -name test \) -prune -exec rm -rf {} +
 
 # ── Runtime ───────────────────────────────────────────────────────────────────

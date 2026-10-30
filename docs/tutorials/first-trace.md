@@ -11,7 +11,7 @@ image build.
 
 You need:
 
-- Docker with the Compose plugin (v2.17 or later) and at least **12 GB of memory** given to Docker.
+- Docker with the Compose plugin (v2.17 or later) and at least **6 GB of memory** given to Docker.
 - A checkout of this repository.
 - [`uv`](https://docs.astral.sh/uv/), to run the example application.
 - An OpenAI-compatible LLM endpoint and key. Without one, spans are still collected and
@@ -91,7 +91,7 @@ The spans go through four steps. Each one is visible in the logs of the stack, f
    where you find the session id:
 
     ```bash
-    docker compose logs norm | grep session_id
+    docker compose logs ingestion | grep session_id
     ```
 
     ```text

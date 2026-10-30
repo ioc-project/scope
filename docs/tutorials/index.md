@@ -39,6 +39,16 @@ application, and follows it to the knowledge graph in Neo4j and to the dashboard
 [Follow your first trace from `docker compose up` to the dashboard](first-trace.md){ .md-button .md-button--primary }
 </div>
 
+## Semantic analysis
+
+How to evaluate a multi-agent system when there is no ground truth. The walkthrough loads the sessions of a trip
+planner, lets SCOPE group the ones that ask for the same thing, and uses each group as the point of comparison for
+the reliability, the normal behaviour and the anomalies of its sessions.
+
+<div class="button-row" markdown>
+[Evaluate sessions against their peers](semantic-analysis.md){ .md-button .md-button--primary }
+</div>
+
 ## Walkthroughs
 
 | Walkthrough | Status |
@@ -47,6 +57,7 @@ application, and follows it to the knowledge graph in Neo4j and to the dashboard
 | [Instrument an OpenClaw-style MAS](instrument-openclaw.md) | Available |
 | [Deploying SCOPE](deploy-scope.md) | Available |
 | [Your first trace](first-trace.md) | Available |
+| [Semantic analysis](semantic-analysis.md) | Available |
 | Exploring a session in the dashboard | In preparation |
 | Reading cognitive-failure findings and their provenance | In preparation |
 | Consuming insights through the API | In preparation |

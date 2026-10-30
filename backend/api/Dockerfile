@@ -25,14 +25,14 @@ COPY --from=ontology . /ontology
 
 # Install dependencies without installing source code yet.
 RUN --mount=type=cache,target=/root/.cache/uv \
-  cd /src && uv sync --frozen --no-dev --no-install-project --no-install-workspace --no-sources --project /src/api
+  cd /src && uv sync --frozen --no-dev --no-install-project --no-install-workspace --no-sources --extra latent-space --extra clickhouse-sqlalchemy --project /src/api
 
 # Copy the API source code.
 COPY api /src/api
 
 # Install the ioc-scope-api package
 RUN --mount=type=cache,target=/root/.cache/uv \
-  cd /src && uv sync --frozen --no-dev --no-editable --project /src/api
+  cd /src && uv sync --frozen --no-dev --no-editable --extra latent-space --extra clickhouse-sqlalchemy --project /src/api
 
 FROM python:3.13-slim-trixie AS runner
 

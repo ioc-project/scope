@@ -19,7 +19,7 @@ cp .env.template .env        # set LLM_MODEL_NAME, EMBEDDING_MODEL_NAME, LLM_GAT
 docker compose up -d --build
 ```
 
-### 2. Send a trace**
+### 2. Send a trace
 
 ```bash
 cd ../../examples/currency-demo

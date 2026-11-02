@@ -11,6 +11,9 @@ from scope.connectors.base import Connector
 
 logger = logging.getLogger(__name__)
 
+# HTTP connections kept open to ClickHouse, for the requests that run at the same time.
+DEFAULT_POOL_SIZE = 32
+
 
 class ClickHouseConnector(Connector):
     """Manages a ClickHouse connection via clickhouse-connect."""
@@ -22,20 +25,27 @@ class ClickHouseConnector(Connector):
         username: str = "default",
         password: str = "",
         database: str = "default",
+        pool_size: int = DEFAULT_POOL_SIZE,
     ):
         self._host = host
         self._port = port
         self._username = username
         self._password = password
         self._database = database
+        self._pool_size = pool_size
         self._client: Any = None  # clickhouse_connect.Client
 
     # ── lifecycle ─────────────────────────────────────────────────────────
 
     def connect(self) -> None:
         import clickhouse_connect
+        from clickhouse_connect.driver import httputil
 
+        # The client shares one HTTP connection pool across all the threads that use it, and
+        # clickhouse-connect's default pool keeps 8 connections: a worker that reads spans for
+        # many sessions at once opens more, and the extra ones are discarded after each request.
         self._client = clickhouse_connect.get_client(
+            pool_mgr=httputil.get_pool_manager(maxsize=self._pool_size),
             host=self._host,
             port=self._port,
             username=self._username,

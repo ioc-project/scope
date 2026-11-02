@@ -147,7 +147,9 @@ def test_grep_finds_text_with_its_step_field_and_context():
     with TraceFile(LONG) as trace:
         text = trace.grep("needle", context=10)
 
-    assert text.startswith("the 2nd planner LLM call (span span-3, id llmcall:3) [gpt-4o] input @51:") and "NEEDLE" in text
+    assert (
+        text.startswith("the 2nd planner LLM call (span span-3, id llmcall:3) [gpt-4o] input @51:") and "NEEDLE" in text
+    )
 
 
 def test_grep_limits_its_matches_and_says_so():

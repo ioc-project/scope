@@ -527,6 +527,10 @@ def _neo4j_props(values: Dict[str, Any]) -> Dict[str, Any]:
     return props
 
 
+# Neo4j's answer when an index that is being created already exists.
+_INDEX_ALREADY_EXISTS = "Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists"
+
+
 def ingest_normalized_kg(
     db: Connector,
     nodes: List[Dict[str, Any]],
@@ -587,9 +591,12 @@ def ingest_normalized_kg(
                     f"FOR (n:{node_type}) ON (n.id)"
                 )
             except Exception as exc:
-                raise DatabaseError(
-                    f"Failed to ensure index for '{node_type}': {exc}"
-                ) from exc
+                # Two sessions can create the same index at once on a new database: the
+                # loser is told that it already exists, which is what it wanted.
+                if getattr(exc, "code", "") != _INDEX_ALREADY_EXISTS:
+                    raise DatabaseError(
+                        f"Failed to ensure index for '{node_type}': {exc}"
+                    ) from exc
             _indexed_node_types.add(node_type)
 
         if node_type in _NAME_KEYED_NODE_TYPES:

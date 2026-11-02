@@ -116,7 +116,14 @@ def bridge_states_if_mismatched(
         return
     if from_state.content == to_state.content:
         if from_state_id != to_state_id:
-            kept, dropped = (from_state_id, to_state_id) if keep == "from" else (to_state_id, from_state_id)
+            kept, dropped = (
+                (from_state_id, to_state_id)
+                if keep == "from"
+                else (
+                    to_state_id,
+                    from_state_id,
+                )
+            )
             registry.merge_node_into(State, dropped, kept)
         return
 

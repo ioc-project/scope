@@ -168,7 +168,9 @@ class TraceFile:
     @staticmethod
     def _label(summary: Mapping[str, Any]) -> str:
         """How the agent should cite a step: a description, its span and its id."""
-        ids = f"span {summary['span_id']}, id {summary['call_id']}" if summary["span_id"] else f"id {summary['call_id']}"
+        ids = (
+            f"span {summary['span_id']}, id {summary['call_id']}" if summary["span_id"] else f"id {summary['call_id']}"
+        )
         label = f"{summary['description']} ({ids})"
         if summary["kind"] == "llm" and summary["name"] and summary["name"] != summary["agent_id"]:  # the model
             label += f" [{summary['name']}]"

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from pathlib import Path
 from typing import Any
@@ -116,6 +117,11 @@ class MCEWrapper:
     async def process_mce_session(
         self, session_id: str, local_file: str | None = None
     ) -> dict[str, list[dict[str, Any]]]:
-        """Async API compatible with BaseWorker.handle_message flow."""
+        """Async API compatible with BaseWorker.handle_message flow.
+
+        The evaluation is blocking (it waits on the metrics and the judge model), so it runs in a
+        thread: called directly it would hold the event loop, and the worker would handle one
+        session at a time whatever ``MAX_INFLIGHT_MESSAGES`` says.
+        """
         del local_file
-        return {"session_metrics": self.process_session(session_id)}
+        return {"session_metrics": await asyncio.to_thread(self.process_session, session_id)}

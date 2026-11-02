@@ -1,0 +1,20 @@
+{
+  "cities": ["Celestia", "Verdantia", "Luminos"],
+  "routes": [
+    {"from": "Celestia", "to": "Verdantia", "hours": 3, "km": 245, "fare": 45},
+    {"from": "Verdantia", "to": "Luminos", "hours": 2, "km": 180, "fare": 35},
+    {"from": "Celestia", "to": "Luminos", "hours": 5, "km": 425, "fare": 75}
+  ],
+  "fare_rules": {
+    "currency": "USD",
+    "notes": "Standard class, one way. Fares are the same in both directions.",
+    "round_trip_discount_percent": 15,
+    "child_discount_percent": 50,
+    "senior_discount_percent": 30,
+    "premium_seating_upgrade": 15,
+    "night_train_sleeper_upgrade": 30,
+    "weekly_pass": 250,
+    "monthly_pass": 850,
+    "discounts_cannot_be_combined": true
+  }
+}

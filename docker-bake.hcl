@@ -25,6 +25,9 @@ group "backend" {
     "stateful-eval-worker",
     "cognitive-failure-worker",
     "cognition-protocols-worker",
+    "ingestion-worker",
+    "semantic-analysis-worker",
+    "eval-worker",
   ]
 }
 
@@ -155,5 +158,28 @@ target "cognition-protocols-worker" {
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/cognition-protocols-worker/deploy/docker/Dockerfile"
   platforms  = ["linux/amd64"]
-  ssh        = ["default"]
+}
+
+# The workers of a group in one image and one process (norm + embedding, grouping + hierarchical grouping + analysis +
+# intelligence, mce + stateful-eval). The images of the single workers above are still built, for Argo run-once mode.
+target "ingestion-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  contexts   = { ontology = "ontology" }
+  dockerfile = "workers/ingestion-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64"]
+}
+target "semantic-analysis-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  contexts   = { ontology = "ontology" }
+  dockerfile = "workers/semantic-analysis-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64"]
+}
+target "eval-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  contexts   = { ontology = "ontology" }
+  dockerfile = "workers/eval-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64"]
 }

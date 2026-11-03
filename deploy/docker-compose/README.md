@@ -11,7 +11,7 @@ Runs the whole SCOPE stack on one machine, with the same components as the
 | `clickhouse`, `clickhouse-setup` | `clickhouse.yaml`, `clickhouse-init-job.yaml` |
 | `session-end-trigger` | `session-end-trigger.yaml` |
 | `rabbitmq`, `neo4j` | `rabbitmq.yaml`, `neo4j` subchart |
-| `norm`, `embedding`, `mce`, `grouping`, `hierarchical-grouping`, `intelligence`, `analysis`, `stateful-eval`, `cognitive-failure`, `cognition-protocols` (see below) | `worker-*.yaml` |
+| `ingestion` (norm, embedding), `semantic-analysis` (grouping, hierarchical-grouping, analysis, intelligence), `eval` (mce, stateful-eval), `cognitive-failure`, `cognition-protocols` (see below) | `worker-*.yaml` |
 
 Kubernetes-only concerns (ingress, HPA, cert-manager, ExternalSecrets, resource limits) have no
 equivalent here.
@@ -21,7 +21,8 @@ equivalent here.
 - Docker with Compose v2.17+ and BuildKit.
 - A checkout of the whole repository: the images are built from `../../backend`, `../../ontology`
   and `../../ui`.
-- Memory: give Docker at least 12 GB. The chart's worker limits go up to 12 GB each.
+- Memory: give Docker at least 6 GB. The whole stack uses about 4.5 GB once a few dozen sessions are processed, and
+  Neo4j and ClickHouse grow with the data.
 - An OpenAI-compatible LLM endpoint and a text-embedding model.
 
 ## Run
@@ -53,7 +54,7 @@ starting the other or change the ports in `.env`.
 
 Point your instrumented application at the collector, for example
 `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`. When a session ends, the `session-end-trigger`
-publishes it to the `norm` worker and the pipeline takes over.
+publishes it to the `norm` worker (in the `ingestion` service) and the pipeline takes over.
 
 ## Configuration
 
@@ -66,21 +67,21 @@ publishes it to the `norm` worker and the pipeline takes over.
   `docker compose stop cognitive-failure` and set `EMBEDDING_OUTPUT_QUEUE` in `.env` without its queue (see
   `.env.template`).
 - Queue names and worker tuning (inflight messages, grouping distances, trigger intervals) are set
-  in `docker-compose.yml` with the chart's default values.
+  in `docker-compose.yml` with the chart's default values. The `ingestion`, `semantic-analysis` and `eval`
+  services each run several workers in one process, so a worker's settings carry its prefix
+  (`NORM_MAX_INFLIGHT_MESSAGES`, `HIERARCHICAL_GROUPING_PERIODIC_TRIGGER_INTERVAL_SECONDS`, ...) and
+  `ANALYSIS_ARGS` adds command line options to one of them. `INGESTION_WORKERS`, `SEMANTIC_ANALYSIS_WORKERS` and
+  `EVAL_WORKERS` run only some of a service's workers: `EVAL_WORKERS=mce` leaves out the stateful evaluation.
 - `scripts/` holds the two shell scripts that the chart inlines in its Job and Deployment; keep
   them in sync with the chart when it changes.
 
 ### Cognition protocols worker
 
 The `cognition-protocols` worker detects which Cognition protocols (ACCORD, CONCORD) a session used, and
-evaluates the ones it used. It is part of the stack by default, but its image has to be built with an SSH agent
-that can read the private protocol packages: `docker compose up -d --build` forwards your agent
-(`ssh: [default]` in the compose file), so `ssh-add -l` must list a key with access to those repositories, and
-Docker may ask you to allow the forwarding (`--allow=ssh`). This setup has not been tested end to end.
+evaluates the ones it used. It is part of the stack by default.
 
 To run the stack without it, stop the service (`docker compose stop cognition-protocols`), and set
-`EMBEDDING_OUTPUT_QUEUE` in `.env` without `new_session_to_cognition_protocols` (see `.env.template`). Without a
-key, the build of this one service fails.
+`EMBEDDING_OUTPUT_QUEUE` in `.env` without `new_session_to_cognition_protocols` (see `.env.template`).
 
 Data lives in the named volumes `clickhouse-data`, `rabbitmq-data`, `neo4j-data` and `neo4j-logs`.
 `docker compose down -v` deletes it.

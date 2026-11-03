@@ -8,7 +8,7 @@ SCOPE observes, analyzes and explains the executions of Multi-Agent Systems (MAS
 
 Run the whole stack on your machine with Docker Compose, send it the trace of a small two-agent example, and look at it in the dashboard. It takes about 15 minutes, most of it the first image build.
 
-You need Docker (Compose v2.17 or later, with at least **12 GB** of memory given to it) and [`uv`](https://docs.astral.sh/uv/) to run the example. An OpenAI-compatible LLM endpoint is only needed for the analyses that call a model: without it, traces are still collected and stored in the knowledge graph.
+You need Docker (Compose v2.17 or later, with at least **6 GB** of memory given to it) and [`uv`](https://docs.astral.sh/uv/) to run the example. An OpenAI-compatible LLM endpoint is only needed for the analyses that call a model: without it, traces are still collected and stored in the knowledge graph.
 
 ### 1. Start SCOPE
 
@@ -19,7 +19,7 @@ cp .env.template .env        # set LLM_MODEL_NAME, EMBEDDING_MODEL_NAME, LLM_GAT
 docker compose up -d --build
 ```
 
-### 2. Send a trace**
+### 2. Send a trace
 
 ```bash
 cd ../../examples/currency-demo

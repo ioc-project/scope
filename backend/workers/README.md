@@ -39,6 +39,26 @@ Sessions flow through the pipeline in stages:
   └────────────────────────────┘
 ```
 
+## Grouped images
+
+The workers run on their own with their CLI, and `docker compose` and the images below run several of them in one
+process (`worker_base.runner`), so the interpreter and the libraries they have in common are loaded once:
+
+| Image | Workers | CLI |
+|---|---|---|
+| `ingestion-worker` | norm, embedding | `ingestion-worker-cli` |
+| `semantic-analysis-worker` | grouping, hierarchical-grouping, analysis, intelligence | `semantic-analysis-worker-cli` |
+| `eval-worker` | mce, stateful-eval | `eval-worker-cli` |
+
+Each worker keeps its queues and options, set the way they are for the worker alone (`NORM_INPUT_QUEUE`, ...), and
+runs in a thread with an event loop of its own. The two settings that all the workers read from the same variable are
+set per worker with its prefix, `NORM_MAX_INFLIGHT_MESSAGES` rather than `MAX_INFLIGHT_MESSAGES` (and
+`HIERARCHICAL_GROUPING_PERIODIC_TRIGGER_INTERVAL_SECONDS`), and `<WORKER>_ARGS` adds command line options to one
+worker (`ANALYSIS_ARGS="--batch_size 20"`). `--workers norm` (or `INGESTION_WORKERS`, `SEMANTIC_ANALYSIS_WORKERS`,
+`EVAL_WORKERS`) runs only some of them. The analysis worker forks a pool of CPU-bound processes, so it runs as a child
+process of the group, not as a thread. If a worker fails, the process stops and the container restarts. Argo run-once
+mode needs the image of the single worker.
+
 ## Workers
 
 ### [norm-worker](norm-worker/README.md)

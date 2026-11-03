@@ -39,13 +39,17 @@ grouping = [
 llm = [
     "openai>=2.8.1",
 ]
+# Embedders that call an API (OpenAI-compatible gateway, Google). This is what the embedding worker image installs.
 embedding = [
+    "openai>=2.8.1",
+    "google-genai>=1.51.0",
+]
+# Embedders that run a model in the process (sentence-transformers, Qwen3, gensim): they pull in torch.
+embedding-local = [
     "sentence-transformers>=5.1.2",
     "transformers>=4.57.1",
     "torch>=2.0.0",
     "gensim>=4.4.0",
-    "openai>=2.8.1",
-    "google-genai>=1.51.0",
 ]
 analysis = [
     "scikit-learn>=1.7.2,<1.9.0",
@@ -55,6 +59,7 @@ all = [
     "dem[grouping]",
     "dem[llm]",
     "dem[embedding]",
+    "dem[embedding-local]",
     "dem[analysis]",
 ]
 dev = [

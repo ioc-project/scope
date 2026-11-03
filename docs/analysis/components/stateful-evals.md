@@ -76,7 +76,7 @@ uv pip install --python .venv-evals/bin/python \
   ./stateful-evals
 ```
 
-A judge model is configured via `LLM_MODEL_NAME`, `LLM_BASE_MODEL_URL` (an OpenAI-compatible endpoint, called through LiteLLM), and `LLM_API_KEY`.
+A judge model is configured via `LLM_MODEL_NAME`, `LLM_BASE_MODEL_URL` (an OpenAI-compatible endpoint, called with the OpenAI SDK), and `LLM_API_KEY`.
 
 See the [quickstart](https://github.com/ioc-project/scope/blob/main/backend/stateful-evals/quickstart/README.md) for a full walkthrough — inspecting a `TrajectoryContext` with no model calls, then running `evaluate_file` on a bundled NOA trip planner trajectory — and [Trajectory Context](https://github.com/ioc-project/scope/blob/main/backend/stateful-evals/stateful_evals_be/evaluation/README.md) / [Defining Evaluation Metrics](https://github.com/ioc-project/scope/blob/main/backend/stateful-evals/stateful_evals_be/evaluation/trajectory_context_metrics/README.md) for the state model and how to register a new metric.
 

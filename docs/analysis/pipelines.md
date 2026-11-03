@@ -29,7 +29,7 @@ jobs. Nothing else in the pipeline needs to know it exists.
 | [hierarchical-grouping](workers/hierarchical-grouping-worker.md) | Periodic | :material-check: | :material-check: | |
 | [intelligence](workers/intelligence-worker.md) | Periodic | :material-check: | :material-check: | |
 | [cognitive-failure](workers/cognitive-failure-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding. It makes a judge-model call for each session, and can be turned off in both deployments |
-| [cognition-protocols](workers/cognition-protocols-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding. Its image needs an SSH agent that can read private packages to build, and is not published by CI yet |
+| [cognition-protocols](workers/cognition-protocols-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding. |
 | [anomaly-detection](workers/anomaly-detection-worker.md), [consistency](workers/consistency-worker.md), [normal-behaviour](workers/normal-behaviour-worker.md) | Ingestion | :material-minus: | :material-minus: | Images built, but their analyses run inside the analysis worker |
 
 :material-check: deployed · :material-close: not deployed · :material-minus: not deployed on its own

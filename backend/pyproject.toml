@@ -43,6 +43,9 @@ members = [
     "workers/cognitive-failure-worker",
     "workers/cognition-protocols-worker",
     "workers/intelligence-worker",
+    "workers/ingestion-worker",
+    "workers/semantic-analysis-worker",
+    "workers/eval-worker",
     "worker-base",
     "stateful-evals",
 ]
@@ -78,6 +81,9 @@ stateful-eval-worker = { workspace = true }
 cognition-protocols-worker = { workspace = true }
 stateful-evals = { workspace = true }
 intelligence-worker = { workspace = true }
+ingestion-worker = { workspace = true }
+semantic-analysis-worker = { workspace = true }
+eval-worker = { workspace = true }
 worker-base = { workspace = true }
 
 [dependency-groups]

@@ -95,12 +95,8 @@ queues. It is deployed by default:
 - **Docker Compose:** the `cognition-protocols` service is part of the stack, and the queue is in the default
   `EMBEDDING_OUTPUT_QUEUE`.
 
-!!! warning "The image is not published by CI yet"
-    The ACCORD and CONCORD metric packages are private git dependencies, so the image can only be built with an
-    SSH agent that can read them (see the worker's Dockerfile), with `docker buildx bake cognition-protocols-worker`.
-    It is not part of the CI image matrix yet. Until the image is available to your cluster, turn the worker off:
-    `workers.cognition-protocols.enabled=false` in the chart, or stop the service in Compose and remove its queue
-    from `EMBEDDING_OUTPUT_QUEUE`.
+To turn the worker off, set `workers.cognition-protocols.enabled=false` in the chart, or stop the service in
+Compose and remove its queue from `EMBEDDING_OUTPUT_QUEUE`.
 
 ```bash
 cognition-protocols-worker-cli                                  # consume new_session_to_cognition_protocols

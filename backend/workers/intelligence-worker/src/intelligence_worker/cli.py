@@ -18,6 +18,7 @@ from worker_base.utils import (  # noqa: E402
     configure_worker_logging,
     resolve_max_inflight_messages,
     resolve_rabbitmq_url,
+    scoped_getenv,
 )
 
 from intelligence_worker import queues  # noqa: E402
@@ -193,7 +194,7 @@ def main(
         error_subject="Intelligence max inflight messages",
     )
     resolved_periodic_trigger_interval_seconds = float(
-        os.getenv(
+        scoped_getenv(
             "PERIODIC_TRIGGER_INTERVAL_SECONDS",
             str(periodic_trigger_interval_seconds),
         )

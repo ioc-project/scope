@@ -12,7 +12,7 @@ license = { text = "Apache-2.0" }
 dependencies = [
     "ioc-accord-mce-metrics",
     "ioc-concord-mce-metrics",
-    "ioc-scope-mce",
+    "ioc-scope-mce-core",
     "ioc-scope-mce-client",
     "ioc-scope-api",
     "worker-base",
@@ -29,11 +29,13 @@ cognition-protocols-worker-cli = "cognition_protocols_worker.cli:main"
 
 # Graph access goes through the platform's API package (SCOPEKGProvider to read a session,
 # SCOPECognitionProtocolReportProvider to write the Cognition protocol reports) and metrics run on the
-# platform's MCE: both are workspace members. The protocol MCE metrics live with their protocols.
+# platform's MCE: both are workspace members. It depends on mce-core and mce-client, not on the ioc-scope-mce meta package,
+# because it only runs the protocols' plugin metrics and has no use for the native, deepeval, opik or ragas providers.
+# The protocol MCE metrics live with their protocols.
 [tool.uv.sources]
-ioc-accord-mce-metrics = { git = "ssh://git@github.com/cisco-eti/ioc-core-l9-extensions.git", subdirectory = "evals/accord_custom_evals/accord-mce-metrics", branch = "feat/adding-mce-metrics-plugin" }
-ioc-concord-mce-metrics = { git = "ssh://git@github.com/ioc-project/cognition-protocols.git", subdirectory = "protocols/concord/mce-metrics", branch = "main" }
-ioc-scope-mce = { workspace = true }
+ioc-accord-mce-metrics = { git = "https://github.com/ioc-project/cognition-protocols.git", subdirectory = "protocols/accord/mce-metrics", branch = "main" }
+ioc-concord-mce-metrics = { git = "https://github.com/ioc-project/cognition-protocols.git", subdirectory = "protocols/concord/mce-metrics", branch = "main" }
+ioc-scope-mce-core = { workspace = true }
 ioc-scope-mce-client = { workspace = true }
 ioc-scope-api = { workspace = true }
 worker-base = { workspace = true }

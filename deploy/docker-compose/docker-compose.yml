@@ -170,7 +170,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      norm:
+      ingestion:
         condition: service_started
 
   # ------------------------------------------------------------------ api and ui
@@ -261,20 +261,34 @@ services:
         condition: service_healthy
 
   # --------------------------------------------------------------------- workers
+  #
+  # The workers run in three images, each one in a process of its own: they share the interpreter and the libraries
+  # they have in common. Their settings keep the name they have in the worker's CLI, with the worker's prefix
+  # (NORM_INPUT_QUEUE, ...); MAX_INFLIGHT_MESSAGES and PERIODIC_TRIGGER_INTERVAL_SECONDS are set per worker the same
+  # way (NORM_MAX_INFLIGHT_MESSAGES), and <WORKER>_ARGS adds command line options. `--workers` (or INGESTION_WORKERS,
+  # SEMANTIC_ANALYSIS_WORKERS, EVAL_WORKERS) runs only some of the workers of an image.
 
-  norm:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-norm-worker:${SCOPE_VERSION:-1.0.0}
+  # Reads the spans of a session into the knowledge graph (norm), and embeds its states (embedding).
+  ingestion:
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-ingestion-worker:${SCOPE_VERSION:-1.0.0}
     build:
       context: ../../backend
       additional_contexts:
         ontology: ../../ontology
-      dockerfile: workers/norm-worker/deploy/docker/Dockerfile
+      dockerfile: workers/ingestion-worker/deploy/docker/Dockerfile
     <<: *worker
     environment:
-      <<: [*rabbitmq-env, *neo4j-env, *clickhouse-env]
+      <<: [*rabbitmq-env, *neo4j-env, *clickhouse-env, *llm-env]
       NORM_INPUT_QUEUE: new_session_to_norm
       NORM_OUTPUT_QUEUE: new_session_to_mce,new_session_to_emb
-      MAX_INFLIGHT_MESSAGES: "128"
+      NORM_MAX_INFLIGHT_MESSAGES: "128"
+      EMBEDDING_INPUT_QUEUE: new_session_to_emb
+      # The queues of the cognitive-failure and cognition-protocols workers are last: remove one here, and stop the
+      # worker, to turn it off.
+      EMBEDDING_OUTPUT_QUEUE: ${EMBEDDING_OUTPUT_QUEUE:-new_session_to_grouping,new_session_to_stateful_eval,new_session_to_cognitive_failure,new_session_to_cognition_protocols}
+      EMBEDDING_EMBEDDER_TYPE: OpenAIEmbedder
+      EMBEDDING_MAX_INFLIGHT_MESSAGES: "32"
+      INGESTION_WORKERS: ${INGESTION_WORKERS:-}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -283,57 +297,15 @@ services:
       clickhouse:
         condition: service_healthy
 
-  embedding:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-embedding-worker:${SCOPE_VERSION:-1.0.0}
+  # Groups the sessions by semantic similarity (grouping, hierarchical-grouping), and analyses the groups: anomalies,
+  # consistency and normal behaviour (analysis), and insights (intelligence).
+  semantic-analysis:
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-semantic-analysis-worker:${SCOPE_VERSION:-1.0.0}
     build:
       context: ../../backend
       additional_contexts:
         ontology: ../../ontology
-      dockerfile: workers/embedding-worker/deploy/docker/Dockerfile
-    <<: *worker
-    environment:
-      <<: [*rabbitmq-env, *neo4j-env, *llm-env]
-      EMBEDDING_INPUT_QUEUE: new_session_to_emb
-      # The queues of the cognitive-failure and cognition-protocols workers are last: remove one here, and stop the
-      # worker, to turn it off.
-      EMBEDDING_OUTPUT_QUEUE: ${EMBEDDING_OUTPUT_QUEUE:-new_session_to_grouping,new_session_to_stateful_eval,new_session_to_cognitive_failure,new_session_to_cognition_protocols}
-      EMBEDDING_EMBEDDER_TYPE: OpenAIEmbedder
-      MAX_INFLIGHT_MESSAGES: "32"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      neo4j:
-        condition: service_healthy
-
-  mce:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-mce-worker:${SCOPE_VERSION:-1.0.0}
-    build:
-      context: ../../backend
-      additional_contexts:
-        ontology: ../../ontology
-      dockerfile: workers/mce-worker/deploy/docker/Dockerfile
-    <<: *worker
-    environment:
-      <<: [*rabbitmq-env, *neo4j-env, *llm-env]
-      MCE_INPUT_QUEUE: new_session_to_mce
-      MCE_OUTPUT_QUEUE: ""
-      MCE_CONFIG_PATH: /scope/mce_config.yaml
-      MAX_INFLIGHT_MESSAGES: "64"
-    volumes:
-      - ./config/mce_config.yaml:/scope/mce_config.yaml:ro
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      neo4j:
-        condition: service_healthy
-
-  grouping:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-grouping-worker:${SCOPE_VERSION:-1.0.0}
-    build:
-      context: ../../backend
-      additional_contexts:
-        ontology: ../../ontology
-      dockerfile: workers/grouping-worker/deploy/docker/Dockerfile
+      dockerfile: workers/semantic-analysis-worker/deploy/docker/Dockerfile
     <<: *worker
     environment:
       <<: [*rabbitmq-env, *neo4j-env, *llm-env]
@@ -342,94 +314,54 @@ services:
       GROUPING_EMBEDDING_MODEL: ${EMBEDDING_MODEL_NAME:?set EMBEDDING_MODEL_NAME in .env}
       GROUPING_MAX_DISTANCE: "0.3"
       GROUPING_MAX_NEIGHBORS: "10"
-      MAX_INFLIGHT_MESSAGES: "16"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      neo4j:
-        condition: service_healthy
-
-  hierarchical-grouping:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-hierarchical-grouping-worker:${SCOPE_VERSION:-1.0.0}
-    build:
-      context: ../../backend
-      additional_contexts:
-        ontology: ../../ontology
-      dockerfile: workers/hierarchical-grouping-worker/deploy/docker/Dockerfile
-    <<: *worker
-    environment:
-      <<: [*rabbitmq-env, *neo4j-env, *llm-env]
+      GROUPING_MAX_INFLIGHT_MESSAGES: "16"
       HIERARCHICAL_GROUPING_INPUT_QUEUE: new_session_to_periodic_grouping
       HIERARCHICAL_GROUPING_OUTPUT_QUEUE: new_session_to_analysis
       HIERARCHICAL_GROUPING_EMBEDDING_MODEL: ${EMBEDDING_MODEL_NAME:?set EMBEDDING_MODEL_NAME in .env}
       HIERARCHICAL_GROUPING_MAX_NEIGHBORS: "10"
       HIERARCHICAL_GROUPING_MIN_SAMPLES: "20"
       HIERARCHICAL_GROUPING_MAX_DISTANCE: "0.15"
-      PERIODIC_TRIGGER_INTERVAL_SECONDS: "900"
-      MAX_INFLIGHT_MESSAGES: "1"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      neo4j:
-        condition: service_healthy
-
-  intelligence:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-intelligence-worker:${SCOPE_VERSION:-1.0.0}
-    build:
-      context: ../../backend
-      additional_contexts:
-        ontology: ../../ontology
-      dockerfile: workers/intelligence-worker/deploy/docker/Dockerfile
-    <<: *worker
-    environment:
-      <<: [*rabbitmq-env, *neo4j-env]
+      HIERARCHICAL_GROUPING_PERIODIC_TRIGGER_INTERVAL_SECONDS: "900"
+      HIERARCHICAL_GROUPING_MAX_INFLIGHT_MESSAGES: "1"
       INTELLIGENCE_INPUT_QUEUE: new_session_to_intelligence
       INTELLIGENCE_CATALOG_ROOT: /app/intelligence-catalog
-      PERIODIC_TRIGGER_INTERVAL_SECONDS: "300"
-      MAX_INFLIGHT_MESSAGES: "1"
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      neo4j:
-        condition: service_healthy
-
-  analysis:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-analysis-worker:${SCOPE_VERSION:-1.0.0}
-    build:
-      context: ../../backend
-      additional_contexts:
-        ontology: ../../ontology
-      dockerfile: workers/analysis-worker/deploy/docker/Dockerfile
-    <<: *worker
-    environment:
-      <<: [*rabbitmq-env, *neo4j-env, *llm-env]
+      INTELLIGENCE_PERIODIC_TRIGGER_INTERVAL_SECONDS: "300"
+      INTELLIGENCE_MAX_INFLIGHT_MESSAGES: "1"
       ANALYSIS_INPUT_QUEUE: new_session_to_analysis
       ANOMALY_CONFIG_FILE: ""
       CONSISTENCY_CONFIG_FILE: ""
       NORMAL_BEHAVIOUR_CONFIG_FILE: ""
-      MAX_INFLIGHT_MESSAGES: "6"
-    command: ["--batch_size", "20"]
+      ANALYSIS_MAX_INFLIGHT_MESSAGES: "6"
+      ANALYSIS_ARGS: "--batch_size 20"
+      SEMANTIC_ANALYSIS_WORKERS: ${SEMANTIC_ANALYSIS_WORKERS:-}
     depends_on:
       rabbitmq:
         condition: service_healthy
       neo4j:
         condition: service_healthy
 
-  stateful-eval:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-stateful-eval-worker:${SCOPE_VERSION:-1.0.0}
+  # Computes the metrics of a session (mce) and evaluates its states (stateful-eval).
+  eval:
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-eval-worker:${SCOPE_VERSION:-1.0.0}
     build:
       context: ../../backend
       additional_contexts:
         ontology: ../../ontology
-      dockerfile: workers/stateful-eval-worker/deploy/docker/Dockerfile
+      dockerfile: workers/eval-worker/deploy/docker/Dockerfile
     <<: *worker
     environment:
       <<: [*rabbitmq-env, *neo4j-env, *llm-env]
+      MCE_INPUT_QUEUE: new_session_to_mce
+      MCE_OUTPUT_QUEUE: ""
+      MCE_CONFIG_PATH: /scope/mce_config.yaml
+      MCE_MAX_INFLIGHT_MESSAGES: "64"
       STATEFUL_EVAL_INPUT_QUEUE: new_session_to_stateful_eval
       STATEFUL_EVAL_OUTPUT_QUEUE: ""
       STATEFUL_EVAL_CONFIG_PATH: /scope/stateful_eval_config.yaml
-      MAX_INFLIGHT_MESSAGES: "32"
+      STATEFUL_EVAL_MAX_INFLIGHT_MESSAGES: "32"
+      EVAL_WORKERS: ${EVAL_WORKERS:-}
     volumes:
+      - ./config/mce_config.yaml:/scope/mce_config.yaml:ro
       - ./config/stateful_eval_config.yaml:/scope/stateful_eval_config.yaml:ro
     depends_on:
       rabbitmq:
@@ -461,9 +393,7 @@ services:
         condition: service_healthy
 
   # Detects which Cognition protocols (ACCORD, CONCORD) a session used, and evaluates the ones it used.
-  # The protocol metric packages are private git dependencies, so the image is built with an SSH agent that
-  # can read them (docker compose up --build needs `ssh-add -l` to list such a key). To run the stack without
-  # it, stop the service and remove its queue from EMBEDDING_OUTPUT_QUEUE.
+  # To run the stack without it, stop the service and remove its queue from EMBEDDING_OUTPUT_QUEUE.
   cognition-protocols:
     image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-cognition-protocols-worker:${SCOPE_VERSION:-1.0.0}
     build:
@@ -471,7 +401,6 @@ services:
       additional_contexts:
         ontology: ../../ontology
       dockerfile: workers/cognition-protocols-worker/deploy/docker/Dockerfile
-      ssh: [default]
     <<: *worker
     environment:
       <<: [*rabbitmq-env, *neo4j-env, *llm-env]

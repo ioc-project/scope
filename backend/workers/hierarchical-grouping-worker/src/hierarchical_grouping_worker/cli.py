@@ -14,7 +14,7 @@ import logging  # noqa: E402
 from typing import Optional  # noqa: E402
 
 import click  # noqa: E402
-from worker_base.utils import configure_worker_logging  # noqa: E402
+from worker_base.utils import configure_worker_logging, scoped_getenv  # noqa: E402
 
 from hierarchical_grouping_worker import queues  # noqa: E402
 from hierarchical_grouping_worker.worker import HierarchicalGroupingWorker  # noqa: E402
@@ -145,7 +145,7 @@ def main(
         "HIERARCHICAL_GROUPING_EMBEDDING_MODEL", "azure/text-embedding-3-small"
     )
     resolved_max_inflight_messages = int(
-        os.getenv(
+        scoped_getenv(
             "MAX_INFLIGHT_MESSAGES",
             str(max_inflight_messages),
         )
@@ -154,7 +154,7 @@ def main(
     resolved_min_samples = int(os.getenv("HIERARCHICAL_GROUPING_MIN_SAMPLES", str(min_samples)))
     resolved_max_distance = float(os.getenv("HIERARCHICAL_GROUPING_MAX_DISTANCE", str(max_distance)))
     resolved_periodic_trigger_interval_seconds = float(
-        os.getenv(
+        scoped_getenv(
             "PERIODIC_TRIGGER_INTERVAL_SECONDS",
             str(periodic_trigger_interval_seconds),
         )

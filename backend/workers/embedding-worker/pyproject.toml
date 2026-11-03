@@ -38,6 +38,11 @@ ioc-scope-api = { workspace = true }
 ioc-scope-mce-core = { workspace = true }
 
 [project.optional-dependencies]
+# Embedders that run a model in the process (SentenceTransformerEmbedder, Qwen3Embedder, GensimEmbedder): they
+# pull in torch. The default image does not install them (see deploy/docker/Dockerfile.gpu for one that does).
+local = [
+    "dem[embedding-local]",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.20.0",

@@ -41,6 +41,10 @@ jobs:
           - intelligence-worker
           - stateful-eval-worker
           - cognitive-failure-worker
+          - cognition-protocols-worker
+          - ingestion-worker
+          - semantic-analysis-worker
+          - eval-worker
     permissions:
       contents: read  # required for actions/checkout
       packages: write # required to push the image to GHCR

@@ -2,8 +2,7 @@
 #  SPDX-License-Identifier: Apache-2.0
 
 # Build with the backend/ directory as the context (see docker-bake.hcl). The two protocol
-# MCE-metrics packages (ACCORD, CONCORD) are private git dependencies, so the build needs an
-# SSH agent with access to them (docker buildx bake --ssh default).
+# MCE-metrics packages (ACCORD, CONCORD) are git dependencies on the public cognition-protocols repository.
 
 # ── Build stage ──────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS builder
@@ -17,14 +16,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     git \
-    openssh-client \
     gcc \
     g++ \
     python3-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && mkdir -p -m 0700 /root/.ssh \
-    && ssh-keyscan github.com >> /root/.ssh/known_hosts
+    && curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ENV PATH="/root/.local/bin:${PATH}"
 
@@ -35,8 +31,7 @@ COPY mce /opt/mce
 COPY api /opt/api
 COPY --from=ontology . /ontology
 
-RUN --mount=type=ssh \
-    uv sync --package cognition-protocols-worker --frozen --no-editable --no-dev
+RUN uv sync --package cognition-protocols-worker --frozen --no-editable --no-dev
 
 # ── Run stage ─────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS runner

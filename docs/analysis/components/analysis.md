@@ -43,9 +43,10 @@ persists the results back:
 | `utils` | `src/dem/utils/` | Shared logging, graph (networkx) conversions, and data-store helpers |
 
 Optional dependency extras (`dem/pyproject.toml`) gate the heavier submodules:
-`dem[grouping]` (hdbscan, scikit-learn), `dem[llm]` (openai), `dem[embedding]` (sentence-transformers,
-transformers, torch, gensim, openai, google-genai), `dem[analysis]` (scikit-learn, scipy), or
-`dem[all]` for everything.
+`dem[grouping]` (hdbscan, scikit-learn), `dem[llm]` (openai), `dem[embedding]` (the API embedders: openai,
+google-genai), `dem[embedding-local]` (the embedders that run a model in the process: sentence-transformers,
+transformers, torch, gensim), `dem[analysis]` (scikit-learn, scipy), or `dem[all]` for everything. The embedders
+import their library when they are built, so `import dem.embedding` is cheap whatever is installed.
 
 ## Public API
 

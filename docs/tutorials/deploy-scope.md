@@ -16,7 +16,8 @@ SCOPE ships as one image per component, published under
 |---|---|
 | API | `scope-api` |
 | Dashboard | `scope-ui` |
-| Workers | `scope-norm-worker`, `scope-embedding-worker`, `scope-mce-worker`, `scope-grouping-worker`, `scope-hierarchical-grouping-worker`, `scope-analysis-worker`, `scope-intelligence-worker`, `scope-stateful-eval-worker`, `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` (not published by CI yet) |
+| Workers (Docker Compose) | `scope-ingestion-worker` (norm, embedding), `scope-semantic-analysis-worker` (grouping, hierarchical grouping, analysis, intelligence), `scope-eval-worker` (MCE, stateful evaluation), `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` |
+| Workers (Kubernetes) | `scope-norm-worker`, `scope-embedding-worker`, `scope-mce-worker`, `scope-grouping-worker`, `scope-hierarchical-grouping-worker`, `scope-analysis-worker`, `scope-intelligence-worker`, `scope-stateful-eval-worker`, `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` |
 
 The deployment also needs four pieces of infrastructure: an OTel collector, a span
 datastore (ClickHouse), a message broker (RabbitMQ) and the knowledge graph store
@@ -27,7 +28,7 @@ datastore (ClickHouse), a message broker (RabbitMQ) and the knowledge graph stor
 - An LLM gateway with an API key. The embedding, grouping, metric and
   stateful-evaluation workers call it. Without a key, spans are still collected and
   normalised into the knowledge graph, but those analyses do not run.
-- Memory: about 6 GiB of free memory for the default Kubernetes install, and 12 GB
+- Memory: about 6 GiB of free memory for the default Kubernetes install, and 6 GB
   given to Docker for Compose.
 
 Pick one of the two options.
@@ -35,7 +36,7 @@ Pick one of the two options.
 ## Option A: Docker Compose
 
 Best for a laptop or a single VM. Docker with the Compose plugin (v2.17 or later) is
-the only prerequisite, and Docker should have at least **12 GB of memory**.
+the only prerequisite, and Docker should have at least **6 GB of memory**.
 
 ### 1. Clone SCOPE repo
 
@@ -109,7 +110,7 @@ The collector answers `{"partialSuccess":{}}`. After a few seconds, the norm wor
 should report the session:
 
 ```bash
-docker compose logs norm | grep "sess-1"
+docker compose logs ingestion | grep "sess-1"
 ```
 
 You should see the worker processing `sess-1`, then sending the session on to the

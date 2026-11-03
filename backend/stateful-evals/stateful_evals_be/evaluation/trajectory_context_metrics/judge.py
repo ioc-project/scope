@@ -12,8 +12,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
-from metrics_computation_engine.llm_judge.llm import LLMClient
 
+from stateful_evals_be.llm_client import LLMClient
 from stateful_evals_be.evaluation.trajectory_context import TrajectoryContext
 
 from .base import EvidenceRef, HighLevelMetricFailure, MetricInputConfig

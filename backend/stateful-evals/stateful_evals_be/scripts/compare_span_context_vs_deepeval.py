@@ -21,7 +21,7 @@ from typing import Any
 
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")
 
-from metrics_computation_engine.llm_judge.llm import LLMClient
+from stateful_evals_be.llm_client import LLMClient
 
 from stateful_evals_be.evaluation.trajectory_context_metrics import (
     PAPER_METRIC_SUITE,

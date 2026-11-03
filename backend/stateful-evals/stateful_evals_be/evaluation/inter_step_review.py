@@ -17,17 +17,13 @@ import os
 import re
 from typing import Any, Dict, List
 
-import litellm
-from metrics_computation_engine.llm_judge.llm import LLMClient
-
 from stateful_evals_be.evaluation.span_judge import SpanJudge
+from stateful_evals_be.llm_client import LLMClient
 from stateful_evals_be.models.requests import FailureDetail, MetricFailure
 from stateful_evals_be.prompts.inter_step_review import (
     INTER_STEP_REVIEW_SYSTEM_PROMPT,
     INTER_STEP_REVIEW_USER_PROMPT,
 )
-
-litellm.drop_params = True
 
 _MAX_FAILURES_PER_BATCH = 15
 

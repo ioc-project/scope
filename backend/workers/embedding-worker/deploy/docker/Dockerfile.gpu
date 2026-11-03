@@ -31,7 +31,7 @@ COPY dem /app/dem
 COPY api /app/api
 COPY --from=ontology . /ontology
 
-RUN uv sync --package embedding-worker --frozen --no-editable --no-dev \
+RUN uv sync --package embedding-worker --extra local --frozen --no-editable --no-dev \
     --no-install-package torch \
     --no-install-package triton \
     --no-install-package cuda-bindings \

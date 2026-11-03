@@ -1,0 +1,21 @@
+{
+  "nameTemplate": "$failureName ($code) detected in session $sessionId",
+  "descriptionTemplate": "The cognitive failure detector found $failureName ($code) in session $sessionId, with $confidence confidence, at $occurrences point(s) of the trace.\nReasoning: $reasoning",
+  "kgQuery": [
+    "MATCH (r:CognitiveFailureReport)-[:reportsOn]->(s:Session)",
+    "WITH s, r, CASE r.confidence WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END AS rank",
+    "ORDER BY rank DESC",
+    "WITH s, r.code AS code, collect(r)[0] AS best, count(r) AS occurrences",
+    "RETURN s.sessionId AS sessionId,",
+    "  code,",
+    "  coalesce(best.name, code) AS failureName,",
+    "  best.confidence AS confidence,",
+    "  coalesce(best.reasoning, '') AS reasoning,",
+    "  occurrences,",
+    "  CASE best.confidence WHEN 'high' THEN 'P1' WHEN 'medium' THEN 'P2' ELSE 'P3' END AS priority"
+  ],
+  "labels": ["Cognitive Failure", "$code"],
+  "scope": "Session",
+  "priority": "$priority",
+  "targetNodeId": "$sessionId"
+}

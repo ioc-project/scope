@@ -1,0 +1,58 @@
+#  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+#  SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eval-worker"
+version = "1.0.0"
+authors = [
+    { name = "Outshift Open", email = "oss-github@cisco.com" }
+]
+license = "Apache-2.0"
+description = "Evaluation workers (mce, stateful-eval) in one process"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+requires-python = ">=3.11"
+dependencies = [
+    "mce-worker",
+    "stateful-eval-worker",
+    "worker-base",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+eval-worker-cli = "eval_worker.cli:main"
+
+[tool.uv.sources]
+mce-worker = { workspace = true }
+stateful-eval-worker = { workspace = true }
+worker-base = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eval_worker"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

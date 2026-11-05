@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ioc-scope-mce-core"
-version = "2.0.0rc1"
+version = "2.0.0"
 authors = [
     { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
@@ -39,27 +39,27 @@ neo4j = [
     "neo4j>=6.1.0",
 ]
 deepeval = [
-    "ioc-scope-mce-provider-deepeval>=0.1.0",
+    "ioc-scope-mce-provider-deepeval>=2.0.0",
 ]
 llm = [
-    "ioc-scope-mce-provider-native>=0.1.0",
+    "ioc-scope-mce-provider-native>=2.0.0",
 ]
 opik = [
-    "ioc-scope-mce-provider-opik>=0.1.0",
+    "ioc-scope-mce-provider-opik>=2.0.0",
 ]
 ragas = [
-    "ioc-scope-mce-provider-ragas>=0.1.0",
+    "ioc-scope-mce-provider-ragas>=2.0.0",
 ]
 server = [
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]
 all = [
-    "ioc-scope-mce-provider-native>=0.1.0",
-    "ioc-scope-mce-provider-sdk>=0.1.0",
-    "ioc-scope-mce-provider-deepeval>=0.1.0",
-    "ioc-scope-mce-provider-opik>=0.1.0",
-    "ioc-scope-mce-provider-ragas>=0.1.0",
+    "ioc-scope-mce-provider-native>=2.0.0",
+    "ioc-scope-mce-provider-sdk>=2.0.0",
+    "ioc-scope-mce-provider-deepeval>=2.0.0",
+    "ioc-scope-mce-provider-opik>=2.0.0",
+    "ioc-scope-mce-provider-ragas>=2.0.0",
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
 ]

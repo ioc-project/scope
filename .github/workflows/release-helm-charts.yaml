@@ -70,7 +70,7 @@ jobs:
       - name: Push subcharts
         if: github.ref_type == 'tag'
         run: |
-          for pkg in dist/scope-api-*.tgz dist/scope-ui-*.tgz; do
+          for pkg in dist/ioc-scope-api-*.tgz dist/ioc-scope-ui-*.tgz; do
             helm push "$pkg" "oci://$OCI_REPO"
           done
 
@@ -83,7 +83,7 @@ jobs:
 
       - name: Push umbrella chart
         if: github.ref_type == 'tag'
-        run: helm push dist/scope-[0-9]*.tgz "oci://$OCI_REPO"
+        run: helm push dist/ioc-scope-[0-9]*.tgz "oci://$OCI_REPO"
 
       - name: Create GitHub release
         if: github.ref_type == 'tag'

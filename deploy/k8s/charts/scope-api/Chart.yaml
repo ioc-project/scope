@@ -1,5 +1,5 @@
 apiVersion: v2
-name: scope-api
+name: ioc-scope-api
 description: A Helm chart for Kubernetes
 maintainers:
   - name: Outshift Open

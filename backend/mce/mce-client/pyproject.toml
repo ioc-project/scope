@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ioc-scope-mce-client"
-version = "0.1.0"
+version = "2.0.0"
 authors = [
     { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
@@ -12,8 +12,8 @@ license = "Apache-2.0"
 description = "High-level client for the Metrics Computation Engine"
 requires-python = ">=3.13,<3.15"
 dependencies = [
-    "ioc-scope-mce-core>=2.0.0rc1",
-    "ioc-scope-mce-helper>=0.1.0",
+    "ioc-scope-mce-core>=2.0.0",
+    "ioc-scope-mce-helper>=2.0.0",
     "ioc-scope-api>=0.1.0",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.0",

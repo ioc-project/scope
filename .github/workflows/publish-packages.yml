@@ -17,6 +17,14 @@ on:
           - ioc-scope-norm
           - ioc-scope-mce
           - ioc-scope-mce-core
+          - ioc-scope-mce-helper
+          - ioc-scope-mce-client
+          - ioc-scope-mce-legacy
+          - ioc-scope-mce-provider-native
+          - ioc-scope-mce-provider-sdk
+          - ioc-scope-mce-provider-deepeval
+          - ioc-scope-mce-provider-opik
+          - ioc-scope-mce-provider-ragas
       publish:
         description: "Upload artifacts to public PyPI"
         required: false
@@ -39,6 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.select.outputs.matrix }}
+      has_packages: ${{ steps.select.outputs.has_packages }}
+      meta_matrix: ${{ steps.select.outputs.meta_matrix }}
+      has_meta: ${{ steps.select.outputs.has_meta }}
     steps:
       - name: Select packages to publish
         id: select
@@ -52,20 +63,38 @@ jobs:
               ("ioc-scope-worker-base", "backend/worker-base"),
               ("ioc-scope-api", "backend/api"),
               ("ioc-scope-norm", "backend/norm"),
-              ("ioc-scope-mce", "backend/mce"),
               ("ioc-scope-mce-core", "backend/mce/mce-core"),
+              ("ioc-scope-mce-helper", "backend/mce/mce-helper"),
+              ("ioc-scope-mce-client", "backend/mce/mce-client"),
+              ("ioc-scope-mce-legacy", "backend/mce/mce-legacy"),
+              ("ioc-scope-mce-provider-native", "backend/mce/mce-provider-native"),
+              ("ioc-scope-mce-provider-sdk", "backend/mce/mce-provider-sdk"),
+              ("ioc-scope-mce-provider-deepeval", "backend/mce/mce-provider-deepeval"),
+              ("ioc-scope-mce-provider-opik", "backend/mce/mce-provider-opik"),
+              ("ioc-scope-mce-provider-ragas", "backend/mce/mce-provider-ragas"),
           ]
+          # The ioc-scope-mce metapackage only declares dependencies on the
+          # other mce packages, so it is published last (see publish-meta).
+          meta = [("ioc-scope-mce", "backend/mce/mce-meta")]
           sel = os.environ["INPUT"]
-          include = [
-              {"name": n, "path": p}
-              for n, p in packages
-              if sel == "all" or sel == n
-          ]
-          print("matrix=" + json.dumps({"include": include}))
+
+          def pick(items):
+              return [
+                  {"name": n, "path": p}
+                  for n, p in items
+                  if sel == "all" or sel == n
+              ]
+
+          main, meta_sel = pick(packages), pick(meta)
+          print("matrix=" + json.dumps({"include": main}))
+          print("has_packages=" + str(bool(main)).lower())
+          print("meta_matrix=" + json.dumps({"include": meta_sel}))
+          print("has_meta=" + str(bool(meta_sel)).lower())
           PY
 
   publish:
     needs: plan
+    if: needs.plan.outputs.has_packages == 'true'
     runs-on: ubuntu-latest
     # One GitHub environment per package (pypi-<name>), so each PyPI project
     # can have its own trusted publisher and protection rules.
@@ -77,6 +106,68 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install build tools
+        run: |
+          uv tool install build
+          uv tool install twine
+
+
+      - name: Build package
+        run: pyproject-build "${{ matrix.path }}"
+
+      - name: Check package
+        run: uvx twine check "${{ matrix.path }}/dist/"*
+
+      - name: Publish to PyPI
+        if: github.event_name == 'push' || inputs.publish == true
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ matrix.path }}/dist/
+          skip-existing: true
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.name }}-${{ github.sha }}
+          path: ${{ matrix.path }}/dist/*
+          retention-days: 30
+
+  # The metapackage depends on every other mce package, so it is published
+  # only after they have all been uploaded (or were not selected).
+  publish-meta:
+    needs: [plan, publish]
+    if: >-
+      !cancelled() &&
+      needs.plan.outputs.has_meta == 'true' &&
+      (needs.publish.result == 'success' || needs.publish.result == 'skipped')
+    runs-on: ubuntu-latest
+    # One GitHub environment per package (pypi-<name>), so each PyPI project
+    # can have its own trusted publisher and protection rules.
+    environment:
+      name: pypi-${{ matrix.name }}
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.meta_matrix) }}
 
     steps:
       - uses: actions/checkout@v4

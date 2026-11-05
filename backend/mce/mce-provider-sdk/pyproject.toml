@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ioc-scope-mce-provider-sdk"
-version = "0.1.0"
+version = "2.0.0"
 authors = [
     { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
@@ -12,7 +12,7 @@ license = "Apache-2.0"
 description = "SDK-backed MCE provider package"
 requires-python = ">=3.13,<3.15"
 dependencies = [
-    "ioc-scope-mce-core>=2.0.0rc1",
+    "ioc-scope-mce-core>=2.0.0",
 ]
 
 [tool.setuptools.packages.find]

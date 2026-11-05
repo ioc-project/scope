@@ -20,7 +20,7 @@ dependencies = [
     "ioc-scope-api",
     "ioc-scope-ontology[models]>=1.1.0",
     "dem",
-    "worker-base",
+    "ioc-scope-worker-base",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
     "aio_pika>=8.0.0",
@@ -42,7 +42,7 @@ intelligence-worker-cli = "intelligence_worker.cli:main"
 [tool.uv.sources]
 ioc-scope-api = { workspace = true }
 dem = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/intelligence_worker"]

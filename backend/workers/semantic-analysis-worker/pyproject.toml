@@ -28,7 +28,7 @@ dependencies = [
     "hierarchical-grouping-worker",
     "analysis-worker",
     "intelligence-worker",
-    "worker-base",
+    "ioc-scope-worker-base",
 ]
 
 [project.optional-dependencies]
@@ -44,7 +44,7 @@ grouping-worker = { workspace = true }
 hierarchical-grouping-worker = { workspace = true }
 analysis-worker = { workspace = true }
 intelligence-worker = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/semantic_analysis_worker"]

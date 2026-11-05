@@ -26,7 +26,7 @@ requires-python = ">=3.11"
 dependencies = [
     "ioc-scope-norm[graph]",
     "ioc-scope-api",
-    "worker-base",
+    "ioc-scope-worker-base",
     "ioc-scope-ontology>=1.1.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",

@@ -35,13 +35,13 @@ members = [
     "ioc-scope-mce-provider-sdk",
     "ioc-scope-norm",
     "ioc-scope-ontology",
+    "ioc-scope-worker-base",
     "mce-worker",
     "norm-worker",
     "normal-behaviour-worker",
     "semantic-analysis-worker",
     "stateful-eval-worker",
     "stateful-evals",
-    "worker-base",
 ]
 overrides = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
 
@@ -152,11 +152,11 @@ dependencies = [
     { name = "dem", extra = ["analysis", "grouping", "llm"] },
     { name = "ioc-scope-api" },
     { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -175,6 +175,7 @@ requires-dist = [
     { name = "dem", extras = ["analysis", "grouping", "llm"], editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -184,7 +185,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -216,11 +216,11 @@ dependencies = [
     { name = "dem", extra = ["analysis"] },
     { name = "ioc-scope-api" },
     { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -239,6 +239,7 @@ requires-dist = [
     { name = "dem", extras = ["analysis"], editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -248,7 +249,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -645,9 +645,9 @@ dependencies = [
     { name = "ioc-scope-api" },
     { name = "ioc-scope-mce-client" },
     { name = "ioc-scope-mce-core" },
+    { name = "ioc-scope-worker-base" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -664,11 +664,11 @@ requires-dist = [
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
     { name = "ioc-scope-mce-core", editable = "mce/mce-core" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -680,11 +680,11 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "ioc-scope-api" },
+    { name = "ioc-scope-worker-base" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -701,6 +701,7 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -710,7 +711,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -733,11 +733,11 @@ dependencies = [
     { name = "dem", extra = ["grouping", "llm"] },
     { name = "ioc-scope-api" },
     { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -756,6 +756,7 @@ requires-dist = [
     { name = "dem", extras = ["grouping", "llm"], editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -765,7 +766,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -1130,8 +1130,8 @@ dependencies = [
     { name = "click" },
     { name = "dem", extra = ["embedding"] },
     { name = "ioc-scope-api" },
+    { name = "ioc-scope-worker-base" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1155,6 +1155,7 @@ requires-dist = [
     { name = "dem", extras = ["embedding"], editable = "dem" },
     { name = "dem", extras = ["embedding-local"], marker = "extra == 'local'", editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.20.0" },
@@ -1162,7 +1163,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["local", "dev"]
 
@@ -1171,9 +1171,9 @@ name = "eval-worker"
 version = "1.0.0"
 source = { editable = "workers/eval-worker" }
 dependencies = [
+    { name = "ioc-scope-worker-base" },
     { name = "mce-worker" },
     { name = "stateful-eval-worker" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1183,10 +1183,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "mce-worker", editable = "workers/mce-worker" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "stateful-eval-worker", editable = "workers/stateful-eval-worker" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -1395,10 +1395,10 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "ioc-scope-api" },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1415,6 +1415,7 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -1423,7 +1424,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -1499,11 +1499,11 @@ dependencies = [
     { name = "click" },
     { name = "dem", extra = ["grouping", "llm"] },
     { name = "ioc-scope-api" },
+    { name = "ioc-scope-worker-base" },
     { name = "numpy" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1521,6 +1521,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
     { name = "dem", extras = ["grouping", "llm"], editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
@@ -1530,7 +1531,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -1695,8 +1695,8 @@ version = "1.0.0"
 source = { editable = "workers/ingestion-worker" }
 dependencies = [
     { name = "embedding-worker" },
+    { name = "ioc-scope-worker-base" },
     { name = "norm-worker" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1707,9 +1707,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "embedding-worker", editable = "workers/embedding-worker" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "norm-worker", editable = "workers/norm-worker" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -1758,9 +1758,9 @@ dependencies = [
     { name = "dem" },
     { name = "ioc-scope-api" },
     { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -1779,6 +1779,7 @@ requires-dist = [
     { name = "dem", editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -1786,7 +1787,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -2267,6 +2267,40 @@ dev = [
 ]
 
 [[package]]
+name = "ioc-scope-worker-base"
+version = "1.0.0"
+source = { editable = "worker-base" }
+dependencies = [
+    { name = "aio-pika" },
+    { name = "ioc-scope-api" },
+    { name = "pika" },
+    { name = "pydantic" },
+    { name = "ruff" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aio-pika", specifier = ">=8.0.0" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "pika", specifier = ">=1.3.0" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
+    { name = "ruff", specifier = "<=0.15.22" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2696,10 +2730,10 @@ dependencies = [
     { name = "click" },
     { name = "ioc-scope-mce" },
     { name = "ioc-scope-mce-client" },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -2717,6 +2751,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.0.0" },
     { name = "ioc-scope-mce", editable = "mce/mce-meta" },
     { name = "ioc-scope-mce-client", editable = "mce/mce-client" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -2725,7 +2760,6 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -2942,10 +2976,10 @@ dependencies = [
     { name = "ioc-scope-api" },
     { name = "ioc-scope-norm", extra = ["graph"] },
     { name = "ioc-scope-ontology" },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -2962,13 +2996,13 @@ requires-dist = [
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-norm", extras = ["graph"], editable = "norm" },
     { name = "ioc-scope-ontology", editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -2982,11 +3016,11 @@ dependencies = [
     { name = "dem", extra = ["analysis"] },
     { name = "ioc-scope-api" },
     { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
     { name = "pika" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -3005,6 +3039,7 @@ requires-dist = [
     { name = "dem", extras = ["analysis"], editable = "dem" },
     { name = "ioc-scope-api", editable = "api" },
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pika", specifier = ">=1.3.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -3014,7 +3049,6 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -4197,7 +4231,7 @@ dependencies = [
     { name = "grouping-worker" },
     { name = "hierarchical-grouping-worker" },
     { name = "intelligence-worker" },
-    { name = "worker-base" },
+    { name = "ioc-scope-worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -4211,8 +4245,8 @@ requires-dist = [
     { name = "grouping-worker", editable = "workers/grouping-worker" },
     { name = "hierarchical-grouping-worker", editable = "workers/hierarchical-grouping-worker" },
     { name = "intelligence-worker", editable = "workers/intelligence-worker" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -4346,11 +4380,11 @@ dependencies = [
     { name = "aio-pika" },
     { name = "click" },
     { name = "ioc-scope-api" },
+    { name = "ioc-scope-worker-base" },
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "stateful-evals" },
-    { name = "worker-base" },
 ]
 
 [package.optional-dependencies]
@@ -4367,6 +4401,7 @@ requires-dist = [
     { name = "aio-pika", specifier = ">=8.0.0" },
     { name = "click", specifier = ">=8.0.0" },
     { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
@@ -4376,7 +4411,6 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "<=0.15.22" },
     { name = "stateful-evals", editable = "stateful-evals" },
-    { name = "worker-base", editable = "worker-base" },
 ]
 provides-extras = ["dev"]
 
@@ -4886,40 +4920,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/d0/20/50ed6bdf27dec98b5
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl", hash = "sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab", size = 33320, upload-time = "2026-08-11T22:02:26.1Z" },
 ]
-
-[[package]]
-name = "worker-base"
-version = "1.0.0"
-source = { editable = "worker-base" }
-dependencies = [
-    { name = "aio-pika" },
-    { name = "ioc-scope-api" },
-    { name = "pika" },
-    { name = "pydantic" },
-    { name = "ruff" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-mock" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aio-pika", specifier = ">=8.0.0" },
-    { name = "ioc-scope-api", editable = "api" },
-    { name = "pika", specifier = ">=1.3.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.4.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.10.0" },
-    { name = "ruff", specifier = "<=0.15.22" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "wrapt"

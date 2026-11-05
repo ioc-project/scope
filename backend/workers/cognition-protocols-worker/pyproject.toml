@@ -15,7 +15,7 @@ dependencies = [
     "ioc-scope-mce-core",
     "ioc-scope-mce-client",
     "ioc-scope-api",
-    "worker-base",
+    "ioc-scope-worker-base",
     "click>=8.0",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
@@ -38,7 +38,7 @@ ioc-concord-mce-metrics = { git = "https://github.com/ioc-project/cognition-prot
 ioc-scope-mce-core = { workspace = true }
 ioc-scope-mce-client = { workspace = true }
 ioc-scope-api = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cognition_protocols_worker"]

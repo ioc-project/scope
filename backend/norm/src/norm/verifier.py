@@ -456,7 +456,7 @@ def run_shacl_validation(
         import rdflib
     except ImportError as exc:
         raise KGCheckSkipped(
-            "shacl check requires pyshacl and rdflib (pip install 'norm[graph]')"
+            "shacl check requires pyshacl and rdflib (pip install 'ioc-scope-norm[graph]')"
         ) from exc
 
     from norm.ontology import (
@@ -478,7 +478,7 @@ def run_shacl_validation(
     except ImportError as exc:
         raise KGCheckSkipped(
             "shacl check requires scope_ontology to resolve mas-shapes.ttl "
-            "(pip install 'norm[graph]')"
+            "(pip install 'ioc-scope-norm[graph]')"
         ) from exc
     if not shapes_files:
         raise KGCheckSkipped(

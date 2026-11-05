@@ -91,7 +91,7 @@ unused legacy scaffolding — not part of the built package).
 ### Running it in the pipeline
 
 `norm` is normally not invoked directly — it's run by the standalone
-[`norm-worker`](../workers/norm-worker.md), which depends on `norm[graph]` and calls
+[`norm-worker`](../workers/norm-worker.md), which depends on `ioc-scope-norm[graph]` and calls
 `normalize()` on spans it fetches from [scope-api](api.md). Adapting scope-api's
 `SpanMetadataItem` rows to the raw span-dict shape `normalize()` expects is norm-worker's own job
 (a straight field rename — both are sourced from the same ClickHouse `otel_traces` columns).

@@ -32,7 +32,7 @@ imports and consumes them. `scope_ontology.models.base.KGBase` uses
 
 ## Worker integration
 
-`workers/norm-worker` depends on `norm[graph]` and calls:
+`workers/norm-worker` depends on `ioc-scope-norm[graph]` and calls:
 
 ```python
 from norm import normalize

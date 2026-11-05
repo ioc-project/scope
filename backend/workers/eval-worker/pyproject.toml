@@ -26,7 +26,7 @@ requires-python = ">=3.11"
 dependencies = [
     "mce-worker",
     "stateful-eval-worker",
-    "worker-base",
+    "ioc-scope-worker-base",
 ]
 
 [project.optional-dependencies]
@@ -40,7 +40,7 @@ eval-worker-cli = "eval_worker.cli:main"
 [tool.uv.sources]
 mce-worker = { workspace = true }
 stateful-eval-worker = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eval_worker"]

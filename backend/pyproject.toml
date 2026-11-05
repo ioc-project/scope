@@ -84,7 +84,7 @@ intelligence-worker = { workspace = true }
 ingestion-worker = { workspace = true }
 semantic-analysis-worker = { workspace = true }
 eval-worker = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [dependency-groups]
 dev = [

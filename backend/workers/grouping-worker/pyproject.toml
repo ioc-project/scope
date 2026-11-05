@@ -25,7 +25,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "ioc-scope-api",
-    "worker-base",
+    "ioc-scope-worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -47,7 +47,7 @@ grouping-worker-cli = "grouping_worker.cli:main"
 
 [tool.uv.sources]
 ioc-scope-api = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

@@ -25,7 +25,7 @@ BaseWorker (abstract)
 ## Installation
 
 ```bash
-pip install worker-base
+pip install ioc-scope-worker-base
 # or for development
 pip install -e .
 ```

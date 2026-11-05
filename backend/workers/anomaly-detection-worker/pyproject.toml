@@ -27,7 +27,7 @@ dependencies = [
     "ioc-scope-api",
     "ioc-scope-ontology[models]>=1.1.0",
     "dem[analysis]",
-    "worker-base",
+    "ioc-scope-worker-base",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "click>=8.0.0",
@@ -51,7 +51,7 @@ anomaly-detection-worker-cli = "anomaly_detection_worker.cli:main"
 [tool.uv.sources]
 ioc-scope-api = { workspace = true }
 dem = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

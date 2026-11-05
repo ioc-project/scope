@@ -25,7 +25,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "dem[analysis,grouping,llm]",
-    "worker-base",
+    "ioc-scope-worker-base",
     "ioc-scope-api",
     "ioc-scope-ontology[models]>=1.1.0",
     "pydantic>=2.0.0",
@@ -50,7 +50,7 @@ analysis-worker-cli = "analysis_worker.cli:main"
 
 [tool.uv.sources]
 dem = { workspace = true }
-worker-base = { workspace = true }
+ioc-scope-worker-base = { workspace = true }
 ioc-scope-api = { workspace = true }
 
 [project.urls]

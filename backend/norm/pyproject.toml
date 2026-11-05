@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "norm"
+name = "ioc-scope-norm"
 version = "1.0.0"
 authors = [
     { name = "Outshift Open", email = "oss-github@cisco.com" }
@@ -40,7 +40,7 @@ dev = [
 # extra's deps); `all` just aliases it so a plain `pip install -e ".[all]"`
 # gets pytest/ruff too.
 all = [
-  "norm[dev]",
+  "ioc-scope-norm[dev]",
 ]
 
 [tool.ruff]

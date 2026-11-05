@@ -24,7 +24,7 @@ classifiers = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "norm[graph]",
+    "ioc-scope-norm[graph]",
     "ioc-scope-api",
     "worker-base",
     "ioc-scope-ontology>=1.1.0",

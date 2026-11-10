@@ -956,7 +956,6 @@ def _get_application_details(
 
     # Initialise the response with defaults
     result = MonitorApplicationLevelData(
-        traces=SingleValueData(value=0, unit="SCALAR"),
         totalTokens=total_tokens_timeline,
         totalCost=total_cost_timeline,
         sessionDuration=SingleValueData(value=0, unit="MILLISECONDS"),
@@ -981,21 +980,6 @@ def _get_application_details(
 
     if not all_app_session_ids:
         return result
-
-    # ── Traces count ─────────────────────────────────────────────────
-    traces_stmt = ui_queries.traces_count_query(
-        dialect,
-        start_time=start_dt,
-        end_time=end_dt,
-        application_id=application_id,
-    )
-    try:
-        traces_rows = db.execute(traces_stmt)
-    except Exception as exc:
-        logger.error("malformed or unexpected data: %s", exc)
-        traces_rows = []
-    if traces_rows:
-        result.traces.value = float(traces_rows[0][0])
 
     # ── Conversation count (distinct agent_id × session pairs) ───────
     conv_stmt = ui_queries.conversation_count_query(
@@ -1179,6 +1163,245 @@ def _get_application_details(
         tl_item_cost.value.value = round(bucket_tokens * COST_PER_TOKEN, 6)
 
     return result
+
+
+# ── get_application_cost_timeline ────────────────────────────────────────────
+
+
+def _get_application_cost_timeline(
+    db: Connector,
+    *,
+    application_id: str,
+    start_time: str = "",
+    end_time: str = "",
+) -> tuple[list[TimelineData], list[TimelineData]]:
+    """Return the ``(totalTokens, totalCost)`` timelines of an application, read from the KG.
+
+    The time range is split into ``PERIODS_COUNT`` equal buckets. Each bucket
+    holds the sessions of the application that started within it and the
+    *average per session* LLM tokens (prompt + completion, from the ``LLMCall``
+    nodes) and the matching cost (``tokens * COST_PER_TOKEN``). Buckets without
+    sessions are 0 and carry no session ID.
+    """
+    start_epoch, end_epoch = parse_epoch_range(start_time, end_time)
+    period_size = (end_epoch - start_epoch) / PERIODS_COUNT
+
+    query, params = ui_queries.application_llm_usage_by_session_query(
+        application_id=application_id,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+    )
+    try:
+        rows = db.execute(query, params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get cost timeline for application '{application_id}': {exc}"
+        ) from exc
+
+    buckets: list[list[tuple[str, float]]] = [[] for _ in range(PERIODS_COUNT)]
+    for row in rows or []:
+        if not isinstance(row, dict) or period_size <= 0:
+            continue
+        session_start = row.get("startTime")
+        session_id = row.get("sessionId")
+        if session_start is None or not session_id:
+            continue
+        index = min(int((float(session_start) - start_epoch) / period_size), PERIODS_COUNT - 1)
+        buckets[max(index, 0)].append((str(session_id), float(row.get("tokens") or 0)))
+
+    tokens_timeline: list[TimelineData] = []
+    cost_timeline: list[TimelineData] = []
+    for i, sessions in enumerate(buckets):
+        timestamp_iso = datetime.fromtimestamp(
+            start_epoch + i * period_size, tz=timezone.utc
+        ).isoformat()
+        session_ids = [sid for sid, _ in sessions]
+        avg_tokens = sum(t for _, t in sessions) / len(sessions) if sessions else 0.0
+        tokens_timeline.append(
+            TimelineData(
+                timestamp=timestamp_iso,
+                sessionIDs=session_ids,
+                value=SingleValueData(value=avg_tokens, unit="SCALAR"),
+            )
+        )
+        cost_timeline.append(
+            TimelineData(
+                timestamp=timestamp_iso,
+                sessionIDs=session_ids,
+                value=SingleValueData(
+                    value=round(avg_tokens * COST_PER_TOKEN, 6), unit="DOLLAR"
+                ),
+            )
+        )
+    return tokens_timeline, cost_timeline
+
+
+# ── get_application_session_stats ────────────────────────────────────────────
+
+
+def _get_application_session_stats(
+    db: Connector,
+    *,
+    application_id: str,
+    start_time: str = "",
+    end_time: str = "",
+) -> dict[str, float]:
+    """Return the per-session statistics of an application, read from the KG.
+
+    Over the application's ``Session`` nodes started within the time range:
+    ``sessions`` (count), ``avgDurationMs`` (average duration, milliseconds),
+    ``avgLlmCalls`` and ``avgToolCalls`` (average number of LLM / tool calls per
+    session) and ``avgErrors`` (average number of failed LLM / tool calls per
+    session). All are 0 when there is no session.
+    """
+    start_epoch, end_epoch = parse_epoch_range(start_time, end_time)
+    query, params = ui_queries.application_session_stats_query(
+        application_id=application_id,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+    )
+    try:
+        rows = db.execute(query, params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get session stats for application '{application_id}': {exc}"
+        ) from exc
+
+    row = rows[0] if rows and isinstance(rows[0], dict) else {}
+    return {
+        "sessions": float(row.get("sessions") or 0),
+        "avgDurationMs": round(float(row.get("avgDurationMs") or 0), 2),
+        "avgLlmCalls": round(float(row.get("avgLlmCalls") or 0), 2),
+        "avgToolCalls": round(float(row.get("avgToolCalls") or 0), 2),
+        "avgErrors": round(float(row.get("avgErrors") or 0), 2),
+    }
+
+
+# ── get_application_conversation_count ───────────────────────────────────────
+
+
+def _get_application_conversation_count(
+    db: Connector,
+    *,
+    application_id: str,
+    start_time: str = "",
+    end_time: str = "",
+) -> float:
+    """Return the number of conversations of an application, read from the KG.
+
+    A conversation is an ``(agent, session)`` pair in which the agent made at
+    least one LLM call, over the sessions started within the time range.
+    """
+    start_epoch, end_epoch = parse_epoch_range(start_time, end_time)
+    query, params = ui_queries.application_conversation_count_query(
+        application_id=application_id,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+    )
+    try:
+        rows = db.execute(query, params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get conversation count for application '{application_id}': {exc}"
+        ) from exc
+
+    row = rows[0] if rows and isinstance(rows[0], dict) else {}
+    return float(row.get("conversations") or 0)
+
+
+# ── get_application_most_active_agent ────────────────────────────────────────
+
+
+def _agent_self_times(
+    calls: list[tuple[str, float, float]],
+) -> dict[str, float]:
+    """Return the self time (seconds) of each agent, from the agent calls of one session.
+
+    *calls* are ``(agent, start, end)`` tuples. An agent call that runs within
+    another one (its interval is inside the other's) is nested: its time is
+    credited to its own agent only, not to the agents that enclose it. A call
+    that starts inside another one but ends after it is clamped to the end of
+    the enclosing call.
+    """
+    self_time: dict[str, float] = {}
+    stack: list[tuple[str, float]] = []  # open calls: (agent, end)
+    cursor = 0.0
+
+    def credit(agent: str, until: float) -> None:
+        nonlocal cursor
+        self_time[agent] = self_time.get(agent, 0.0) + max(until - cursor, 0.0)
+        cursor = max(until, cursor)
+
+    for agent, start, end in sorted(calls, key=lambda c: (c[1], -c[2])):
+        while stack and stack[-1][1] <= start:
+            top_agent, top_end = stack.pop()
+            credit(top_agent, top_end)
+        if stack:
+            credit(stack[-1][0], start)
+            end = min(end, stack[-1][1])
+        cursor = start
+        stack.append((agent, max(end, start)))
+    while stack:
+        top_agent, top_end = stack.pop()
+        credit(top_agent, top_end)
+    return self_time
+
+
+def _get_application_most_active_agent(
+    db: Connector,
+    *,
+    application_id: str,
+    start_time: str = "",
+    end_time: str = "",
+) -> tuple[str, float]:
+    """Return ``(agent name, share of the agents' time in percent)`` of the most active agent, read from the KG.
+
+    "Activity" is the *self time* of the agent calls: the time an agent spends
+    running, without the time of the agents nested in it (see
+    :func:`_agent_self_times`), summed over the application's sessions in the
+    time range. The share is that of the top agent in the total self time of all
+    agents. Returns ``("", 0.0)`` when there is no agent call.
+    """
+    start_epoch, end_epoch = parse_epoch_range(start_time, end_time)
+    query, params = ui_queries.application_agent_calls_query(
+        application_id=application_id,
+        start_epoch=start_epoch,
+        end_epoch=end_epoch,
+    )
+    try:
+        rows = db.execute(query, params)
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to get agent calls for application '{application_id}': {exc}"
+        ) from exc
+
+    calls_by_session: dict[str, list[tuple[str, float, float]]] = {}
+    names: dict[str, str] = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        session_id, agent_id = row.get("sessionId"), row.get("agentId")
+        start, end = row.get("startTime"), row.get("endTime")
+        if not session_id or not agent_id or start is None or end is None:
+            continue
+        agent_id = str(agent_id)
+        names.setdefault(agent_id, str(row.get("agentName") or agent_id))
+        calls_by_session.setdefault(str(session_id), []).append(
+            (agent_id, float(start), float(end))
+        )
+
+    totals: dict[str, float] = {}
+    for calls in calls_by_session.values():
+        for agent_id, seconds in _agent_self_times(calls).items():
+            totals[agent_id] = totals.get(agent_id, 0.0) + seconds
+
+    total = sum(totals.values())
+    if not totals or total <= 0:
+        return "", 0.0
+    # Ties are broken on the agent id, for a deterministic result.
+    top = min(totals, key=lambda agent_id: (-totals[agent_id], agent_id))
+    display_name = names[top].replace("-", " ").title()
+    return display_name, round(totals[top] / total * 100, 2)
 
 
 # ── get_application_structural_topology ──────────────────────────────────────

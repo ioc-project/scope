@@ -725,6 +725,164 @@ def agent_handoffs_by_application_query(
     return query, {"applicationId": application_id}
 
 
+def application_llm_usage_by_session_query(
+    *,
+    application_id: str,
+    start_epoch: float,
+    end_epoch: float,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the LLM token usage of each session of an application (Neo4j only).
+
+    Reads the execution layer of the knowledge graph (``Session -[:hasMASCall]->
+    MASCall -[:hasAgentCall]-> AgentCall -[:hasLLMCall]-> LLMCall``), scoped to
+    the application via ``Session -[:executesSession]-> MAS``. Returns one row
+    per session started within ``[start_epoch, end_epoch]`` (epoch seconds):
+    ``sessionId``, ``startTime`` and ``tokens`` (prompt + completion tokens of
+    all the session's LLM calls; 0 when the session made none).
+    """
+    query = """
+        MATCH (:MAS {id: $applicationId})<-[:executesSession]-(s:Session)
+        WITH DISTINCT s
+        WHERE s.sessionId IS NOT NULL
+          AND toFloat(s.startTime) >= $startEpoch
+          AND toFloat(s.startTime) <= $endEpoch
+        OPTIONAL MATCH (s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(:AgentCall)
+            -[:hasLLMCall]->(l:LLMCall)
+        RETURN s.sessionId AS sessionId,
+               toFloat(s.startTime) AS startTime,
+               coalesce(sum(coalesce(l.promptTokenCount, 0)
+                          + coalesce(l.completionTokenCount, 0)), 0) AS tokens
+        ORDER BY startTime
+    """
+    return query, {
+        "applicationId": application_id,
+        "startEpoch": start_epoch,
+        "endEpoch": end_epoch,
+    }
+
+
+def application_session_stats_query(
+    *,
+    application_id: str,
+    start_epoch: float,
+    end_epoch: float,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the per-session statistics of an application (Neo4j only).
+
+    Considers the ``Session`` nodes of the application (``Session -[:executesSession]->
+    MAS``) that started within ``[start_epoch, end_epoch]`` (epoch seconds).
+    Returns one row:
+
+    * ``sessions``: how many there are;
+    * ``avgDurationMs``: their average ``duration`` (milliseconds, per the
+      ontology's ``ExecutionElement``);
+    * ``avgLlmCalls`` / ``avgToolCalls``: the average number of ``LLMCall`` /
+      ``ToolCall`` nodes per session (reached through ``hasMASCall`` ->
+      ``hasAgentCall``; 0 for a session without any);
+    * ``avgErrors``: the average number of failed calls per session, i.e. of
+      those ``LLMCall`` / ``ToolCall`` nodes whose ``success`` is false.
+
+    The averages are null when there is no session.
+    """
+    query = """
+        MATCH (:MAS {id: $applicationId})<-[:executesSession]-(s:Session)
+        WITH DISTINCT s
+        WHERE s.sessionId IS NOT NULL
+          AND toFloat(s.startTime) >= $startEpoch
+          AND toFloat(s.startTime) <= $endEpoch
+        WITH s,
+             size([(s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(:AgentCall)
+                   -[:hasLLMCall]->(l:LLMCall) | l]) AS llmCalls,
+             size([(s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(:AgentCall)
+                   -[:hasToolCall]->(t:ToolCall) | t]) AS toolCalls,
+             size([(s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(:AgentCall)
+                   -[:hasLLMCall]->(lf:LLMCall) WHERE lf.success = false | lf])
+             + size([(s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(:AgentCall)
+                   -[:hasToolCall]->(tf:ToolCall) WHERE tf.success = false | tf]) AS errors
+        RETURN count(s) AS sessions,
+               avg(toFloat(s.duration)) AS avgDurationMs,
+               avg(llmCalls) AS avgLlmCalls,
+               avg(toolCalls) AS avgToolCalls,
+               avg(errors) AS avgErrors
+    """
+    return query, {
+        "applicationId": application_id,
+        "startEpoch": start_epoch,
+        "endEpoch": end_epoch,
+    }
+
+
+def application_conversation_count_query(
+    *,
+    application_id: str,
+    start_epoch: float,
+    end_epoch: float,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the conversation count of an application (Neo4j only).
+
+    A conversation is an ``(agent, session)`` pair in which the agent made at
+    least one LLM call: for the sessions of the application started within
+    ``[start_epoch, end_epoch]`` (epoch seconds), the distinct pairs of
+    ``Session`` and ``Agent`` linked by an ``AgentCall`` that has an ``LLMCall``
+    (``Session -[:hasMASCall]-> MASCall -[:hasAgentCall]-> AgentCall
+    -[:executesAgent]-> Agent`` and ``AgentCall -[:hasLLMCall]-> LLMCall``).
+    Returns one row: ``conversations``.
+    """
+    query = """
+        MATCH (:MAS {id: $applicationId})<-[:executesSession]-(s:Session)
+        WITH DISTINCT s
+        WHERE s.sessionId IS NOT NULL
+          AND toFloat(s.startTime) >= $startEpoch
+          AND toFloat(s.startTime) <= $endEpoch
+        MATCH (s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(ac:AgentCall)
+            -[:executesAgent]->(a:Agent)
+        MATCH (ac)-[:hasLLMCall]->(:LLMCall)
+        RETURN count(DISTINCT [s.sessionId, a.id]) AS conversations
+    """
+    return query, {
+        "applicationId": application_id,
+        "startEpoch": start_epoch,
+        "endEpoch": end_epoch,
+    }
+
+
+def application_agent_calls_query(
+    *,
+    application_id: str,
+    start_epoch: float,
+    end_epoch: float,
+) -> tuple[str, dict[str, Any]]:
+    """Build the Cypher query for the agent calls of an application (Neo4j only).
+
+    Returns one row per ``AgentCall`` of the sessions of the application started
+    within ``[start_epoch, end_epoch]`` (epoch seconds): ``sessionId``,
+    ``agentId``, ``agentName``, ``startTime`` and ``endTime`` (epoch seconds).
+
+    The KG has no edge between an ``AgentCall`` and the one that invoked it (they
+    all hang off their ``MASCall`` through ``hasAgentCall``), so the nesting of
+    the calls is left to the caller, which infers it from the time intervals.
+    """
+    query = """
+        MATCH (:MAS {id: $applicationId})<-[:executesSession]-(s:Session)
+        WITH DISTINCT s
+        WHERE s.sessionId IS NOT NULL
+          AND toFloat(s.startTime) >= $startEpoch
+          AND toFloat(s.startTime) <= $endEpoch
+        MATCH (s)-[:hasMASCall]->(:MASCall)-[:hasAgentCall]->(ac:AgentCall)
+            -[:executesAgent]->(a:Agent)
+        RETURN s.sessionId AS sessionId,
+               a.id AS agentId,
+               a.name AS agentName,
+               toFloat(ac.startTime) AS startTime,
+               toFloat(ac.endTime) AS endTime
+    """
+    return query, {
+        "applicationId": application_id,
+        "startEpoch": start_epoch,
+        "endEpoch": end_epoch,
+    }
+
+
 def agents_by_application_and_sessions_query(
     dialect: Dialect = Dialect.CLICKHOUSE,
     *,
@@ -1260,28 +1418,6 @@ def session_ids_graph_query(
         stmt = stmt.where(r.session_id.in_(given_session_ids))
 
     return stmt.group_by(r.session_id).order_by(func.min(r.ts).desc())
-
-
-def traces_count_query(
-    dialect: Dialect = Dialect.CLICKHOUSE,
-    *,
-    start_time: Optional[str] = None,
-    end_time: Optional[str] = None,
-    application_id: Optional[str] = None,
-):
-    """Count total rows for an application in a time range."""
-    r = _refs(dialect)
-
-    stmt = select(func.count().label("cnt")).select_from(r.tbl)
-
-    if start_time:
-        stmt = stmt.where(r.ts >= start_time)
-    if end_time:
-        stmt = stmt.where(r.ts <= end_time)
-    if application_id:
-        stmt = stmt.where(func.lower(r.application_id) == func.lower(application_id))
-
-    return stmt
 
 
 def conversation_count_query(

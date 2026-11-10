@@ -208,7 +208,6 @@ class MostActiveAgent(BaseModel):
 class MonitorApplicationLevelData(BaseModel):
     """Response body for ``MonitorApplicationLevelData``."""
 
-    traces: SingleValueData
     totalTokens: list[TimelineData] = []
     totalCost: list[TimelineData] = []
     sessionDuration: SingleValueData

@@ -13,7 +13,11 @@ from scope.client.applications import (
     _get_application_agent_tools,
     _get_application_structural_topology,
     _get_application_agents,
+    _get_application_conversation_count,
+    _get_application_cost_timeline,
     _get_application_details,
+    _get_application_most_active_agent,
+    _get_application_session_stats,
     _get_application_names,
     _get_application_semanticgroup_impact_assessment,
     _get_application_semanticgroups,
@@ -69,6 +73,7 @@ from scope.models.otel_traces import (
     SessionsWithCognitionProtocolsResponse,
     SessionsWithCognitiveObservabilityResponse,
     SpanDetailsResponse,
+    TimelineData,
     TracesResponse,
     UniqueAgentPerSession,
     WaterfallResponse,
@@ -354,6 +359,66 @@ class UIClient:
             start_time=start_time,
             end_time=end_time,
             given_session_ids=given_session_ids,
+        )
+
+    def get_application_cost_timeline(
+        self,
+        *,
+        application_id: str,
+        start_time: str = "",
+        end_time: str = "",
+    ) -> tuple[list[TimelineData], list[TimelineData]]:
+        """Return the (totalTokens, totalCost) timelines from the KG (Neo4j-backed)."""
+        return _get_application_cost_timeline(
+            self.db,
+            application_id=application_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+    def get_application_conversation_count(
+        self,
+        *,
+        application_id: str,
+        start_time: str = "",
+        end_time: str = "",
+    ) -> float:
+        """Return the number of (agent, session) conversations from the KG (Neo4j-backed)."""
+        return _get_application_conversation_count(
+            self.db,
+            application_id=application_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+    def get_application_most_active_agent(
+        self,
+        *,
+        application_id: str,
+        start_time: str = "",
+        end_time: str = "",
+    ) -> tuple[str, float]:
+        """Return (name, share in %) of the agent with the most self time, from the KG (Neo4j-backed)."""
+        return _get_application_most_active_agent(
+            self.db,
+            application_id=application_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+    def get_application_session_stats(
+        self,
+        *,
+        application_id: str,
+        start_time: str = "",
+        end_time: str = "",
+    ) -> dict[str, float]:
+        """Return the per-session statistics of an application from the KG (Neo4j-backed)."""
+        return _get_application_session_stats(
+            self.db,
+            application_id=application_id,
+            start_time=start_time,
+            end_time=end_time,
         )
 
     def get_application_agents(

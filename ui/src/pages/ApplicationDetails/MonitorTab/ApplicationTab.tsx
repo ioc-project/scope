@@ -296,17 +296,6 @@ export const ApplicationTab = () => {
                 <Typography variant={'h6'}>Utilisation</Typography>
                 <Stack direction={'row'} gap={'16px'}>
                   <WidgetCard
-                    title={'Traces'}
-                    description={
-                      'The number of traces created by the application.'
-                    }
-                    content={
-                      <Typography
-                        variant={'h6'}
-                      >{`${Math.round(data?.traces.value ?? 0)}${unitSuffix[data?.traces.unit ?? Unit.Scalar]}`}</Typography>
-                    }
-                  />
-                  <WidgetCard
                     title={'Sessions'}
                     description={
                       'The number of sessions created by the application.'
@@ -367,12 +356,14 @@ export const ApplicationTab = () => {
 
                 <WidgetCard
                   title={'Most Active Agent'}
-                  description={'The agent with the highest activity.'}
+                  description={
+                    'The agent with the highest share of the agents’ running time (excluding the time of the agents nested in it).'
+                  }
                   content={
                     <Typography variant={'h6'}>
                       {data?.mostActiveAgent.agentName} -{' '}
                       {formatTwoDecimals(
-                        (data?.mostActiveAgent?.activity?.value ?? 0) / 100
+                        data?.mostActiveAgent?.activity?.value ?? 0
                       )}
                       {
                         unitSuffix[

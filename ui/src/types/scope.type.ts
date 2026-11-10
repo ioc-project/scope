@@ -116,7 +116,6 @@ export interface ApplicationMetrics {
   toxicity: SingleValueData;
   errorCount: SingleValueData;
   mostFrequentErrors: MultipleValuesData;
-  traces: SingleValueData;
   sessions: SingleValueData;
   llmCalls: SingleValueData;
   toolCalls: SingleValueData;

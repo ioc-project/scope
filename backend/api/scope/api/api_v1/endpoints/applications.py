@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import redis as redis_lib
@@ -24,6 +25,8 @@ from scope.models.otel_traces import (
     SessionsWithCognitiveObservabilityResponse,
     SessionsWithCognitionProtocolsResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -420,21 +423,81 @@ def application_details(
     start_time: str = Query(""),
     end_time: str = Query(""),
     ui_client=Depends(_client),  # noqa: B008
+    kg_client=Depends(_kg_client),  # noqa: B008
     redis_client: redis_lib.Redis = Depends(get_redis),  # noqa: B008
 ) -> Any:
-    """Return application-level monitoring data."""
+    """Return application-level monitoring data.
+
+    Read from the knowledge graph: the ``totalTokens`` / ``totalCost`` timelines,
+    ``sessions``, ``sessionDuration``, the per-session averages ``llmCalls`` /
+    ``toolCalls`` / ``totalActionCount`` / ``errorCount``,
+    ``totalConversationCount`` and ``mostActiveAgent`` (by self time).
+    Everything else still comes from the span store.
+    """
     key = make_cache_key(
         "applications:details",
         {"app": application_id, "start": start_time, "end": end_time},
     )
-    return cached(
-        redis_client=redis_client,
-        key=key,
-        fetch=lambda: ui_client.get_application_details(
+
+    def fetch() -> MonitorApplicationLevelData:
+        details = ui_client.get_application_details(
             application_id=application_id,
             start_time=start_time,
             end_time=end_time,
-        ),
+        )
+        try:
+            details.totalTokens, details.totalCost = (
+                kg_client.get_application_cost_timeline(
+                    application_id=application_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                )
+            )
+        except Exception:
+            # Keep the rest of the monitoring page usable if the KG is down.
+            logger.exception("Failed to read the cost timeline from the KG")
+        try:
+            stats = kg_client.get_application_session_stats(
+                application_id=application_id,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            details.sessions.value = stats["sessions"]
+            details.sessionDuration.value = stats["avgDurationMs"]
+            details.llmCalls.value = stats["avgLlmCalls"]
+            details.toolCalls.value = stats["avgToolCalls"]
+            details.totalActionCount.value = (
+                details.llmCalls.value + details.toolCalls.value
+            )
+            details.errorCount.value = stats["avgErrors"]
+        except Exception:
+            logger.exception("Failed to read the session stats from the KG")
+        try:
+            details.totalConversationCount.value = (
+                kg_client.get_application_conversation_count(
+                    application_id=application_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                )
+            )
+        except Exception:
+            logger.exception("Failed to read the conversation count from the KG")
+        try:
+            agent_name, agent_share = kg_client.get_application_most_active_agent(
+                application_id=application_id,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            details.mostActiveAgent.agentName = agent_name
+            details.mostActiveAgent.activity.value = agent_share
+        except Exception:
+            logger.exception("Failed to read the most active agent from the KG")
+        return details
+
+    return cached(
+        redis_client=redis_client,
+        key=key,
+        fetch=fetch,
         ttl=settings.CACHE_TTL_SECONDS,
         enabled=settings.CACHE_ENABLED,
     )

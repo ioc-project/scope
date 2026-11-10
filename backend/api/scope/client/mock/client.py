@@ -290,7 +290,6 @@ class GoldenClient(SCOPEAPIClient):
         end_time: str = "",
     ) -> MonitorApplicationLevelData:
         return MonitorApplicationLevelData(
-            traces=SingleValueData(value=0.0, unit="SCALAR"),
             totalTokens=_timeline("SCALAR"),
             totalCost=_timeline("DOLLAR"),
             sessionDuration=SingleValueData(value=0.0, unit="MILLISECONDS"),

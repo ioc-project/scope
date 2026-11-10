@@ -35,7 +35,7 @@ target "ui" {
   inherits   = ["docker-metadata-action"]
   context    = "ui"
   dockerfile = "Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 # All backend images share the same build context (the backend/ workspace root)
@@ -46,7 +46,7 @@ target "api" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "api/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "norm-worker" {
@@ -54,7 +54,7 @@ target "norm-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/norm-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "mce-worker" {
@@ -62,7 +62,7 @@ target "mce-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/mce-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
   # Changes on every build, so the Dockerfile's LLM price refresh is never cached.
   args = {
     MODEL_PRICES_REFRESHED_AT = timestamp()
@@ -74,7 +74,7 @@ target "embedding-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/embedding-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "grouping-worker" {
@@ -82,7 +82,7 @@ target "grouping-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/grouping-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "hierarchical-grouping-worker" {
@@ -90,7 +90,7 @@ target "hierarchical-grouping-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/hierarchical-grouping-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "analysis-worker" {
@@ -98,7 +98,7 @@ target "analysis-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/analysis-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "anomaly-detection-worker" {
@@ -106,7 +106,7 @@ target "anomaly-detection-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/anomaly-detection-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "consistency-worker" {
@@ -114,7 +114,7 @@ target "consistency-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/consistency-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "normal-behaviour-worker" {
@@ -122,7 +122,7 @@ target "normal-behaviour-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/normal-behaviour-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "intelligence-worker" {
@@ -130,7 +130,7 @@ target "intelligence-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/intelligence-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 target "stateful-eval-worker" {
@@ -138,7 +138,7 @@ target "stateful-eval-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/stateful-eval-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
   # Changes on every build, so the Dockerfile's LLM price refresh is never cached.
   args = {
     MODEL_PRICES_REFRESHED_AT = timestamp()
@@ -150,14 +150,14 @@ target "cognitive-failure-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/cognitive-failure-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 target "cognition-protocols-worker" {
   inherits   = ["docker-metadata-action"]
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/cognition-protocols-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 
 # The workers of a group in one image and one process (norm + embedding, grouping + hierarchical grouping + analysis +
@@ -167,19 +167,19 @@ target "ingestion-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/ingestion-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 target "semantic-analysis-worker" {
   inherits   = ["docker-metadata-action"]
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/semantic-analysis-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }
 target "eval-worker" {
   inherits   = ["docker-metadata-action"]
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/eval-worker/deploy/docker/Dockerfile"
-  platforms  = ["linux/amd64"]
+  platforms  = ["linux/amd64", "linux/arm64"]
 }

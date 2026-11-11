@@ -14,12 +14,12 @@ from ..fields import (
     _hash_id,
     _to_float,
     _to_int,
-    get_agent_id,
-    get_duration_ms,
-    get_end_time,
-    get_session_id,
-    get_start_time,
-    get_success,
+    get_span_agent_id,
+    get_span_duration_ms,
+    get_span_end_time,
+    get_span_session_id,
+    get_span_start_time,
+    get_span_success,
 )
 from ..registry import Registry
 from ..trajectory import add_state_pair_transition
@@ -59,8 +59,8 @@ def handle_chat(
     span_attrs: dict[str, Any],
     registry: Registry,
 ) -> None:
-    session_id = get_session_id(span, span_attrs)
-    agent_id = get_agent_id(span, span_attrs)
+    session_id = get_span_session_id(span, span_attrs)
+    agent_id = get_span_agent_id(span, span_attrs)
     span_id = str(span.get("SpanId") or "")
     parent_span_id = str(span.get("ParentSpanId") or "")
 
@@ -78,9 +78,9 @@ def handle_chat(
     )
     registry.add_edge(usesLLM(source_id=agent_id, target_id=llm.id))
 
-    start_time = get_start_time(span, span_attrs)
-    end_time = get_end_time(start_time, span)
-    duration_ms = get_duration_ms(span)
+    start_time = get_span_start_time(span, span_attrs)
+    end_time = get_span_end_time(start_time, span)
+    duration_ms = get_span_duration_ms(span)
 
     call_id = _hash_id("llmcall", provider, model, span_id)
     llm_call = registry.add(
@@ -100,7 +100,7 @@ def handle_chat(
             finishReason=_first_str(span_attrs.get("gen_ai.response.finish_reasons")),
             responseId=str(span_attrs.get("gen_ai.response.id") or ""),
             cacheReadTokenCount=_to_int(span_attrs.get("gen_ai.usage.cache_read.input_tokens")),
-            success=get_success(span, span_attrs),
+            success=get_span_success(span, span_attrs),
         )
     )
     registry.add_edge(executesLLM(source_id=llm_call.id, target_id=llm.id))

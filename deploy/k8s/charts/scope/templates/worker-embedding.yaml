@@ -61,6 +61,8 @@ spec:
             {{ end }}
             - name: EMBEDDING_EMBEDDER_TYPE
               value: {{ $worker.embedderType | quote }}
+            - name: EMBEDDING_DIMENSIONS
+              value: {{ $worker.dimensions | quote }}
             {{- $embeddingModelKey := default .Values.secrets.llm.embeddingModelNameKey (get $workerOverrides "embeddingModelNameKey") }}
             - name: EMBEDDING_MODEL
               valueFrom:

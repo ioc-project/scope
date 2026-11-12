@@ -3,10 +3,56 @@
 Standalone worker (no `worker-base`) that normalizes OTel **spans** and **logs**, one record at a
 time, into the Neo4j knowledge graph, and calls back the URL of every rule a log record matches.
 
-Nothing is kept between records: each is normalized against the graph as stored. What each log
-event creates is in [`backend/norm/docs/events.md`](../../norm/docs/events.md).
+Nothing is kept in process memory between records: each is normalized against the graph as
+stored. The shared handlers are described in
+[`backend/norm/docs/events.md`](../../norm/docs/events.md). Identity, lifecycle and ownership
+reconciliation live in shared `norm`; the worker provides ingestion, persistence and callbacks.
 
 All commands run from `backend/`.
+
+## Reconciliation
+
+- Child LLM/tool calls retain their owning agent span id. Ownership and capability-use edges
+  are backfilled when the agent arrives, including when its span finishes after its children.
+  Parent chains can cross transport/framework spans, including sessionless MCP server spans.
+  Private trace context preserves these links across restarts and arbitrary arrival order.
+- Lifecycle events create provisional calls. Completed spans enrich those same calls with
+  authoritative timing, content and metrics; an event sharing the span id does not suppress
+  the span. Late started events also correct event-only calls' input and start time.
+- A propagated `<application>_<session>` identifies the originating MAS. A different
+  participating service name (for example an MCP server) does not create another MAS.
+- Graph metadata is retained on the MAS, but only graph nodes matched to observed agents are
+  declared as Agents. Routers and tool-serving graph nodes are not assumed to be agents.
+- Topology handoff hints are retained until both agent calls exist. They connect execution
+  trajectories, not a second `executesAgent` target on the sender. MCP/tool edges do not
+  manufacture recipient Agents.
+- `llm.tools.presented` retains offered tools and links them to the owning agent when known.
+  A2A incoming messages and completion replies are retained as message States; they do not
+  replace an agent's own final State.
+
+Compact reconciliation hints and processed event ids are persisted as `rtNormalization`
+properties on the relevant graph nodes. No raw telemetry replay buffer is stored. A new
+worker instance can continue reconciliation, and redelivered events/completed spans are
+idempotent. Both Neo4j and the dry-run store accept earlier start-time corrections.
+
+These guarantees also apply to direct users of `norm.StreamNormalizer`. Batch span
+normalization uses the same identity, ownership, graph-role and trajectory reconciliation.
+This is not a migration or cleanup of previously misclassified graph data. Use a fresh graph
+for an end-to-end comparison; the worker does not delete unrelated existing MAS/Agent nodes.
+Ontology/SHACL checks are diagnostic and are not bypassed or changed by this worker.
+
+Neo4j stores private ancestry under `_NormalizationTrace`, one record per trace (or explicit
+session when no trace id is available). These records have no ontology relationships and
+are not MAS, Agent or execution nodes. Exclude them from KG exports and visualizations:
+
+```cypher
+MATCH (n) WHERE NOT n:_NormalizationTrace
+RETURN elementId(n) AS id, labels(n) AS labels, properties(n) AS properties
+```
+
+Replaying the original spans rebuilds this context and repairs missing ownership on
+previously normalized calls. It does not remove older duplicate MAS/Agent identities.
+Private context currently has no automatic expiry; include it in graph retention/cleanup.
 
 ## Setup
 

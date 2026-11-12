@@ -1,6 +1,6 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Stateless, span-at-a-time normalization against a graph database.
+"""Stateless, record-at-a-time normalization against a graph database.
 
 ``build_kg`` needs the whole span array. ``StreamNormalizer.process`` takes a
 single span and keeps nothing between calls: the graph already stored in the
@@ -14,47 +14,50 @@ database *is* the state. For each span it
 4. returns only the difference against what was loaded, as a ``StreamDelta``,
    for the caller to write back.
 
+Transport ancestry is loaded separately, including spans without session ids.
+It is persisted through ``StreamDelta.span_contexts``, never as ontology executions.
+
 The heuristics' derived items (bridge ProcessingCalls, container-boundary
 Transitions and States) are dropped from the loaded graph and rebuilt every
 time, so a late-arriving span replaces stale ones instead of piling up.
 
-The one thing a node cannot rebuild is a span's handoff signal
-(``ioa_observe.handoff.source.span_ids``): ontology models forbid extra
-fields, so it is carried on the AgentCall payload as the non-ontology
-``handoffSourceSpanIds`` property.
+Reconciliation evidence is persisted as ``rtNormalization`` extras because
+ontology models forbid extra fields. Legacy ``handoffSourceSpanIds`` on
+AgentCall payloads remain supported.
 """
 
 from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
 from pydantic import ValidationError
 from scope_ontology.models import edges as edge_models
 from scope_ontology.models import nodes as node_models
-from scope_ontology.models.base import KGBase
-from scope_ontology.models.edges import (
-    correspondsToTransition,
-    executesAgent,
-    hasFinalState,
-    hasInitialState,
-    hasState,
+from scope_ontology.models.nodes import (
+    Agent,
+    Session,
 )
-from scope_ontology.models.nodes import Agent, AgentCall, MASCall, ProcessingCall, Session, Transition
 
+from ..verifier import PROPERTY_DOMAIN_RANGE
 from .build import apply_heuristics, dispatch_span, serialize_registry
 from .events import dispatch_event
-from .fields import get_event_attrs, get_event_session_id, get_span_attrs, get_span_session_id
-from .heuristics.handoff import _source_span_ids
-from .registry import Registry
-from ..verifier import PROPERTY_DOMAIN_RANGE
+from .fields import (
+    _hash_id,
+    get_event_session_id,
+    get_span_session_id,
+    normalize_record,
+    parse_json_object,
+)
+from .handlers.topology import _ensure_session_and_mas
+from .reconciliation import span_context
+from .registry import HANDOFF_SOURCES_PROP, NORMALIZATION_PROP, Registry, SpanContext
 
 Kind = Literal["span", "event"]
 KINDS = ("span", "event")
-
-HANDOFF_SOURCES_PROP = "handoffSourceSpanIds"
 
 
 @dataclass
@@ -64,16 +67,22 @@ class StreamDelta:
     ``nodes``/``edges`` are new or modified items; ``removed_*`` are items the
     database holds that the recomputed graph no longer contains. Edges carry
     ``from_type``/``to_type`` so they can be written without their endpoint
-    nodes being part of the same delta.
+    nodes being part of the same delta. ``span_contexts`` is private ancestry
+    evidence that adapters must persist separately from ontology nodes.
     """
 
     nodes: list[dict[str, Any]] = field(default_factory=list)
     edges: list[dict[str, Any]] = field(default_factory=list)
     removed_edges: list[dict[str, Any]] = field(default_factory=list)
     removed_nodes: list[dict[str, Any]] = field(default_factory=list)
+    span_contexts: list[SpanContext] = field(default_factory=list)
 
 
 class GraphReader(Protocol):
+    def load_span_contexts(self, trace_id: str) -> list[SpanContext]:
+        """Load private ancestry evidence, including sessionless transport spans."""
+        ...
+
     def load(
         self, session_id: str, node_ids: Sequence[str]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -97,11 +106,8 @@ def _edge_key(edge: dict[str, Any]) -> tuple[str, str, str, str]:
     return ("edge", str(edge["edge_type"]), str(edge["from_id"]), str(edge["to_id"]))
 
 
-def _rehydrate(
-    nodes: list[dict[str, Any]], edges: list[dict[str, Any]]
-) -> tuple[Registry, dict[str, list[str]]]:
+def _rehydrate(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> Registry:
     registry = Registry()
-    signals: dict[str, list[str]] = {}
     for raw in nodes:
         cls = getattr(node_models, str(raw["node_type"]), None)
         if cls is None:
@@ -110,64 +116,25 @@ def _rehydrate(
         try:
             node = cls.model_validate(data)
         except ValidationError:
-            continue  # partial node (only an id) written ahead of its own span; that span will fill it in
+            # A partial node written ahead of its span will be filled in by that span.
+            continue
         registry.upsert(node)
-        sources = raw.get(HANDOFF_SOURCES_PROP)
-        if sources:
-            signals[node.id] = [str(item) for item in sources]
+        extra = {
+            key: deepcopy(raw[key])
+            for key in (NORMALIZATION_PROP, HANDOFF_SOURCES_PROP)
+            if raw.get(key)
+        }
+        if extra:
+            registry.extras[(type(node).__name__, node.id)] = extra
     for raw in edges:
         cls = getattr(edge_models, str(raw["edge_type"]), None)
         if cls is None:
             continue
         registry.add_edge(cls(source_id=str(raw["from_id"]), target_id=str(raw["to_id"])))
-    return registry, signals
+    return registry
 
 
-def _strip_derived(registry: Registry) -> None:
-    """Drop everything ``apply_heuristics`` derives, so it can be rebuilt."""
-    containers = {n.id for n in registry.all_of(Session)} | {n.id for n in registry.all_of(MASCall)}
-    bridges = {n.id for n in registry.all_of(ProcessingCall)}
-    owners = containers | bridges
-    transitions = {
-        target
-        for etype, source, target in registry.edges
-        if etype is correspondsToTransition and source in owners
-    }
-    for bridge_id in bridges:
-        registry.remove_node(ProcessingCall, bridge_id)
-    for transition_id in transitions:
-        registry.remove_node(Transition, transition_id)
-    gone = bridges | transitions
-    boundary_edges = (hasInitialState, hasFinalState, hasState)
-    registry.remove_edges_where(
-        lambda etype, source, target: (
-            source in gone or target in gone or (etype in boundary_edges and source in containers)
-        )
-    )
-
-
-def _handoff_spans(registry: Registry, signals: dict[str, list[str]]) -> list[dict[str, Any]]:
-    """Minimal ``*.agent`` spans carrying only the handoff signal, rebuilt from stored state."""
-    spans: list[dict[str, Any]] = []
-    for call in registry.all_of(AgentCall):
-        sources = signals.get(call.id)
-        agent_id = registry.edge_target(executesAgent, call.id)
-        if not sources or agent_id is None:
-            continue
-        spans.append(
-            {
-                "SpanName": "handoff.agent",
-                "SpanId": call.spanId,
-                "SpanAttributes": {
-                    "agent_id": agent_id,
-                    "ioa_observe.handoff.source.span_ids": json.dumps(sources),
-                },
-            }
-        )
-    return spans
-
-
-def _endpoint_type(edge_type: str, side: int, node_id: str, node_types: dict[str, str]) -> str:
+def _endpoint_type(edge_type: str, side: int, node_id: str, node_types: dict[str, set[str]]) -> str:
     """Type of an edge endpoint: its node's own type, else the one class the
     ontology allows there (``side`` 0 = domain, 1 = range). "" if ambiguous.
 
@@ -175,28 +142,48 @@ def _endpoint_type(edge_type: str, side: int, node_id: str, node_types: dict[str
     emitted by a chat span before the agent span that creates the Agent --
     in which case the database holds a partial (id-only) node until then.
     """
-    if node_id in node_types:
-        return node_types[node_id]
     candidates = PROPERTY_DOMAIN_RANGE.get(edge_type, ([], []))[side]
+    actual = node_types.get(node_id, set())
+    compatible = {
+        name
+        for name in actual
+        if any(base.__name__ in candidates for base in getattr(node_models, name).__mro__)
+    }
+    if len(compatible) == 1:
+        return next(iter(compatible))
+    if len(actual) == 1:
+        return next(iter(actual))
+    if len(actual) > 1:
+        raise ValueError(f"Ambiguous {edge_type} endpoint {node_id!r}: {sorted(actual)}")
     return str(candidates[0]) if len(candidates) == 1 else ""
 
 
-def _snapshot(registry: Registry, signals: dict[str, list[str]]) -> dict[tuple[str, ...], dict[str, Any]]:
+def _snapshot(registry: Registry) -> dict[tuple[str, ...], dict[str, Any]]:
     nodes, edges = serialize_registry(registry)
-    node_types = {str(n["id"]): str(n["node_type"]) for n in nodes}
+    node_types: dict[str, set[str]] = {}
+    for node in nodes:
+        node_types.setdefault(str(node["id"]), set()).add(str(node["node_type"]))
+    execution_types = {
+        (source, target): cls.__name__
+        for cls, source, target in registry.edges
+        if cls.__name__.startswith("executes") and cls.__name__ != "executes"
+    }
     items: dict[tuple[str, ...], dict[str, Any]] = {}
     for node in nodes:
-        if node["node_type"] == "AgentCall" and signals.get(str(node["id"])):
-            node[HANDOFF_SOURCES_PROP] = signals[str(node["id"])]
         items[_node_key(node)] = node
     for edge in edges:
-        edge["from_type"] = _endpoint_type(edge["edge_type"], 0, str(edge["from_id"]), node_types)
-        edge["to_type"] = _endpoint_type(edge["edge_type"], 1, str(edge["to_id"]), node_types)
+        edge_type = edge["edge_type"]
+        if edge_type == "executes":
+            edge_type = execution_types.get((edge["from_id"], edge["to_id"]), edge_type)
+        edge["from_type"] = _endpoint_type(edge_type, 0, str(edge["from_id"]), node_types)
+        edge["to_type"] = _endpoint_type(edge_type, 1, str(edge["to_id"]), node_types)
         items[_edge_key(edge)] = edge
     return items
 
 
-def _diff(before: dict[tuple[str, ...], dict[str, Any]], after: dict[tuple[str, ...], dict[str, Any]]) -> StreamDelta:
+def _diff(
+    before: dict[tuple[str, ...], dict[str, Any]], after: dict[tuple[str, ...], dict[str, Any]]
+) -> StreamDelta:
     delta = StreamDelta()
     for key, item in after.items():
         if before.get(key) != item:
@@ -212,109 +199,166 @@ class StreamNormalizer:
         self._reader = reader
 
     def process(self, record: dict[str, Any], kind: Kind = "span") -> StreamDelta:
-        """Normalize one item against the stored graph and return what changed.
+        if kind not in ("span", "event"):
+            raise ValueError(f"Unknown kind {kind!r}")
+        record, attrs = normalize_record(record, kind)
+        session_id = (
+            get_span_session_id(record, attrs)
+            if kind == "span"
+            else get_event_session_id(record, attrs)
+        )
+        context = span_context(record, attrs) if kind == "span" else None
+        trace_id = str(record.get("TraceId") or (f"session:{session_id}" if session_id else ""))
+        contexts = (
+            {
+                (item.trace_id, item.span_id): item
+                for item in self._reader.load_span_contexts(trace_id)
+            }
+            if trace_id
+            else {}
+        )
+        delta = StreamDelta()
+        if context is not None:
+            key = (context.trace_id, context.span_id)
+            if contexts.get(key) != context:
+                delta.span_contexts.append(context)
+            contexts[key] = context
+        sessions = (
+            {session_id}
+            if session_id
+            else {item.session_id for item in contexts.values() if item.session_id}
+        )
+        # A sessionless transport arriving last may complete ancestry in several sessions.
+        for current_session in sorted(sessions or {""}):
+            change = self._process(record, attrs, kind, current_session, contexts)
+            delta.nodes.extend(change.nodes)
+            delta.edges.extend(change.edges)
+            delta.removed_nodes.extend(change.removed_nodes)
+            delta.removed_edges.extend(change.removed_edges)
+        return delta
 
-        ``kind`` says what ``record`` is: ``"span"`` (an OTel span, the default) or
-        ``"event"`` (an OTel log record). Events are routed by ``event.name`` (see events.py); their
-        handlers are stubs for now, so they change nothing.
-        """
-        if kind == "event":
-            return self._process_event(record)
-        elif kind == "span":
-            return self._process_trace(record)
+    def _process(
+        self,
+        record: dict[str, Any],
+        attrs: dict[str, Any],
+        kind: Kind,
+        session_id: str,
+        contexts: dict[tuple[str, str], SpanContext],
+    ) -> StreamDelta:
+        application = str(attrs.get("application_id") or "")
+        touched = {session_id, application, str(record.get("SpanId") or "")}
+        touched.update(
+            str(attrs.get(k) or "")
+            for k in (
+                "agent_id",
+                "agent.name",
+                "source.agent",
+                "target.agent",
+                "ioa_observe.entity.name",
+            )
+        )
+        graph_data = (
+            parse_json_object(attrs["gen_ai.ioa.graph"], "gen_ai.ioa.graph")
+            if attrs.get("gen_ai.ioa.graph")
+            else {}
+        )
+        if not isinstance(graph_data.get("nodes", {}), dict):
+            raise ValueError("gen_ai.ioa.graph.nodes must be an object")
+        for node_id, node in graph_data.get("nodes", {}).items():
+            touched.add(str(node_id))
+            if isinstance(node, dict):
+                touched.add(str(node.get("name") or node_id))
+        # Structural ids (tools, models, cards) need loading even before a session exists.
+        scratch = Registry()
+        recognized = False
+        if kind == "span":
+            dispatch_span(
+                {
+                    **record,
+                    "SpanAttributes": {k: v for k, v in attrs.items() if k != "gen_ai.ioa.graph"},
+                },
+                scratch,
+            )
         else:
-            raise ValueError(f"Unknown kind {kind!r}, expected one of {KINDS}")
-
-    def _process_event(self, event: dict[str, Any]) -> StreamDelta:
-        event_attrs = get_event_attrs(event)
-        session_id = get_event_session_id(event, event_attrs)
-
-        # Dry run on an empty registry to learn which nodes this event touches.
-        scratch = Registry()
-        if not dispatch_event(event, event_attrs, scratch):
+            recognized = dispatch_event(record, attrs, scratch)
+            if not recognized or not scratch.nodes:
+                return StreamDelta()
+        touched.update(n.id for n in scratch.nodes.values())
+        touched.update(n.name for n in scratch.all_of(Agent))
+        for _, source, target in scratch.edges:
+            touched.update((source, target))
+        stored_nodes, stored_edges = self._reader.load(session_id, sorted(touched - {""}))
+        pending_tools = {
+            tool_id
+            for node in stored_nodes
+            if node["node_type"] == "Session" and node["id"] == session_id
+            for tool_id in (node.get(NORMALIZATION_PROP) or {}).get("presentedToolIds", [])
+        }
+        structural_ids = {str(node["id"]) for node in stored_nodes if not node.get("sessionId")}
+        related_ids = pending_tools | structural_ids
+        if not related_ids <= touched:
+            touched.update(related_ids)
+            stored_nodes, stored_edges = self._reader.load(session_id, sorted(touched - {""}))
+        stored_nodes = [
+            n for n in stored_nodes if not n.get("sessionId") or n["sessionId"] == session_id
+        ]
+        ids = {n["id"] for n in stored_nodes}
+        stored_edges = [e for e in stored_edges if e["from_id"] in ids and e["to_id"] in ids]
+        registry = _rehydrate(stored_nodes, stored_edges)
+        registry.span_contexts.update(contexts)
+        meta = registry.metadata_for
+        before = deepcopy(_snapshot(registry))
+        event_id = str(
+            attrs.get("event.id") or _hash_id("event", json.dumps(record, sort_keys=True))
+        )
+        session = registry.get(Session, session_id)
+        if (
+            kind == "event"
+            and session is not None
+            and event_id in meta(session).get("eventIds", [])
+        ):
             return StreamDelta()
-        touched = {node.id for node in scratch.nodes.values()}
-        for _etype, source_id, target_id in scratch.edges:
-            touched.update((source_id, target_id))
-        # Agents are keyed on a span id but matched by name (an a2a.agent_card has no span id),
-        # so the reader is also handed their names: it loads the Agents called that.
-        touched.update(node.name for node in scratch.all_of(Agent))
-
-        # The dry run can't see what depends on stored state (e.g. an edge to an agent found
-        # through an existing AgentCall), so if the real run touches more, load those too
-        # and run again -- otherwise their stored copies would be missed and re-sent.
-        for _ in range(2):
-            stored_nodes, stored_edges = self._reader.load(session_id, sorted(touched))
-            registry, signals = _rehydrate(stored_nodes, stored_edges)
-            before = _snapshot(registry, signals)
-            dispatch_event(event, event_attrs, registry)
-            after = _snapshot(registry, signals)
-            produced: set[str] = set()
-            for key, item in after.items():
-                if before.get(key) != item:
-                    produced.update(
-                        (str(item["from_id"]), str(item["to_id"]))
-                        if key[0] == "edge"
-                        else (str(item["id"]),)
-                    )
-            if produced <= touched:
-                break
-            touched |= produced
-        return _diff(before, after)
-
-    def _process_trace(self, span: dict[str, Any]) -> StreamDelta:
-        span_attrs = get_span_attrs(span)
-        session_id = get_span_session_id(span, span_attrs)
-
-        # Dry run on an empty registry to learn which nodes this span touches.
-        scratch = Registry()
-        dispatch_span(span, scratch)
-        touched = {node.id for node in scratch.nodes.values()}
-        for _etype, source_id, target_id in scratch.edges:
-            touched.update((source_id, target_id))
-
-        stored_nodes, stored_edges = self._reader.load(session_id, sorted(touched))
-        registry, signals = _rehydrate(stored_nodes, stored_edges)
-
-        # Already processed (re-delivery / re-run): handlers are not order-independent,
-        # so replaying a span into a complete graph would change it. Make it a no-op.
-        span_id = str(span.get("SpanId") or "")
-        if span_id and any(getattr(n, "spanId", None) == span_id for n in registry.nodes.values()):
-            return StreamDelta()
-
-        before = _snapshot(registry, signals)
-
-        dispatch_span(span, registry)
-        if str(span.get("SpanName") or "").endswith(".agent"):
-            sources = _source_span_ids(span_attrs)
-            call = registry.find(AgentCall, lambda a: a.spanId == span_id)
-            if sources and call is not None:
-                signals[call.id] = sources
-
-        _strip_derived(registry)
-        apply_heuristics(_handoff_spans(registry, signals), registry)
-        after = _snapshot(registry, signals)
-
-        return _diff(before, after)
+        if kind == "span":
+            dispatch_span(record, registry)
+        else:
+            if recognized or attrs.get("event.name") in (
+                "llm.tools.presented",
+                "a2a.message.completed",
+            ):
+                _ensure_session_and_mas(record, attrs, registry)
+            dispatch_event(record, attrs, registry)
+            session = registry.get(Session, session_id)
+            if session is not None:
+                meta(session)["eventIds"] = sorted(
+                    set(meta(session).get("eventIds", []) + [event_id])
+                )
+        apply_heuristics([], registry)
+        return _diff(before, _snapshot(registry))
 
 
 class InMemoryGraph:
     """A ``GraphReader`` plus writer over plain dicts; for tests and dry runs."""
 
-    # Set on creation and never changed afterwards, same as the Neo4j store (endTime may advance).
-    IMMUTABLE_PROPS = frozenset({"startTime"})
-
     def __init__(self) -> None:
         self.nodes: dict[tuple[str, str], dict[str, Any]] = {}
         self.edges: dict[tuple[str, str, str], dict[str, Any]] = {}
+        self.span_contexts: dict[tuple[str, str], SpanContext] = {}
+
+    def load_span_contexts(self, trace_id: str) -> list[SpanContext]:
+        return [item for (trace, _), item in self.span_contexts.items() if trace == trace_id]
 
     def load(
         self, session_id: str, node_ids: Sequence[str]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         ids = set(node_ids)
-        by_id = {node["id"]: node for node in self.nodes.values()}
-        in_session = {i for i, n in by_id.items() if session_id and n.get("sessionId") == session_id}
-        named = {i for i, n in by_id.items() if n["node_type"] == "Agent" and n.get("name") in ids}
+        in_session = {
+            n["id"] for n in self.nodes.values() if session_id and n.get("sessionId") == session_id
+        }
+        named = {
+            n["id"]
+            for n in self.nodes.values()
+            if n["node_type"] == "Agent" and n.get("name") in ids
+        }
         edges = [
             e
             for e in self.edges.values()
@@ -327,10 +371,12 @@ class InMemoryGraph:
         wanted = (
             in_session | named | ids | {e["from_id"] for e in edges} | {e["to_id"] for e in edges}
         )
-        nodes = [dict(by_id[i]) for i in wanted if i in by_id]
+        nodes = [dict(node) for node in self.nodes.values() if node["id"] in wanted]
         return nodes, [dict(e) for e in edges]
 
     def apply(self, delta: StreamDelta) -> None:
+        for context in delta.span_contexts:
+            self.span_contexts[(context.trace_id, context.span_id)] = context
         for edge in delta.removed_edges:
             self.edges.pop((edge["edge_type"], edge["from_id"], edge["to_id"]), None)
         for node in delta.removed_nodes:
@@ -344,6 +390,6 @@ class InMemoryGraph:
             if existing is None:
                 self.nodes[key] = dict(node)
             else:
-                existing.update({k: v for k, v in node.items() if k not in self.IMMUTABLE_PROPS})
+                existing.update(node)
         for edge in delta.edges:
             self.edges[(edge["edge_type"], edge["from_id"], edge["to_id"])] = dict(edge)

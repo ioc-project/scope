@@ -13,9 +13,9 @@ from scope_ontology.models.edges import (
     hasLLMCall,
     usesLLM,
 )
-from scope_ontology.models.nodes import LLM, LLMCall
+from scope_ontology.models.nodes import LLM, LLMCall, Session, Tool
 
-from ..fields import _hash_id
+from ..fields import _hash_id, get_event_session_id, parse_json_object
 from ..registry import Registry
 from ..trajectory import add_final_state_transition, add_initial_state
 from .agent import _own_agent_id
@@ -39,7 +39,9 @@ def _ensure_llm_call(
         return None
     agent_call, session_id, _, event_time = ensured
     agent_id = _own_agent_id(registry, agent_call) or str(event_attrs.get("agent.name") or "")
-    span_id = str(event_attrs.get("llm.call.id") or event.get("SpanId") or event_attrs.get("span.id") or "")
+    span_id = str(
+        event_attrs.get("llm.call.id") or event.get("SpanId") or event_attrs.get("span.id") or ""
+    )
 
     # llm.name is "<provider>/<model>" (as in "azure/gpt-4o"); handle_chat gets them separately.
     provider, _, model = llm_name.partition("/")
@@ -113,3 +115,40 @@ def handle_llm_completed(
         input_text,
         str(event_attrs.get("llm.output") or ""),
     )
+
+
+def handle_llm_tools_presented(
+    event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry
+) -> None:
+    record, attrs = event, event_attrs
+    meta = registry.metadata_for
+    content = parse_json_object(attrs.get("capability.content") or {}, "capability.content")
+    owner_span = str(attrs.get("ioa_observe.agent.span_id") or record.get("SpanId") or "")
+    for item in content.get("tools", []):
+        if not isinstance(item, dict):
+            continue
+        function = item.get("function") or item
+        if not isinstance(function, dict):
+            raise ValueError("Presented tool function must be an object")
+        tool_name = str(function.get("name") or "")
+        if tool_name:
+            tool = registry.add(
+                Tool(
+                    id=tool_name,
+                    name=tool_name,
+                    description=str(function.get("description") or ""),
+                )
+            )
+            description = str(function.get("description") or "")
+            if description and not tool.description:
+                registry.upsert(tool.model_copy(update={"description": description}))
+            session = registry.get(Session, get_event_session_id(record, attrs))
+            if session is not None:
+                meta(session)["presentedToolIds"] = sorted(
+                    set(meta(session).get("presentedToolIds", []) + [tool_name])
+                )
+            if owner_span:
+                meta(tool)["ownerSpanIds"] = sorted(
+                    set(meta(tool).get("ownerSpanIds", []) + [owner_span])
+                )
+    return

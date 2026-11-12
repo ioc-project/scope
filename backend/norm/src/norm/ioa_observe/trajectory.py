@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from scope_ontology.models.base import KGBase
 from scope_ontology.models.edges import (
     correspondsToTransition,
     executesProcessing,
@@ -17,10 +18,18 @@ from scope_ontology.models.edges import (
     leadsTo,
     representsExecution,
 )
-from scope_ontology.models.nodes import Processing, ProcessingCall, State, Transition
+from scope_ontology.models.nodes import (
+    AgentCall,
+    LLMCall,
+    Processing,
+    ProcessingCall,
+    State,
+    ToolCall,
+    Transition,
+)
 
 from .fields import _hash_id
-from .registry import Registry
+from .registry import MetadataGetter, Registry
 
 
 def add_initial_state(
@@ -222,3 +231,88 @@ def adopt_boundary_states(
     registry.add_edge(leadsTo(source_id=transition.id, target_id=final_state_id))
     registry.add_edge(correspondsToTransition(source_id=owner_id, target_id=transition.id))
     registry.add_edge(representsExecution(source_id=transition.id, target_id=owner_id))
+
+
+def _clear_boundaries(registry: Registry, owner_id: str) -> None:
+    boundaries = {
+        target
+        for edge, source, target in registry.edges
+        if source == owner_id and edge in (hasInitialState, hasFinalState)
+    }
+    transitions = set(registry.edges_from(correspondsToTransition, owner_id))
+    registry.remove_edges_where(
+        lambda edge, source, target: (
+            source == owner_id
+            and (
+                edge in (hasInitialState, hasFinalState, correspondsToTransition)
+                or (edge is hasState and target in boundaries)
+            )
+        )
+    )
+    for transition_id in transitions:
+        if not registry.edge_source(correspondsToTransition, transition_id):
+            registry.remove_node(Transition, transition_id)
+            registry.remove_edges_where(lambda _, source, target: transition_id in (source, target))
+
+
+def _remember_trajectory(registry: Registry, call: KGBase, meta: MetadataGetter) -> None:
+    meta(call)["trajectory"] = {
+        "initial": registry.edge_target(hasInitialState, call.id),
+        "final": registry.edge_target(hasFinalState, call.id),
+        "transition": registry.edge_target(correspondsToTransition, call.id),
+    }
+
+
+def restore_trajectories(registry: Registry, meta: MetadataGetter) -> None:
+    # Shared heuristics merge equal-content States. Recreate each call's canonical
+    # boundaries first so a transient partial graph cannot determine their final ids.
+    for cls in _CALLS:
+        for call in registry.all_of(cls):
+            trajectory = meta(call).get("trajectory")
+            if not trajectory:
+                continue
+            initial = registry.get(State, registry.edge_target(hasInitialState, call.id) or "")
+            final = registry.get(State, registry.edge_target(hasFinalState, call.id) or "")
+            if initial is None:
+                continue
+            _clear_boundaries(registry, call.id)
+            initial = registry.add(initial.model_copy(update={"id": trajectory["initial"]}))
+            registry.add_edge(hasInitialState(source_id=call.id, target_id=initial.id))
+            registry.add_edge(hasState(source_id=call.id, target_id=initial.id))
+            if final is not None and trajectory["final"] and trajectory["transition"]:
+                final = registry.add(final.model_copy(update={"id": trajectory["final"]}))
+                registry.add_edge(hasFinalState(source_id=call.id, target_id=final.id))
+                registry.add_edge(hasState(source_id=call.id, target_id=final.id))
+                transition = registry.add(
+                    Transition(
+                        id=trajectory["transition"],
+                        sessionId=call.sessionId,
+                    )
+                )
+                for edge, source, target in (
+                    (inputTo, initial.id, transition.id),
+                    (leadsTo, transition.id, final.id),
+                    (correspondsToTransition, call.id, transition.id),
+                    (representsExecution, transition.id, call.id),
+                ):
+                    registry.add_edge(edge(source_id=source, target_id=target))
+
+
+def prune_trajectories(registry: Registry, meta: MetadataGetter) -> None:
+    # A replaced event trajectory must not leave disconnected States or Transitions behind.
+    transitions = {target for edge, _, target in registry.edges if edge is correspondsToTransition}
+    for node in registry.all_of(Transition):
+        if node.id not in transitions:
+            registry.remove_node(Transition, node.id)
+            registry.remove_edges_where(lambda _, source, target: node.id in (source, target))
+    referenced = {i for _, source, target in registry.edges for i in (source, target)}
+    for cls in (State, Processing):
+        for node in registry.all_of(cls):
+            pending = isinstance(node, State) and (
+                meta(node).get("receiverName") or meta(node).get("ownerSpanId")
+            )
+            if node.id not in referenced and not pending:
+                registry.remove_node(cls, node.id)
+
+
+_CALLS = (AgentCall, LLMCall, ToolCall)

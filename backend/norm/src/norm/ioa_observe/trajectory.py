@@ -23,6 +23,7 @@ from scope_ontology.models.nodes import (
     LLMCall,
     Processing,
     ProcessingCall,
+    Session,
     State,
     ToolCall,
     Transition,
@@ -311,6 +312,12 @@ def prune_trajectories(registry: Registry, meta: MetadataGetter) -> None:
             pending = isinstance(node, State) and (
                 meta(node).get("receiverName") or meta(node).get("ownerSpanId")
             )
+            if (
+                node.id not in referenced
+                and pending
+                and registry.get(Session, node.sessionId) is not None
+            ):
+                registry.add_edge(hasState(source_id=node.sessionId, target_id=node.id))
             if node.id not in referenced and not pending:
                 registry.remove_node(cls, node.id)
 

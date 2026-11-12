@@ -53,7 +53,7 @@ from .fields import (
     parse_json_object,
 )
 from .handlers.topology import _ensure_session_and_mas
-from .reconciliation import span_context
+from .reconciliation import event_context, merge_span_context, span_context
 from .registry import HANDOFF_SOURCES_PROP, NORMALIZATION_PROP, Registry, SpanContext
 
 Kind = Literal["span", "event"]
@@ -207,7 +207,7 @@ class StreamNormalizer:
             if kind == "span"
             else get_event_session_id(record, attrs)
         )
-        context = span_context(record, attrs) if kind == "span" else None
+        context = span_context(record, attrs) if kind == "span" else event_context(record, attrs)
         trace_id = str(record.get("TraceId") or (f"session:{session_id}" if session_id else ""))
         contexts = (
             {
@@ -220,6 +220,7 @@ class StreamNormalizer:
         delta = StreamDelta()
         if context is not None:
             key = (context.trace_id, context.span_id)
+            context = merge_span_context(context, contexts.get(key))
             if contexts.get(key) != context:
                 delta.span_contexts.append(context)
             contexts[key] = context
@@ -281,7 +282,7 @@ class StreamNormalizer:
             )
         else:
             recognized = dispatch_event(record, attrs, scratch)
-            if not recognized or not scratch.nodes:
+            if not recognized or (not scratch.nodes and event_context(record, attrs) is None):
                 return StreamDelta()
         touched.update(n.id for n in scratch.nodes.values())
         touched.update(n.name for n in scratch.all_of(Agent))
@@ -317,7 +318,8 @@ class StreamNormalizer:
             and session is not None
             and event_id in meta(session).get("eventIds", [])
         ):
-            return StreamDelta()
+            apply_heuristics([], registry)
+            return _diff(before, _snapshot(registry))
         if kind == "span":
             dispatch_span(record, registry)
         else:

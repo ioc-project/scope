@@ -153,6 +153,83 @@ def test_sessionless_transport_is_private_context_not_an_execution():
     assert process_record(graph, record, "span") == StreamDelta()
 
 
+@pytest.mark.parametrize("include_transport_span", [False, True])
+@pytest.mark.parametrize("include_message_input", [False, True])
+def test_mcp_received_event_supplies_tool_parent_ownership_in_every_order(
+    include_transport_span, include_message_input
+):
+    agent = span("planner.agent", "agent", agent_id="planner")
+    tool = span("search.tool", "tool", **{"ioa_observe.entity.name": "search"})
+    tool["ParentSpanId"] = "server"
+    received = event(
+        "mcp.message.received",
+        "server",
+        **{
+            "source.agent": "planner",
+            "source.agent.span.id": "agent",
+            "source.agent.trace.id": "trace",
+            "operation.name": "tools/call",
+            "message.id": "request",
+            "message.input": '{"name": "search", "arguments": {}}',
+        },
+    )
+    if not include_message_input:
+        received["LogAttributes"].pop("message.input")
+    records = [(agent, "span"), (tool, "span"), (received, "event")]
+    if include_transport_span:
+        server = span("tools/call search", "server")
+        server["SpanAttributes"] = {}
+        server["ParentSpanId"] = "client"
+        records.append((server, "span"))
+    for record, _ in records:
+        record["TraceId"] = "trace"
+    for order in itertools.permutations(records):
+        graph = InMemoryGraph()
+        for record, kind in order:
+            process_record(graph, record, kind)
+            graph = stored_copy(graph)
+        owner = nodes(graph, "AgentCall")[0]
+        assert len(nodes(graph, "ToolCall")) == (2 if include_message_input else 1)
+        for call in nodes(graph, "ToolCall"):
+            assert ("hasToolCall", owner["id"], call["id"]) in graph.edges
+        context = graph.span_contexts[("trace", "server")]
+        assert context.owner_span_id == "agent"
+        assert context.parent_span_id == ("client" if include_transport_span else "")
+        for record, kind in records:
+            assert process_record(graph, record, kind) == StreamDelta()
+        graph.span_contexts.clear()
+        for key in list(graph.edges):
+            if key[0] == "hasToolCall":
+                del graph.edges[key]
+        process_record(graph, received, "event")
+        for call in nodes(graph, "ToolCall"):
+            assert ("hasToolCall", owner["id"], call["id"]) in graph.edges
+
+
+def test_mcp_received_event_does_not_infer_an_owner_in_another_trace():
+    agent = span("planner.agent", "agent", agent_id="planner")
+    tool = span("search.tool", "tool", **{"ioa_observe.entity.name": "search"})
+    tool["ParentSpanId"] = "server"
+    received = event(
+        "mcp.message.received",
+        "server",
+        **{
+            "source.agent": "planner",
+            "source.agent.span.id": "agent",
+            "source.agent.trace.id": "other-trace",
+            "message.id": "request",
+            "message.input": '{"name": "search", "arguments": {}}',
+        },
+    )
+    for record in (agent, tool, received):
+        record["TraceId"] = "trace"
+    graph = replay([(agent, "span"), (received, "event"), (tool, "span")])
+    call = next(n for n in nodes(graph, "ToolCall") if n["spanId"] == "tool")
+    assert not any(
+        edge == "hasToolCall" and target == call["id"] for edge, _, target in graph.edges
+    )
+
+
 def test_explicit_transport_owner_takes_precedence_over_outer_agent_parent():
     inner = span("inner.agent", "inner", agent_id="inner")
     outer = span("outer.agent", "outer", agent_id="outer")
@@ -671,6 +748,51 @@ def test_presented_tools_and_a2a_completion_are_retained():
     )
     assert any(n["name"] == "search" for n in nodes(graph, "Tool"))
     assert any(n["content"] == "reply" for n in nodes(graph, "State"))
+
+
+@pytest.mark.parametrize("message_kind", ["received", "completed"])
+def test_unresolved_a2a_messages_stay_connected_until_their_owner_arrives(message_kind):
+    message = event(
+        f"a2a.message.{message_kind}",
+        "transport",
+        **{
+            "source.agent": "Sender",
+            "source.agent.span.id": "sender",
+            "target.agent": "Worker Display Name",
+            "message.id": "message",
+            "message.input": "request",
+            "message.output": "response",
+        },
+    )
+    unrelated = event(
+        "topology.node.completed",
+        "other",
+        **{"agent.name": "worker_runtime", "agent.input": "input", "agent.output": "output"},
+    )
+    owner = event(
+        "topology.node.started",
+        "receiver" if message_kind == "received" else "sender",
+        **{"agent.name": "Worker Display Name" if message_kind == "received" else "Sender"},
+    )
+    for order in ((message,), *itertools.permutations((message, unrelated))):
+        graph = replay((record, "event") for record in order)
+        state = next(
+            n
+            for n in nodes(graph, "State")
+            if n["content"] == ("request" if message_kind == "received" else "response")
+        )
+        assert ("hasState", "s1", state["id"]) in graph.edges
+        assert not any(
+            edge == "hasState" and target == state["id"] and source != "s1"
+            for edge, source, target in graph.edges
+        )
+        assert process_record(graph, message, "event") == StreamDelta()
+        graph = stored_copy(graph)
+        process_record(graph, owner, "event")
+        call = next(n for n in nodes(graph, "AgentCall") if n["spanId"] == owner["SpanId"])
+        assert ("hasState", call["id"], state["id"]) in graph.edges
+        assert ("hasState", "s1", state["id"]) not in graph.edges
+        assert process_record(graph, message, "event") == StreamDelta()
 
 
 @pytest.mark.parametrize("call_kind", ["llm", "tool"])

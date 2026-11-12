@@ -163,6 +163,7 @@ def _handle_a2a_message(
     )
     session_id = get_event_session_id(record, attrs)
     if session_id and content:
+        _ensure_session_and_mas(record, attrs, registry)
         state = registry.add(
             State(
                 id=_hash_id(

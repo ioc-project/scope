@@ -32,6 +32,7 @@ from .handlers import (
     handle_topology_session_completed,
     handle_topology_session_started,
 )
+from .reconciliation import event_context, merge_span_context
 from .registry import Registry
 from .trajectory import (
     _clear_boundaries,
@@ -47,6 +48,10 @@ _CALLS = (AgentCall, LLMCall, ToolCall)
 def dispatch_event(event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry) -> bool:
     """Apply a lifecycle record without overwriting an authoritative completed span."""
     event, event_attrs = normalize_record({**event, "LogAttributes": event_attrs}, "event")
+    context = event_context(event, event_attrs)
+    if context is not None:
+        key = (context.trace_id, context.span_id)
+        registry.span_contexts[key] = merge_span_context(context, registry.span_contexts.get(key))
     return apply_event(event, event_attrs, registry)
 
 

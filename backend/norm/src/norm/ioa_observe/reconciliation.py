@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 from typing import Any
 
 from scope_ontology.models.edges import (
@@ -41,6 +42,7 @@ from scope_ontology.models.nodes import (
 from .fields import _hash_id, get_span_session_id
 from .handlers.agent import _agent_id_for, _own_agent_id
 from .handlers.graph import reconcile_graph_agents
+from .handlers.mcp import _message_tool_name
 from .heuristics.container_boundary_states import update_container_times
 from .registry import HANDOFF_SOURCES_PROP, Registry, SpanContext
 
@@ -63,12 +65,54 @@ def span_context(record: dict[str, Any], attrs: dict[str, Any]) -> SpanContext |
     )
 
 
+def event_context(record: dict[str, Any], attrs: dict[str, Any]) -> SpanContext | None:
+    if attrs.get("event.name") not in (
+        "mcp.message.sent",
+        "mcp.message.received",
+        "mcp.message.completed",
+    ):
+        return None
+    operation = str(attrs.get("operation.name") or "")
+    if operation and operation != "tools/call":
+        return None
+    if not operation and not _message_tool_name(attrs.get("message.input")):
+        return None
+    source_trace = str(attrs.get("source.agent.trace.id") or "")
+    source_owner = (
+        attrs.get("source.agent.span.id")
+        if not source_trace or source_trace == record.get("TraceId")
+        else ""
+    )
+    owner = attrs.get("ioa_observe.agent.span_id") or source_owner
+    if not owner:
+        return None
+    return span_context(
+        record,
+        {
+            **attrs,
+            "ioa_observe.agent.span_id": owner,
+        },
+    )
+
+
+def merge_span_context(context: SpanContext, previous: SpanContext | None) -> SpanContext:
+    if previous is None:
+        return context
+    return replace(
+        context,
+        parent_span_id=context.parent_span_id or previous.parent_span_id,
+        owner_span_id=context.owner_span_id or previous.owner_span_id,
+        session_id=context.session_id or previous.session_id,
+    )
+
+
 def remember_span_ancestry(
     record: dict[str, Any], attrs: dict[str, Any], registry: Registry
 ) -> None:
     context = span_context(record, attrs)
     if context is not None:
-        registry.span_contexts[(context.trace_id, context.span_id)] = context
+        key = (context.trace_id, context.span_id)
+        registry.span_contexts[key] = merge_span_context(context, registry.span_contexts.get(key))
 
 
 def _owning_agent_call(

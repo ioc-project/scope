@@ -176,11 +176,14 @@ Precedence:
 
 {{/*
 Resolve the internal OTLP endpoint used by the API.
+Uses global.otelCollectorName when set (must match the collector Service name,
+i.e. otelCollector.fullnameOverride in the umbrella chart), else <baseName>-otel-collector.
 */}}
 {{- define "scope-api.otelEndpoint" -}}
 {{- $global := get .Values "global" | default dict -}}
 {{- $baseName := get $global "baseName" | default "scope" -}}
-{{- printf "http://%s-otel-collector:4318" $baseName -}}
+{{- $collectorName := get $global "otelCollectorName" | default (printf "%s-otel-collector" $baseName) -}}
+{{- printf "http://%s:4318" $collectorName -}}
 {{- end -}}
 
 {{/*

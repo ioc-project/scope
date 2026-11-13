@@ -5,17 +5,17 @@ maintainers:
   - name: Outshift Open
     email: oss-github@cisco.com
 type: application
-version: 1.0.0
+version: 1.0.1
 appVersion: "1.0.0"
 dependencies:
   - name: ioc-scope-api
     alias: api
-    version: 1.0.0
+    version: 1.0.1
     repository: oci://ghcr.io/ioc-project/charts
     condition: api.enabled
   - name: ioc-scope-ui
     alias: ui
-    version: 1.0.0
+    version: 1.0.1
     repository: oci://ghcr.io/ioc-project/charts
     condition: ui.enabled
   - name: opentelemetry-collector

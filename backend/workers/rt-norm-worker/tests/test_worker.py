@@ -51,13 +51,13 @@ def test_neo4j_store_writes_delta(tmp_path):
     assert any("MERGE (a)-[r:" in c for c, _ in db.commands)
 
 
-def test_existing_nodes_keep_start_time_but_update_end_time():
+def test_existing_nodes_accept_corrected_start_and_end_time():
     db = FakeDB()
     Neo4jStore(db)._upsert_node(
         {"node_type": "AgentCall", "id": "x", "startTime": 1.0, "endTime": 2.0, "name": "n"}
     )
     _, params = db.commands[0]
     assert params["props"]["startTime"] == 1.0
-    assert "startTime" not in params["on_match"]
-    assert params["on_match"]["endTime"] == 2.0
-    assert params["on_match"]["name"] == "n"
+    assert params["props"]["endTime"] == 2.0
+    assert params["props"]["name"] == "n"
+    assert "SET n += $props" in db.commands[0][0]

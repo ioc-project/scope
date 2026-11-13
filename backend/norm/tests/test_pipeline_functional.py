@@ -11,9 +11,8 @@ instrumentation layers on the same trace: real ioa_observe SDK spans
 ``opentelemetry-instrumentation-langchain``, which observe-sdk activates by
 default whenever langchain/langgraph is installed -- OTel GenAI-semconv names
 like ``execute_task <name>``/``invoke_agent LangGraph`` that don't match any
-dispatched span-name suffix and are silently ignored by design: the current
-architecture only ever builds nodes from a span whose name it recognizes, it
-never tries to account for every row in the trace.
+dispatched span-name suffix. They do not become ontology executions, but their
+compact ancestry can still be used to connect recognized child calls to agents.
 """
 
 from __future__ import annotations

@@ -5,10 +5,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
 # Span field derivation functions
+
 
 def get_span_attrs(span: dict[str, Any]) -> dict[str, Any]:
     """Return a span's SpanAttributes map, or {} if absent."""
@@ -16,7 +19,7 @@ def get_span_attrs(span: dict[str, Any]) -> dict[str, Any]:
 
 
 def get_span_application_id(span: dict[str, Any], span_attrs: dict[str, Any]) -> str:
-    return str(span_attrs.get("application_id") or span.get("ServiceName") or "")
+    return _application_id(span, span_attrs)
 
 
 def get_span_session_id(span: dict[str, Any], span_attrs: dict[str, Any]) -> str:
@@ -109,14 +112,17 @@ def _hash_id(prefix: str, *parts: str) -> str:
     digest = hashlib.sha1("\x1f".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:12]
     return f"{prefix}:{digest}"
 
+
 # Event field derivation functions
+
 
 def get_event_attrs(event: dict[str, Any]) -> dict[str, Any]:
     """Return an event's (OTel log record's) LogAttributes map, or {} if absent."""
     return event.get("LogAttributes") or {}
 
+
 def get_event_application_id(event: dict[str, Any], event_attrs: dict[str, Any]) -> str:
-    return str(event_attrs.get("application_id") or event.get("ServiceName") or "")
+    return _application_id(event, event_attrs)
 
 
 def get_event_session_id(event: dict[str, Any], event_attrs: dict[str, Any]) -> str:
@@ -146,3 +152,41 @@ def get_event_start_time(event: dict[str, Any], event_attrs: dict[str, Any]) -> 
             pass
     timestamp = str(event.get("Timestamp") or "")
     return _parse_timestamp_ns(timestamp) / 1e9 if timestamp else 0.0
+
+
+logger = logging.getLogger(__name__)
+
+
+def _application_id(record: dict[str, Any], attrs: dict[str, Any]) -> str:
+    application = str(attrs.get("application_id") or record.get("ServiceName") or "")
+    session = str(record.get("SessionId") or attrs.get("session.id") or "")
+    # Observe propagates the originating application's session into participating services.
+    if "_" in session and not session.startswith(f"{application}_"):
+        return session.rpartition("_")[0]
+    return application
+
+
+def normalize_record(record: dict[str, Any], kind: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    key = "SpanAttributes" if kind == "span" else "LogAttributes"
+    attrs = record.get(key) or {}
+    if isinstance(attrs, str):
+        attrs = json.loads(attrs)
+    if not isinstance(attrs, dict):
+        raise ValueError(f"{key} must be an object")
+    attrs = dict(attrs)
+    application = _application_id(record, attrs)
+    if application:
+        attrs["application_id"] = application
+    return {**record, key: attrs}, attrs
+
+
+def parse_json_object(raw: Any, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(raw) if isinstance(raw, str) else raw
+    except ValueError as exc:
+        logger.warning("Invalid %s: %s", label, exc)
+        return {}
+    if not isinstance(value, dict):
+        logger.warning("%s must be an object", label)
+        return {}
+    return value

@@ -2,8 +2,9 @@
 #  SPDX-License-Identifier: Apache-2.0
 from .compare import KGCompareResult, compare_kg, read_kg_json, write_kg_json
 from .ioa_observe import build_kg
-from .ioa_observe.stream import GraphReader, InMemoryGraph, Kind, StreamDelta, StreamNormalizer
 from .ioa_observe.otel_io import infer_run_id, load_otel_export
+from .ioa_observe.registry import SpanContext
+from .ioa_observe.stream import GraphReader, InMemoryGraph, Kind, StreamDelta, StreamNormalizer
 from .normalizer import Normalizer, OnNormalizedCallback, configure, dump_jsonld, normalize
 from .verifier import (
     KGCheckSkipped,
@@ -26,6 +27,7 @@ __all__ = [
     "InMemoryGraph",
     "Kind",
     "StreamDelta",
+    "SpanContext",
     "StreamNormalizer",
     "build_kg",
     "check_edge_domain_range",

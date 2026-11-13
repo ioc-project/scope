@@ -10,6 +10,7 @@ from typing import Any
 from scope_ontology.models.edges import hasFinalState, hasInitialState, usesTool
 from scope_ontology.models.nodes import AgentCall, Tool, ToolCall
 
+from ..fields import get_event_application_id
 from ..registry import Registry
 from ..trajectory import add_final_state_transition, add_initial_state
 from .agent import _own_agent_id
@@ -36,12 +37,12 @@ def handle_mcp_tools_discovered(
     """Ensure the MAS and Session, then create every tool in ``capability.content`` and link
     each to the agent that discovered them (``usesTool``).
 
-    Skipped without an ``ioa_observe.agent.span_id`` or a session. The MAS is named by the
-    first part of ``session.id`` (``<masname>_<sessionid>``). The event names the agent only by
+    Skipped without an ``ioa_observe.agent.span_id`` or a session. The MAS is the originating
+    application. The event names the agent only by
     its span id, but an Agent is keyed on its name, so the agent is the one of the AgentCall of
-    that span. If that call does not exist yet, the tools are created and not linked."""
+    that span. If that call does not exist yet, ownership is retained for reconciliation."""
     agent_span_id = str(event_attrs.get("ioa_observe.agent.span_id") or "")
-    mas_name = str(event_attrs.get("session.id") or "").partition("_")[0]
+    mas_name = get_event_application_id(event, event_attrs)
     if not agent_span_id or not mas_name:
         return
     session = _ensure_session_and_mas(event, {**event_attrs, "application_id": mas_name}, registry)
@@ -60,6 +61,12 @@ def handle_mcp_tools_discovered(
         tool, _ = registry.add_if_not_exists(Tool(id=name, name=name, description=description))
         if description and not tool.description:  # created earlier by a tool event, without one
             tool.description = description  # type: ignore[attr-defined]
+        registry.metadata_for(tool)["ownerSpanIds"] = sorted(
+            set(registry.metadata_for(tool).get("ownerSpanIds", []) + [agent_span_id])
+        )
+        registry.metadata_for(session)["presentedToolIds"] = sorted(
+            set(registry.metadata_for(session).get("presentedToolIds", []) + [tool.id])
+        )
         if agent_id:
             registry.add_edge(usesTool(source_id=agent_id, target_id=tool.id))
 
@@ -93,11 +100,13 @@ def _ensure_mcp_tool_call(
     tool_name = _message_tool_name(message_input)
     source_name = str(event_attrs.get("source.agent") or "")
     source_span_id = str(
-        event_attrs.get("source.agent.span.id") or event_attrs.get("ioa_observe.agent.span_id") or ""
+        event_attrs.get("source.agent.span.id")
+        or event_attrs.get("ioa_observe.agent.span_id")
+        or ""
     )
     if not tool_name or not source_name or not source_span_id:
         return None
-    mas_name = str(event_attrs.get("session.id") or "").partition("_")[0]
+    mas_name = get_event_application_id(event, event_attrs)
     agent_attrs = {
         **event_attrs,
         "application_id": event_attrs.get("application_id") or mas_name,
@@ -111,7 +120,7 @@ def _ensure_mcp_tool_call(
             **agent_attrs,
             "tool.name": tool_name,
             "ioa_observe.agent.span_id": source_span_id,
-            # the message id is the id of the tool call: tool.started/completed carry it as tool.call.id
+            # MCP and tool lifecycle events share the same natural call id.
             "tool.call.id": event_attrs.get("message.id"),
         },
         registry,

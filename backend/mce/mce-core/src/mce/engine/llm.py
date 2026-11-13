@@ -48,7 +48,7 @@ class CompletionResult:
 _SAMPLING_PARAMS = ("logprobs", "top_logprobs", "temperature")
 _FORMAT_PARAMS = ("response_format",)
 _OPTIONAL_PARAMS = _SAMPLING_PARAMS + _FORMAT_PARAMS
-_NOT_ABOUT_OPTIONS = (401, 403, 408, 429)  # credentials, timeout, rate limit
+_HTTP_STATUS_UNRELATED_TO_OPTIONS = (401, 403, 408, 429)
 
 
 def _params_to_drop(exc: Exception, kwargs: dict[str, Any]) -> list[str]:
@@ -67,7 +67,7 @@ def _params_to_drop(exc: Exception, kwargs: dict[str, Any]) -> list[str]:
     rejected = (
         isinstance(status, int)
         and 400 <= status < 500
-        and status not in _NOT_ABOUT_OPTIONS
+        and status not in _HTTP_STATUS_UNRELATED_TO_OPTIONS
     )
     if names_format or names_sampling or rejected:
         return present

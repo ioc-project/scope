@@ -12,6 +12,9 @@ global:
   # Base resource name used for shared internal services such as scope-api,
   # scope-clickhouse, scope-rabbitmq, scope-neo4j, and scope-otel-collector.
   baseName: "scope"
+  # Name of the OpenTelemetry collector Service, used by scope-api to build the
+  # OTLP endpoint. Must equal otelCollector.fullnameOverride below.
+  otelCollectorName: scope-otel-collector
   # Optional shared external dependency endpoints.
   # Set these once to avoid duplicating host/port across component sections.
   # Component-level values still override when explicitly set.
@@ -253,6 +256,9 @@ neo4j:
 
 otelCollector:
   enabled: true
+  # NOTE: fullnameOverride and configMap.existingName are read by the umbrella
+  # templates (OTLP endpoint, ConfigMap name). When renaming (e.g. a custom
+  # global.baseName), change both together.
   fullnameOverride: scope-otel-collector
   # When disabled, this chart does not inject OTEL_EXPORTER_OTLP_ENDPOINT.
   # Use an external mechanism if telemetry export is still required.
@@ -591,7 +597,9 @@ workers:
     volumes:
       - name: mce-config
         configMap:
-          name: scope-mce-config
+          # Templated (tpl): must match the ConfigMap created by this chart,
+          # which follows global.baseName.
+          name: '{{ include "scope.mceConfigMapName" . }}'
     resources:
       requests:
         memory: 384Mi

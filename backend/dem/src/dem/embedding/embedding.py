@@ -1,14 +1,18 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
+import logging
 import os
 import re
 import time
 from collections import OrderedDict
+from types import SimpleNamespace
 from typing import Optional
 
 import numpy as np
 
 from .cache import CacheManager
+
+logger = logging.getLogger(__name__)
 
 # The embedders import their client library when they are built, not when this module is: the local models
 # need torch and transformers (the ``embedding-local`` extra), which an API-only deployment does not install and
@@ -74,6 +78,11 @@ class EmbeddingModel:
         self.model_id = model_id
         self.cache_manager = cache_manager
 
+    @property
+    def _cache_key(self) -> str:
+        """What the embedding cache is keyed on: the vectors of one model, at one size."""
+        return self.model_id
+
     def _internal_encode(self, sentences: list[str]) -> np.ndarray:
         raise NotImplementedError(
             "Subclasses must implement the _internal_encode method."
@@ -89,7 +98,7 @@ class EmbeddingModel:
         sentences_to_compute = []
 
         for i, sentence in enumerate(sentences):
-            embedding = self.cache_manager.get_embedding(self.model_id, sentence)
+            embedding = self.cache_manager.get_embedding(self._cache_key, sentence)
             if embedding is not None:
                 cached_embeddings[i] = embedding
             elif sentence not in sentences_to_compute:
@@ -104,7 +113,7 @@ class EmbeddingModel:
                 # Only set in cache if cache_manager is present
                 if self.cache_manager is not None:
                     self.cache_manager.set_embedding(
-                        self.model_id, sentence, new_embedding
+                        self._cache_key, sentence, new_embedding
                     )
             if self.cache_manager is not None:
                 self.cache_manager.save_cache()
@@ -274,8 +283,12 @@ class OpenAIEmbedder(EmbeddingModel):
         api_key: Optional[str] = None,
         max_retries: int = 8,
         timeout: float = 60.0,
+        dimensions: Optional[int] = None,
     ):
         super().__init__(model_id, cache_manager)
+        # Size of the returned vectors, for the models that can shorten them. None, or 0,
+        # keeps the model's own size.
+        self.dimensions = dimensions if dimensions and dimensions > 0 else None
         try:
             # Determine API key: parameter > env var
             api_key_to_use = api_key or os.getenv("AI_GATEWAY_API_KEY")
@@ -305,12 +318,114 @@ class OpenAIEmbedder(EmbeddingModel):
                 f"OpenAI API key not found or model error: {e}. Please set AI_GATEWAY_API_KEY."
             )
 
+    @property
+    def _cache_key(self) -> str:
+        return (
+            f"{self.model_id}@{self.dimensions}" if self.dimensions else self.model_id
+        )
+
+    def _create_embeddings(self, batch: list[str]):
+        kwargs = {"dimensions": self.dimensions} if self.dimensions else {}
+        try:
+            return self.client.embeddings.create(
+                input=batch, model=self.model_id, **kwargs
+            )
+        except Exception as exc:
+            # A model that cannot shorten its vectors (or is asked for more than it has) answers 400. Embeddings
+            # of the wrong size would be a worse failure later than a full-size one now, so say so, and go on
+            # without the parameter.
+            if (
+                not kwargs
+                or getattr(exc, "status_code", None) != 400
+                or "dimension"
+                not in str(exc).lower()  # not about the parameter: a bad input, say
+            ):
+                raise
+            logger.warning(
+                "%s does not accept dimensions=%s (%s); using its default vector size",
+                self.model_id,
+                self.dimensions,
+                exc,
+            )
+            self.dimensions = None
+            return self.client.embeddings.create(input=batch, model=self.model_id)
+
+    # "Invalid 'input[3]': maximum input length is 8192 tokens." (OpenAI, and the gateways in front of it)
+    _TOO_LONG = re.compile(r"maximum (?:input|context) length", re.IGNORECASE)
+
+    @classmethod
+    def _is_too_long(cls, exc: Exception) -> bool:
+        """Whether the API refused the request because a text is over the model's token limit."""
+        return getattr(exc, "status_code", None) == 400 and bool(cls._TOO_LONG.search(str(exc)))
+
+    def _create_embeddings_fitting(self, batch: list[str]):
+        """Embed a batch, shortening the texts that are over the model's token limit instead of failing all of it.
+
+        A session is embedded as one list of texts, so a single oversized text (a large tool result, say) used to leave
+        the whole session without embeddings. The API refuses such a request before embedding anything, so retrying
+        costs nothing. The ``input[N]`` of its error is not reliable behind every gateway (it can name a text that is
+        fine, and go on naming it after that text is cut to one character), so it is not used: the batch is split in
+        halves until the offending text is alone, and that text is halved until it is accepted. Each text is embedded
+        once, and there is exactly one vector per text, in order. The model's limit is in tokens and varies by model,
+        so the text is cut by trial instead of being counted.
+        """
+        shortened: dict[int, list[int]] = {}
+        vectors = self._embed_fitting(list(batch), 0, shortened)
+        if shortened:
+            logger.warning(
+                "%d text(s) of a batch of %d were over the token limit of %s and were truncated (position: characters "
+                "before -> after): %s",
+                len(shortened),
+                len(batch),
+                self.model_id,
+                ", ".join(f"{i}: {before} -> {after}" for i, (before, after) in sorted(shortened.items())),
+            )
+        return SimpleNamespace(data=[SimpleNamespace(embedding=vector) for vector in vectors])
+
+    def _embed_fitting(self, texts: list[str], offset: int, shortened: dict[int, list[int]]) -> list:
+        try:
+            return [item.embedding for item in self._create_embeddings(texts).data]
+        except Exception as exc:
+            if not self._is_too_long(exc):
+                raise
+            if len(texts) > 1:
+                middle = len(texts) // 2
+                return self._embed_fitting(texts[:middle], offset, shortened) + self._embed_fitting(
+                    texts[middle:], offset + middle, shortened
+                )
+            text = texts[0]
+            if len(text) <= 1:
+                raise
+            cut = text[: len(text) // 2]
+            shortened[offset] = [shortened.get(offset, [len(text)])[0], len(cut)]
+            return self._embed_fitting([cut], offset, shortened)
+
+    # One request carries at most this many texts (the API's own limit is 2048) and about this many characters.
+    # A session is embedded as one list of texts, and the heaviest sessions hold millions of characters: sent in one
+    # request they exceed what the API accepts per request (OpenAI: 300k tokens) and the gateway times out. The texts
+    # are split into several requests; each still gets exactly one vector, returned in order.
+    _MAX_BATCH_TEXTS = 2048
+    _MAX_BATCH_CHARS = 200_000
+
+    def _batches(self, sentences: list[str]):
+        """Consecutive slices of ``sentences``, each within the text and character budget (a long text may be alone)."""
+        batch: list[str] = []
+        chars = 0
+        for text in sentences:
+            if batch and (
+                len(batch) >= self._MAX_BATCH_TEXTS or chars + len(text) > self._MAX_BATCH_CHARS
+            ):
+                yield batch
+                batch, chars = [], 0
+            batch.append(text)
+            chars += len(text)
+        if batch:
+            yield batch
+
     def _internal_encode(self, sentences: list[str]) -> np.ndarray:
-        batch_size = 2048  # Max batch size for OpenAI embeddings
         all_embeddings = []
-        for i in range(0, len(sentences), batch_size):
-            batch = sentences[i : i + batch_size]
-            response = self.client.embeddings.create(input=batch, model=self.model_id)
+        for batch in self._batches(sentences):
+            response = self._create_embeddings_fitting(batch)
             batch_embeddings = [item.embedding for item in response.data]
             if self.embedding_dimension is None and batch_embeddings:
                 self.embedding_dimension = len(batch_embeddings[0])

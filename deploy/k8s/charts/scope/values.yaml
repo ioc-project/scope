@@ -491,8 +491,10 @@ workers:
       - new_session_to_mce
       - new_session_to_emb
     feedbackQueue: ""
-    maxInflightMessages: "128"
-    extraEnv: {}
+    maxInflightMessages: "64"
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-norm-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -519,8 +521,14 @@ workers:
       - new_session_to_stateful_eval
     feedbackQueue: ""
     embedderType: OpenAIEmbedder
-    maxInflightMessages: "32"
-    extraEnv: {}
+    # Size of the vectors asked of the embedding API, to keep the knowledge graph small ("0": the model's own size).
+    # Only models that can shorten their vectors accept it. Keep it the same for all the data of a database: changing
+    # it on an existing one needs the sessions to be embedded again.
+    dimensions: "1024"
+    maxInflightMessages: "16"
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-embedding-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -546,7 +554,9 @@ workers:
     feedbackQueue: ""
     configPath: /scope/mce_config.yaml
     maxInflightMessages: "64"
-    extraEnv: {}
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-mce-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -601,7 +611,7 @@ workers:
     feedbackQueue: ""
     maxDistance: "0.3"
     maxNeighbors: "10"
-    maxInflightMessages: "16"
+    maxInflightMessages: "8"
     extraEnv: {}
     image:
       repository: ghcr.io/ioc-project/container-images/scope-grouping-worker
@@ -679,7 +689,7 @@ workers:
     anomalyConfigFile: ""
     consistencyConfigFile: ""
     normalBehaviourConfigFile: ""
-    maxInflightMessages: "6"
+    maxInflightMessages: "4"
     batchSize: "20"
     extraEnv: {}
     image:
@@ -707,7 +717,9 @@ workers:
     feedbackQueue: ""
     configPath: /scope/stateful_eval_config.yaml
     maxInflightMessages: "32"
-    extraEnv: {}
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-stateful-eval-worker
       # Overrides the image tag whose default is the chart appVersion.

@@ -95,6 +95,9 @@ services:
     restart: unless-stopped
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-change-me}
+      # Local stack only: transaction logs (about twice the size of the store after a bulk load) are not kept
+      # for recovery. Restore the default retention (keep_all) if you need point-in-time recovery.
+      NEO4J_db_tx__log_rotation_retention__policy: "${NEO4J_TX_LOG_RETENTION:-keep_none}"
     volumes:
       - neo4j-data:/data
       - neo4j-logs:/logs
@@ -281,14 +284,20 @@ services:
       <<: [*rabbitmq-env, *neo4j-env, *clickhouse-env, *llm-env]
       NORM_INPUT_QUEUE: new_session_to_norm
       NORM_OUTPUT_QUEUE: new_session_to_mce,new_session_to_emb
-      NORM_MAX_INFLIGHT_MESSAGES: "128"
+      NORM_MAX_INFLIGHT_MESSAGES: "64"
       EMBEDDING_INPUT_QUEUE: new_session_to_emb
       # The queues of the cognitive-failure and cognition-protocols workers are last: remove one here, and stop the
       # worker, to turn it off.
       EMBEDDING_OUTPUT_QUEUE: ${EMBEDDING_OUTPUT_QUEUE:-new_session_to_grouping,new_session_to_stateful_eval,new_session_to_cognitive_failure,new_session_to_cognition_protocols}
       EMBEDDING_EMBEDDER_TYPE: OpenAIEmbedder
-      EMBEDDING_MAX_INFLIGHT_MESSAGES: "32"
+      # Size of the vectors asked of the embedding API, to keep the knowledge graph small (0: the model's own size).
+      # Only models that can shorten their vectors accept it. Keep it the same for all the data of a database.
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1024}
+      EMBEDDING_MAX_INFLIGHT_MESSAGES: "16"
       INGESTION_WORKERS: ${INGESTION_WORKERS:-}
+      # glibc gives every thread its own allocator heap and keeps what is freed in them: after a bulk load this
+      # container kept 1.7 GiB (ingestion) or 0.7 GiB (eval) in many half-empty heaps. Two are plenty.
+      MALLOC_ARENA_MAX: "2"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -314,7 +323,7 @@ services:
       GROUPING_EMBEDDING_MODEL: ${EMBEDDING_MODEL_NAME:?set EMBEDDING_MODEL_NAME in .env}
       GROUPING_MAX_DISTANCE: "0.3"
       GROUPING_MAX_NEIGHBORS: "10"
-      GROUPING_MAX_INFLIGHT_MESSAGES: "16"
+      GROUPING_MAX_INFLIGHT_MESSAGES: "8"
       HIERARCHICAL_GROUPING_INPUT_QUEUE: new_session_to_periodic_grouping
       HIERARCHICAL_GROUPING_OUTPUT_QUEUE: new_session_to_analysis
       HIERARCHICAL_GROUPING_EMBEDDING_MODEL: ${EMBEDDING_MODEL_NAME:?set EMBEDDING_MODEL_NAME in .env}
@@ -331,7 +340,7 @@ services:
       ANOMALY_CONFIG_FILE: ""
       CONSISTENCY_CONFIG_FILE: ""
       NORMAL_BEHAVIOUR_CONFIG_FILE: ""
-      ANALYSIS_MAX_INFLIGHT_MESSAGES: "6"
+      ANALYSIS_MAX_INFLIGHT_MESSAGES: "4"
       ANALYSIS_ARGS: "--batch_size 20"
       SEMANTIC_ANALYSIS_WORKERS: ${SEMANTIC_ANALYSIS_WORKERS:-}
     depends_on:
@@ -360,6 +369,9 @@ services:
       STATEFUL_EVAL_CONFIG_PATH: /scope/stateful_eval_config.yaml
       STATEFUL_EVAL_MAX_INFLIGHT_MESSAGES: "32"
       EVAL_WORKERS: ${EVAL_WORKERS:-}
+      # glibc gives every thread its own allocator heap and keeps what is freed in them: after a bulk load this
+      # container kept 1.7 GiB (ingestion) or 0.7 GiB (eval) in many half-empty heaps. Two are plenty.
+      MALLOC_ARENA_MAX: "2"
     volumes:
       - ./config/mce_config.yaml:/scope/mce_config.yaml:ro
       - ./config/stateful_eval_config.yaml:/scope/stateful_eval_config.yaml:ro

@@ -3,6 +3,7 @@
 from __future__ import annotations
 import json
 import hashlib
+import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -10,6 +11,8 @@ from typing import Any
 from pathlib import Path
 
 from mce.engine.usage import record_usage
+
+logger = logging.getLogger(__name__)
 
 # Try to import openai, handle if missing
 try:
@@ -32,12 +35,43 @@ class CompletionResult:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     logprobs: list[dict[str, Any]] | None = field(default=None, repr=False)
+    # Why the model stopped ("stop", "length", "content_filter", ...), when the endpoint says; useful to tell an
+    # empty or cut-off reply from one that is merely unparseable.
+    finish_reason: str | None = None
 
 
-# Sampling options some OpenAI-compatible endpoints reject. When a call that
-# used them fails it is retried once without them, and they are then left out
-# of every later call on that service.
-_OPTIONAL_PARAMS = ("logprobs", "top_logprobs", "temperature")
+# Options some OpenAI-compatible endpoints reject. When an endpoint rejects them
+# the call is retried once without them, and they are then left out of every
+# later call on that service. Only a rejection counts: a connection error, a
+# timeout or a rate limit says nothing about the options, and must not turn them
+# off for good.
+_SAMPLING_PARAMS = ("logprobs", "top_logprobs", "temperature")
+_FORMAT_PARAMS = ("response_format",)
+_OPTIONAL_PARAMS = _SAMPLING_PARAMS + _FORMAT_PARAMS
+_HTTP_STATUS_UNRELATED_TO_OPTIONS = (401, 403, 408, 429)
+
+
+def _params_to_drop(exc: Exception, kwargs: dict[str, Any]) -> list[str]:
+    """The optional parameters of ``kwargs`` that the endpoint rejected with ``exc``; none if it was another error."""
+    present = [p for p in _OPTIONAL_PARAMS if p in kwargs]
+    text = str(exc).lower()
+    names_format = any(
+        n in text for n in ("response_format", "json_schema", "json_object")
+    )
+    names_sampling = any(n in text for n in _SAMPLING_PARAMS)
+    if names_format and not names_sampling:
+        return [p for p in present if p in _FORMAT_PARAMS]
+    if names_sampling and not names_format:
+        return [p for p in present if p in _SAMPLING_PARAMS]
+    status = getattr(exc, "status_code", None)
+    rejected = (
+        isinstance(status, int)
+        and 400 <= status < 500
+        and status not in _HTTP_STATUS_UNRELATED_TO_OPTIONS
+    )
+    if names_format or names_sampling or rejected:
+        return present
+    return []
 
 
 def _logprobs_from_response(response: Any) -> list[dict[str, Any]] | None:
@@ -235,9 +269,14 @@ class LLMService:
                     model=model, messages=messages, **kwargs
                 )
             except Exception as e:
-                optional = [p for p in _OPTIONAL_PARAMS if p in kwargs]
+                optional = _params_to_drop(e, kwargs)
                 if not optional:
                     raise RuntimeError(f"LLM call failed: {e}") from e
+                logger.warning(
+                    "The LLM endpoint rejected %s (%s); leaving them out of later calls",
+                    ", ".join(optional),
+                    str(e)[:200],
+                )
                 self._dropped_params.update(optional)
                 kwargs = {k: v for k, v in kwargs.items() if k not in optional}
                 try:
@@ -254,6 +293,7 @@ class LLMService:
                 prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
                 completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
                 logprobs=_logprobs_from_response(response),
+                finish_reason=getattr(response.choices[0], "finish_reason", None),
             )
             record_usage(model, result.prompt_tokens, result.completion_tokens)
 

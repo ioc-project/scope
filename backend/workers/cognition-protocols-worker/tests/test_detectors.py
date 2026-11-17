@@ -119,7 +119,7 @@ def test_a_broken_or_clashing_entry_point_is_skipped_not_fatal(monkeypatch):
     registry.load_entry_points()
     assert registry.names() == ["accord", "concord", "tooly"]
     assert registry.get("accord").prefixes == (
-        "l9-accord-",
+        "l9-accord-", "accord-",
     )  # the clash did not replace the built-in
 
 
@@ -136,3 +136,24 @@ ACCORD_CLASH = SkillProtocolDetector("accord", "l9-clash-")
 
 def factory():
     return SkillProtocolDetector("factory-made", "l9-fact-")
+
+
+@pytest.mark.parametrize('protocol', ['accord', 'concord'])
+@pytest.mark.parametrize('success,owner,advertised,activated', [
+    (True, 'a1', True, True), (False, 'a1', True, False),
+    (True, 'a2', True, False), (True, 'a1', False, False),
+])
+def test_deepagents_activation_requires_successful_own_catalog_read(protocol, success, owner, advertised, activated):
+    name = f'{protocol}-initiator'
+    path = '/skills/hub-example/example/SKILL.md'
+    ctx = {
+        'agent_spans': AGENTS,
+        'llm_spans': [{'parentSpanId': 'a1', 'prompt':
+            f'- **{name}**:\n  -> Read `{path}` for full instructions' if advertised else ''}],
+        'tool_spans': [{'parentSpanId': owner, 'toolName': 'read_file',
+                        'toolArguments': {'file_path': path}, 'success': success}],
+    }
+    result = detect(ctx, builtin_detectors())[protocol]
+    assert result.enabled is advertised
+    assert result.activated is activated
+    assert result.skills_activated == ([name] if activated else [])

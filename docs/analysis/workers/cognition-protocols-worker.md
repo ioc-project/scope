@@ -38,7 +38,8 @@ All graph access goes through the platform's providers (`SCOPEKGProvider` to rea
 
 ## Built-in protocols
 
-ACCORD and CONCORD are built in.
+ACCORD and CONCORD are built in. Released `accord-*` / `concord-*` skill names
+and legacy `l9-accord-*` / `l9-concord-*` names are supported.
 
 | Protocol | Detector (skills) | Evaluator (MCE metrics) |
 |---|---|---|
@@ -53,6 +54,15 @@ Both are skill-based, and handled by the same `SkillProtocolDetector`:
   against it. The calls are matched on the raw argument text, so a call whose arguments were cut short in
   storage is still seen as long as the skill name survived. A skill that was called but is not listed in any
   readable prompt still counts as enabled.
+
+Deep Agents skill loading is also recognized: a successful `read_file` of an exact
+`/skills/.../SKILL.md` path advertised in that agent's readable system skill catalog
+counts as activation. Failed reads, unadvertised paths, and another agent's catalog
+do not count. The catalog must include the `-> Read `<path>` for full instructions`
+line directly after the skill entry. This establishes that instructions were loaded,
+not that protocol scripts completed or an agreement was reached. Metadata-only
+exporters may send just these catalog entries and file paths; full descriptions,
+conversation content and tool results are not needed for detection.
 
 The CONCORD metrics read the initiator script's own calls. A session where only a specialist activated the
 receiver is therefore recorded as activated, and every metric is skipped. A skipped metric is never stored, so it

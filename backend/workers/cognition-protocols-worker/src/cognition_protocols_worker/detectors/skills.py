@@ -58,6 +58,10 @@ class SkillProtocolDetector(ProtocolDetector):
         self._listed = re.compile(
             rf"^\s*[-*]\s*\*\*({skill})\*\*", re.MULTILINE
         )  # in a system prompt's skill list
+        self._catalog_paths = re.compile(
+            rf"^\s*[-*]\s*\*\*({skill})\*\*:[^\n]*\n\s*-> Read `(/skills/[^`\n]+/SKILL\.md)` for full instructions",
+            re.MULTILINE,
+        )
         self._activated = re.compile(
             rf'"name"\s*:\s*"({skill})"'
         )  # activate_skill arguments
@@ -69,10 +73,16 @@ class SkillProtocolDetector(ProtocolDetector):
         spans = SessionSpans.of(context)
         found = ProtocolFinding(self.name)
 
+        paths: dict[tuple[str, str], str] = {}
         for span in spans.llms:
             listed = self._listed.findall(
                 _system_text(span.get("prompt") or span.get("inputContent"))
             )
+            paths.update({
+                (spans.agent_of(span), path): name for name, path in self._catalog_paths.findall(
+                    _system_text(span.get("prompt") or span.get("inputContent"))
+                ) if ".." not in path.split("/")
+            })
             if listed:
                 bucket = found.enabled_by_agent.setdefault(spans.agent_of(span), [])
                 bucket.extend(s for s in listed if s not in bucket)
@@ -84,6 +94,21 @@ class SkillProtocolDetector(ProtocolDetector):
                 or span.get("inputContent")
                 or span.get("inputParams")
             )
+            if tool == "read_file":
+                # Deep Agents activates skills by loading their advertised SKILL.md.
+                # Require an exact catalog path and a successful tool result; this
+                # proves loading, not script execution or protocol completion.
+                try:
+                    payload = json.loads(arguments)
+                except (TypeError, ValueError):
+                    continue
+                path = payload.get("file_path") if isinstance(payload, dict) else None
+                name = paths.get((spans.agent_of(span), path)) if isinstance(path, str) else None
+                if name and span.get("success") is True and not span.get("contains_error"):
+                    bucket = found.activated_by_agent.setdefault(spans.agent_of(span), [])
+                    if name not in bucket:
+                        bucket.append(name)
+                continue
             pattern = (
                 self._activated
                 if tool == "activate_skill"

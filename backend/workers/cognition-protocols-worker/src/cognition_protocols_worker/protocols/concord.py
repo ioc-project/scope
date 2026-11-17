@@ -18,7 +18,7 @@ CONFIG_RESOURCE = "concord_mce_config.yaml"
 
 
 def detector() -> SkillProtocolDetector:
-    return SkillProtocolDetector(NAME, SKILL_PREFIX)
+    return SkillProtocolDetector(NAME, SKILL_PREFIX, "concord-")
 
 
 def evaluator() -> McEvaluator:

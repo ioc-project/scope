@@ -929,6 +929,14 @@ export interface SessionsWithCognitiveObservability {
 export interface SessionWithCognitiveObservability extends Session {
   cognitiveObservabilityMetrics: CognitiveObservabilityMetric[];
   cognitiveFailures: CognitiveFailure[];
+  cognitiveAssessment?: CognitiveAssessment;
+}
+
+export interface CognitiveAssessment {
+  status: 'unknown' | 'in_progress' | 'complete' | 'incomplete' | 'error';
+  reason: string;
+  requiredEvidence: number;
+  reviewedEvidence: number;
 }
 
 export interface CognitiveObservabilityMetric {

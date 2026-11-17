@@ -107,6 +107,9 @@ class DetectionResult:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     turns: int = 0
+    status: str = "complete"
+    reason: str = ""
+    coverage: dict[str, Any] | None = None
 
 
 def render_failures(failures: Sequence[Mapping[str, Any]]) -> str:

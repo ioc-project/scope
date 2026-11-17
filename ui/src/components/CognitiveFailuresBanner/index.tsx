@@ -4,11 +4,12 @@
  */
 
 import { Banner, Skeleton } from '@open-ui-kit/core';
-import { CognitiveFailure } from '@/types/scope.type';
+import { CognitiveAssessment, CognitiveFailure } from '@/types/scope.type';
 
 interface CognitiveFailuresBannerProps {
   // Undefined while there is no data for the session.
   failures?: CognitiveFailure[];
+  assessment?: CognitiveAssessment;
   isLoading?: boolean;
   isError?: boolean;
 }
@@ -16,6 +17,7 @@ interface CognitiveFailuresBannerProps {
 // A summary of the cognitive failures detected for a session.
 export const CognitiveFailuresBanner = ({
   failures,
+  assessment,
   isLoading = false,
   isError = false
 }: CognitiveFailuresBannerProps) => {
@@ -34,6 +36,27 @@ export const CognitiveFailuresBanner = ({
 
   if (!failures) return null;
 
+  if (assessment?.status !== 'complete') {
+    const state = assessment?.status;
+    const title =
+      state === 'in_progress'
+        ? 'Cognitive assessment in progress.'
+        : state === 'incomplete'
+          ? 'Cognitive assessment incomplete.'
+          : state === 'error'
+            ? 'Cognitive assessment failed.'
+            : 'Cognitive assessment status unavailable. Reassess this session.';
+    const coverage = assessment?.requiredEvidence
+      ? ` Evidence delivered to reviewer: ${assessment.reviewedEvidence}/${assessment.requiredEvidence}.`
+      : '';
+    return (
+      <Banner
+        status="warning"
+        text={`${title} ${assessment?.reason ?? ''}${coverage}`.trim()}
+      />
+    );
+  }
+
   const highConfidenceFailures = failures.filter(
     (failure) => failure.confidence === 'high'
   ).length;
@@ -49,7 +72,7 @@ export const CognitiveFailuresBanner = ({
       }
       text={
         failures.length === 0
-          ? 'No cognitive failures detected for this session.'
+          ? 'No cognitive failures detected in the reviewed captured evidence.'
           : `${failures.length} cognitive failure${
               failures.length === 1 ? '' : 's'
             } detected, ${highConfidenceFailures} with high confidence.`

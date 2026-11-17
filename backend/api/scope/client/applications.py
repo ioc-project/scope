@@ -58,6 +58,7 @@ from scope.models.otel_traces import (
     ApplicationNamesResponse,
     ApplicationsResponse,
     CollectByApplicationResponse,
+    CognitiveAssessment,
     CognitiveFailure,
     CognitiveObservabilityMetric,
     CognitiveSessionItem,
@@ -2229,6 +2230,12 @@ def _get_application_sessions_with_cognitive_observability(
                 row.get("sessionMetrics")
             ),
             cognitiveFailures=_build_cognitive_failures(row.get("failures")),
+            cognitiveAssessment=CognitiveAssessment(
+                status=row.get("assessmentStatus") or "unknown",
+                reason=row.get("assessmentReason") or "",
+                requiredEvidence=row.get("requiredEvidence") or 0,
+                reviewedEvidence=row.get("reviewedEvidence") or 0,
+            ),
         )
         for row in rows or []
     ]

@@ -109,19 +109,29 @@ class CognitiveFailureWorker(BaseWorker):
         )
 
     def _detect_and_write(self, kg, session_id: str) -> None:
-        from scope.client.failures import write_cognitive_failure_reports
+        from scope.client.failures import write_cognitive_assessment, write_cognitive_failure_reports
         from scope.client.dal import get_session_trajectory
 
-        trajectory = get_session_trajectory(kg, session_id)
-        if not trajectory["steps"]:
-            logger.warning("Session %s has no trajectory steps: nothing to detect", session_id)
-            return
+        write_cognitive_assessment(kg, session_id, "in_progress")
         try:
+            trajectory = get_session_trajectory(kg, session_id)
+            if not trajectory["steps"]:
+                write_cognitive_assessment(kg, session_id, "incomplete", "No readable trajectory is available.")
+                logger.warning("Session %s has no trajectory steps: nothing to detect", session_id)
+                return
             result = investigate(trajectory, self.failures, self._chat)
+            written = write_cognitive_failure_reports(kg, session_id, [d.as_dict() for d in result.detections])
+            write_cognitive_assessment(kg, session_id, result.status, result.reason, result.coverage)
         except DetectorError as exc:
+            write_cognitive_assessment(
+                kg, session_id, "incomplete", "The detector did not produce a usable assessment."
+            )
             logger.error("Cognitive failure detection failed for session %s: %s", session_id, exc)
             return
-        written = write_cognitive_failure_reports(kg, session_id, [d.as_dict() for d in result.detections])
+        except Exception:
+            # Retrieval, endpoint and persistence errors must not leave a clean assessment.
+            write_cognitive_assessment(kg, session_id, "error", "The cognitive assessment could not finish.")
+            raise
         logger.info(
             "Session %s: %d failure(s) detected, %d written | turns=%d tokens=%d",
             session_id,

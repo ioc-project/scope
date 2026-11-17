@@ -340,11 +340,21 @@ class CognitiveFailure(BaseModel):
     reasoning: str = ""
 
 
+class CognitiveAssessment(BaseModel):
+    """Whether sufficient captured evidence was delivered for the assessment."""
+
+    status: Literal["unknown", "in_progress", "complete", "incomplete", "error"] = "unknown"
+    reason: str = ""
+    requiredEvidence: int = 0
+    reviewedEvidence: int = 0
+
+
 class CognitiveSessionItem(CollectSessionItem):
     """A session with its cognitive observability metrics and failures."""
 
     cognitiveObservabilityMetrics: list[CognitiveObservabilityMetric] = []
     cognitiveFailures: list[CognitiveFailure] = []
+    cognitiveAssessment: CognitiveAssessment = Field(default_factory=CognitiveAssessment)
 
 
 class SessionsWithCognitiveObservabilityResponse(BaseModel):

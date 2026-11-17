@@ -15,6 +15,41 @@ from scope.query_builders import failure_graph
 logger = logging.getLogger(__name__)
 
 
+def write_cognitive_assessment(
+    db: Connector,
+    session_id: str,
+    status: str,
+    reason: str = "",
+    coverage: Mapping[str, Any] | None = None,
+) -> None:
+    """Record review completion independently of whether any failure was found."""
+    if (
+        status not in {"in_progress", "complete", "incomplete", "error"}
+        or not session_id
+        or not session_id.strip()
+    ):
+        raise ValueError("Invalid cognitive assessment status or session")
+    coverage = coverage or {}
+    try:
+        db.execute(
+            "MATCH (s:Session {sessionId:$session}) "
+            "SET s.cognitiveAssessmentStatus=$status, s.cognitiveAssessmentReason=$reason, "
+            "s.cognitiveAssessmentRequiredEvidence=$required, s.cognitiveAssessmentReviewedEvidence=$reviewed "
+            "RETURN s.sessionId AS id",
+            {
+                "session": session_id,
+                "status": status,
+                "reason": reason,
+                "required": coverage.get("required", 0),
+                "reviewed": coverage.get("reviewed", 0),
+            },
+        )
+    except Exception as exc:
+        raise DatabaseError(
+            f"Failed to write cognitive assessment for '{session_id}': {exc}"
+        ) from exc
+
+
 def write_cognitive_failure_reports(
     db: Connector,
     session_id: str,

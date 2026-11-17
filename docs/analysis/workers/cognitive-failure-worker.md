@@ -11,17 +11,21 @@ For each message (`BaseQueueMessage` with a `session_id`), `CognitiveFailureWork
 
 1. Reads the session's trajectory from the knowledge graph through the SCOPE API library
    (`scope.client.dal.get_session_trajectory`): every LLM, tool and agent call in order, with the text going in
-   and out. A session with no steps is skipped.
+   and out. A session with no steps is marked `incomplete`.
 2. Writes the trajectory to a private temporary file (`trace_file.TraceFile`, one JSON line per step) and runs an
    agent over it (`agent.investigate`). The agent has no client for the API or the graph: it only reads that
-   file, through three read-only tools, so it decides which parts of a long trace to read.
+   file, through read-only tools. Before free-form investigation it receives a bounded evidence packet:
+   the captured user requests, terminal observed responses per agent invocation (including retries), and
+   tool inputs/results. Failed tool results are prioritized over successful results. Long items remain on
+   an explicit checklist and require additional windows; a partial read cannot clear the item.
+   - `read_evidence`: a bounded window of a checklist item, with coverage and continuation offsets;
    - `list_steps`: the steps, each described as a reader would name it ("the 2nd moderator LLM call") with its
      span and id, its sizes and the start of the input;
    - `read_step`: a window of one step's input and/or output, with the offset to continue at;
    - `grep`: a case-insensitive regular expression over every step's text, with context.
 
    The first message gives it the definition of each configured failure (summary, signs and detection
-   heuristic, from the taxonomy) and the first steps of the trace. It ends by calling `submit_detections`,
+   heuristic, from the taxonomy) and an index of the first steps of the trace. It ends by calling `submit_detections`,
    whose arguments are the Pydantic model `detector.DetectionAnswer`: for each detection the failure code, a
    confidence (`low`, `medium` or `high`), a reasoning of two to four sentences (the signs found, the evidence, where, why it meets the heuristic and
    what it led to, citing steps by description and span, never by position), and the id of the step where it happened, or
@@ -29,16 +33,40 @@ For each message (`BaseQueueMessage` with a `session_id`), `CognitiveFailureWork
    parameters, and whatever comes back is validated against it again: a detection that does not fit (an
    unknown confidence, no reasoning, a failure that was not asked for) is dropped and the others are kept, and
    a rejected submission is sent back so the agent can correct it. The agent has at most 15 model calls; the
-   last one is forced to submit. An agent that submits nothing usable is an error.
+   last one is forced to submit. The submission must also include an explicit factual-claim comparison
+   for every terminal observed response, citing delivered evidence. Missing comparisons, uncited findings,
+   undelivered evidence or no usable submission make the assessment `incomplete`, even with zero findings.
+   A finding must cite a delivered call/span in its reasoning; citation validity does not prove semantic correctness.
    The file is deleted when the investigation ends, whether it succeeded, failed or was cancelled. Texts
    longer than 200,000 characters are cut when written, and a worker that is killed leaves nothing for long:
    at startup the worker removes trace directories older than an hour.
 3. Writes a `CognitiveFailureReport` per detection (`scope.client.failures`). A report is keyed by session,
    failure and call, so re-running a session overwrites the same detections; reports of an earlier run that
-   are not detected again stay. A run whose answer cannot be used writes nothing.
+   are not detected again stay. A partial assessment can retain findings with reviewed citations; its assessment status remains incomplete.
+   The worker also records assessment status and coverage on the Session, independently of findings.
+   Retrieval, model and persistence exceptions mark the assessment `error` and propagate for retry.
 4. Forwards the message to the output queues, if any (none by default).
 
-Detection quality has not been measured yet. The model endpoint must support tool calling.
+Completion is a coverage safeguard, not a detector-accuracy score. It means all required *captured*
+checklist text was delivered and explicit claim comparisons were submitted; it cannot establish that the
+model understood the evidence, that exporter-side truncation never occurred, or that the verdict is correct.
+Missing placeholders keep an assessment incomplete. Unreported capture omissions cannot be inferred.
+The model endpoint must support tool calling.
+
+The sessions-with-cognitive-observability API adds `cognitiveAssessment` with `status`, `reason`,
+`requiredEvidence` and `reviewedEvidence`. Status is `unknown` for older sessions and when metadata is absent,
+`in_progress` while processing, then `complete`, `incomplete` or `error`. The UI shows the qualified
+“No cognitive failures detected in the reviewed captured evidence” only for complete assessments.
+Older sessions require reprocessing to obtain a status. Deploy the API, worker and UI together; an older API
+keeps the new UI uncertain rather than showing a clean assessment. A terminated worker may leave
+`in_progress` until the queue retries. Existing failure reports are retained on reassessment, as before;
+these status fields are not a versioned assessment/report history.
+
+Changes to evidence delivery must be checked on frozen, recorded real-agent traces, using the same model,
+failure definitions and trace hashes. Keep model requests, tool windows, verdicts and token usage for
+inspection. Include both known failures and comparison cases with acknowledged uncertainty; labels must
+not be shown to the judge. Repeated judgments of one trace measure repeatability, not independent accuracy.
+A selected regression corpus does not establish general precision or recall.
 
 ## What it writes
 

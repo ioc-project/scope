@@ -3365,7 +3365,11 @@ def neo4j_sessions_with_cognitive_observability_query(
         tokens,
         sessionMetrics,
         failures,
-        cognitionProtocolReports
+        cognitionProtocolReports,
+        s.cognitiveAssessmentStatus AS assessmentStatus,
+        s.cognitiveAssessmentReason AS assessmentReason,
+        s.cognitiveAssessmentRequiredEvidence AS requiredEvidence,
+        s.cognitiveAssessmentReviewedEvidence AS reviewedEvidence
     ORDER BY s.startTime DESC
     """
     return stmt, {

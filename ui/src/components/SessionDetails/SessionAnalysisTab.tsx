@@ -71,6 +71,10 @@ export const SessionAnalysisTab = () => {
       : undefined;
   }, [cognitiveSessions?.sessions, sessionId]);
 
+  const cognitiveAssessment = cognitiveSessions?.sessions?.find(
+    (s) => s.sessionId === sessionId
+  )?.cognitiveAssessment;
+
   const {
     data: latentSpaceResponse,
     isLoading: isLatentSpaceLoading,
@@ -217,6 +221,7 @@ export const SessionAnalysisTab = () => {
         {cognitiveObservabilityEnabled && (
           <CognitiveFailuresBanner
             failures={cognitiveFailures}
+            assessment={cognitiveAssessment}
             isLoading={isCognitiveFailuresLoading}
             isError={isCognitiveFailuresError}
           />
@@ -249,7 +254,10 @@ export const SessionAnalysisTab = () => {
         </Grid>
 
         {cognitiveObservabilityEnabled && (
-          <CognitiveFailuresList failures={cognitiveFailures} />
+          <CognitiveFailuresList
+            failures={cognitiveFailures}
+            assessment={cognitiveAssessment}
+          />
         )}
 
         {impactAssessmentEnabled &&

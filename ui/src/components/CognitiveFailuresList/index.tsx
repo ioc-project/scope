@@ -14,18 +14,20 @@ import {
   getCognitiveFailureLabel,
   getCognitiveFailureTaxonomy
 } from '@/common/cognitiveFailureTaxonomy';
-import { CognitiveFailure } from '@/types/scope.type';
+import { CognitiveAssessment, CognitiveFailure } from '@/types/scope.type';
 
 interface CognitiveFailuresListProps {
   // Undefined while there is no data for the session. Shown in the given
   // order.
   failures?: CognitiveFailure[];
+  assessment?: CognitiveAssessment;
 }
 
 // One card per cognitive failure of a session, with its confidence and the
 // detector's reasoning.
 export const CognitiveFailuresList = ({
-  failures
+  failures,
+  assessment
 }: CognitiveFailuresListProps) => {
   if (!failures) return null;
 
@@ -34,7 +36,9 @@ export const CognitiveFailuresList = ({
       <Typography variant={'h6'}>Cognitive Failures</Typography>
       {failures.length === 0 ? (
         <Typography variant={'body2'}>
-          No cognitive failures detected for this session.
+          {assessment?.status === 'complete'
+            ? 'No cognitive failures detected in the reviewed captured evidence.'
+            : 'No findings available. See the assessment status above.'}
         </Typography>
       ) : (
         <Stack direction="row" gap="8px" sx={{ flexWrap: 'wrap' }}>

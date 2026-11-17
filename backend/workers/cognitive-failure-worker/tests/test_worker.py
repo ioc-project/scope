@@ -43,7 +43,23 @@ def kg(mocker):
 
 
 def _answer(*items):
-    call = ToolCall("call-1", SUBMIT, json.dumps({"detections": list(items)}))
+    call = ToolCall(
+        "call-1",
+        SUBMIT,
+        json.dumps(
+            {
+                "detections": list(items),
+                "reviews": [
+                    {
+                        "call_id": "llmcall:1",
+                        "verdict": "supported",
+                        "reasoning": "The search is reflected in the response.",
+                        "evidence_call_ids": ["toolcall:2"],
+                    }
+                ],
+            }
+        ),
+    )
     return ChatReply(tool_calls=[call], prompt_tokens=10, completion_tokens=5)
 
 
@@ -112,7 +128,12 @@ async def test_detections_are_written_and_the_message_is_forwarded(rabbit_url, t
         worker,
         "_chat",
         return_value=_answer(
-            {"code": "IC-2", "confidence": "high", "reasoning": "kept going", "call_id": "toolcall:2"}
+            {
+                "code": "IC-2",
+                "confidence": "high",
+                "reasoning": "kept going at span-2 (toolcall:2)",
+                "call_id": "toolcall:2",
+            }
         ),
     )
 
@@ -126,7 +147,7 @@ async def test_detections_are_written_and_the_message_is_forwarded(rabbit_url, t
                 "code": "IC-2",
                 "name": "Plan Revision Failure",
                 "confidence": "high",
-                "reasoning": "kept going",
+                "reasoning": "kept going at span-2 (toolcall:2)",
                 "call_id": "toolcall:2",
             }
         ],
@@ -156,7 +177,8 @@ async def test_an_unusable_answer_writes_nothing_but_still_forwards(rabbit_url, 
 
     assert await worker.handle_message(message) is True
 
-    write.assert_not_called()
+    write.assert_called_once_with(kg, "session-1", [])
+    assert kg.execute.call_args.args[1]["status"] == "incomplete"
     assert len(worker.output_messages) == 1
 
 
@@ -253,3 +275,17 @@ def test_stale_trace_files_are_swept_at_startup(rabbit_url, mocker):
     _worker(rabbit_url)
 
     sweep.assert_called_once()
+
+
+@pytest.mark.parametrize("failure_point", ["trajectory", "model", "persistence"])
+def test_errors_mark_assessment_failed(rabbit_url, tmp_path, kg, mocker, failure_point):
+    get = mocker.patch("scope.client.dal.get_session_trajectory", return_value=TRAJECTORY)
+    write = mocker.patch("scope.client.failures.write_cognitive_failure_reports", return_value=0)
+    status = mocker.patch("scope.client.failures.write_cognitive_assessment")
+    worker = _worker(rabbit_url, tmp_path, "failures: [IC-2]\n")
+    chat = mocker.patch.object(worker, "_chat", return_value=_answer())
+    {"trajectory": get, "model": chat, "persistence": write}[failure_point].side_effect = RuntimeError("unavailable")
+    with pytest.raises(RuntimeError, match="unavailable"):
+        worker._detect_and_write(kg, "session-1")
+    assert status.call_args_list[0].args[2] == "in_progress"
+    assert status.call_args.args[2] == "error"

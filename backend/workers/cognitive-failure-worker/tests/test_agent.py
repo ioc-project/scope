@@ -7,7 +7,6 @@ from conftest import TRAJECTORY
 
 from cognitive_failure_worker import agent, trace_file
 from cognitive_failure_worker.agent import SUBMIT, ChatReply, ToolCall, investigate
-from cognitive_failure_worker.detector import DetectorError
 from cognitive_failure_worker.failures import select_failures
 
 FAILURES = select_failures(["IC-2", "CC-3"])
@@ -19,11 +18,22 @@ def _tool(name, **arguments):
     )
 
 
-def _submit(*items):
-    return _tool(SUBMIT, detections=list(items))
+def _submit(*items, terminal="llmcall:1"):
+    return _tool(
+        SUBMIT,
+        detections=list(items),
+        reviews=[
+            {
+                "call_id": terminal,
+                "verdict": "supported",
+                "reasoning": "The response describes the observed search.",
+                "evidence_call_ids": [terminal],
+            }
+        ],
+    )
 
 
-def _item(code="IC-2", confidence="medium", reasoning="why", call_id="llmcall:1"):
+def _item(code="IC-2", confidence="medium", reasoning="Evidence at span-1 (llmcall:1)", call_id="llmcall:1"):
     return {"code": code, "confidence": confidence, "reasoning": reasoning, "call_id": call_id}
 
 
@@ -49,7 +59,7 @@ def test_the_first_message_has_the_definitions_and_the_start_of_the_trace():
     assert "### IC-2" in user and "### CC-3" in user and "### IR-1" not in user
     assert "Detect when:" in user and "2 steps" in user and "llmcall:1" in user
     assert "empty answer is normal" in system and SUBMIT in system
-    assert {t["function"]["name"] for t in tools} == {"list_steps", "read_step", "grep", SUBMIT}
+    assert {t["function"]["name"] for t in tools} == {"list_steps", "read_step", "grep", "read_evidence", SUBMIT}
     assert force is None
 
 
@@ -57,7 +67,7 @@ def test_the_agent_reads_with_tools_then_submits():
     chat = Script(
         _tool("grep", pattern="paris"),
         _tool("read_step", call_id="llmcall:1", field="input"),
-        _submit(_item("CC-3", "low", "unreconciled", "toolcall:2")),
+        _submit(_item("CC-3", "low", "unreconciled at span-2 (toolcall:2)", "toolcall:2")),
     )
 
     result = investigate(TRAJECTORY, FAILURES, chat)
@@ -67,7 +77,7 @@ def test_the_agent_reads_with_tools_then_submits():
             "code": "CC-3",
             "name": FAILURES[1]["name"],
             "confidence": "low",
-            "reasoning": "unreconciled",
+            "reasoning": "unreconciled at span-2 (toolcall:2)",
             "call_id": "toolcall:2",
         }
     ]
@@ -96,11 +106,11 @@ def test_the_last_turn_is_forced_to_submit():
     assert [force for *_, force in chat.calls] == [None, None, SUBMIT]
 
 
-def test_no_answer_within_the_turns_is_an_error():
+def test_no_answer_within_the_turns_is_incomplete():
     chat = Script(*[_tool("list_steps")] * 3)
 
-    with pytest.raises(DetectorError, match="3 turns"):
-        investigate(TRAJECTORY, FAILURES, chat, max_turns=3)
+    result = investigate(TRAJECTORY, FAILURES, chat, max_turns=3)
+    assert result.status == "incomplete" and "3 turns" in result.reason
 
 
 def test_a_rejected_submission_is_answered_so_the_agent_can_try_again():
@@ -192,11 +202,11 @@ def test_the_trace_file_is_gone_when_the_model_fails(tmp_path, monkeypatch):
 def test_a_long_trace_lists_only_the_first_steps_in_the_first_message(monkeypatch):
     monkeypatch.setattr(agent, "OVERVIEW_STEPS", 3)
     steps = [{**TRAJECTORY["steps"][0], "call_id": f"llmcall:{i}"} for i in range(10)]
-    chat = Script(_submit())
+    chat = Script(_submit(terminal="llmcall:9"))
 
     investigate({"session_id": "s", "steps": steps}, FAILURES, chat)
 
-    user = chat.calls[0][0][1]["content"]
+    user = chat.calls[0][0][1]["content"].split("## Trace of session")[1]
     assert "10 steps" in user and "llmcall:2" in user and "llmcall:3" not in user and "next offset 3" in user
 
 

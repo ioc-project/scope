@@ -28,13 +28,23 @@ def _row():
         "tokens": 5,
         "sessionMetrics": [
             {"name": "Policy Safety", "result": 0.9, "metric_id": "x"},
-            {"name": "task_completion", "result": '{"value": 0.5}'},
+            {"name": "task_completion", "result": 0.5},
             {"name": "Cost", "result": 0.1},
             {"name": "Goal Alignment", "result": None, "value": None},
         ],
         "failures": [
-            {"name": "IR-1", "code": "IR-1", "confidence": "medium", "reasoning": "lost it"},
-            {"name": "IR-1", "code": "IR-1", "confidence": "high", "reasoning": "lost it again"},
+            {
+                "name": "IR-1",
+                "code": "IR-1",
+                "confidence": "medium",
+                "reasoning": "lost it",
+            },
+            {
+                "name": "IR-1",
+                "code": "IR-1",
+                "confidence": "high",
+                "reasoning": "lost it again",
+            },
             {"name": "CC-3", "code": "CC-3", "confidence": "low", "reasoning": "weak"},
             {"code": "DC-4", "confidence": "HIGH", "reasoning": "no name"},
             {"name": "No confidence", "code": "X"},
@@ -60,9 +70,7 @@ def test_sessions_with_cognitive_observability_mapping():
         ("Policy Safety", 0.9, "PERCENTAGE"),
         ("Task Completion", 0.5, "PERCENTAGE"),
     ]
-    assert [
-        (f.name, f.confidence, f.reasoning) for f in session.cognitiveFailures
-    ] == [
+    assert [(f.name, f.confidence, f.reasoning) for f in session.cognitiveFailures] == [
         ("IR-1", "high", "lost it again"),
         ("DC-4", "high", "no name"),
         ("CC-3", "low", "weak"),
@@ -74,3 +82,23 @@ def test_sessions_with_cognitive_observability_empty():
         _StubDB([]), Dialect.NEO4J, application_id="app"
     )
     assert resp.sessions == []
+
+
+def test_assessment_state_round_trips_and_legacy_data_stays_unknown():
+    row = _row()
+    row.update(
+        assessmentStatus="incomplete",
+        assessmentReason="Missing evidence",
+        requiredEvidence=12,
+        reviewedEvidence=10,
+    )
+    response = _get_application_sessions_with_cognitive_observability(
+        _StubDB([row, _row()]), Dialect.NEO4J, application_id="app"
+    )
+    assert response.sessions[0].cognitiveAssessment.model_dump() == {
+        "status": "incomplete",
+        "reason": "Missing evidence",
+        "requiredEvidence": 12,
+        "reviewedEvidence": 10,
+    }
+    assert response.sessions[1].cognitiveAssessment.status == "unknown"

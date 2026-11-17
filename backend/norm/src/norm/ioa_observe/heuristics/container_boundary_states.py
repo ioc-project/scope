@@ -29,11 +29,14 @@ def assign_container_boundary_states(registry: Registry) -> None:
             registry.get(AgentCall, target_id)
             for target_id in registry.edges_from(hasAgentCall, mas_call.id)
         ]
-        ordered = sorted((c for c in children if c is not None), key=lambda c: c.startTime)
-        if not ordered:
+        start_times_ordered = sorted(
+            (c for c in children if c is not None), key=lambda c: c.startTime
+        )
+        end_times_ordered = sorted((c for c in children if c is not None), key=lambda c: c.endTime)
+        if not start_times_ordered:
             continue
-        initial_state_id = registry.edge_target(hasInitialState, ordered[0].id)
-        final_state_id = registry.edge_target(hasFinalState, ordered[-1].id)
+        initial_state_id = registry.edge_target(hasInitialState, start_times_ordered[0].id)
+        final_state_id = registry.edge_target(hasFinalState, end_times_ordered[-1].id)
         if initial_state_id is None or final_state_id is None:
             continue
         adopt_boundary_states(
@@ -45,11 +48,14 @@ def assign_container_boundary_states(registry: Registry) -> None:
             registry.get(MASCall, target_id)
             for target_id in registry.edges_from(hasMASCall, session.id)
         ]
-        ordered = sorted((c for c in children if c is not None), key=lambda c: c.startTime)
-        if not ordered:
+        start_times_ordered = sorted(
+            (c for c in children if c is not None), key=lambda c: c.startTime
+        )
+        end_times_ordered = sorted((c for c in children if c is not None), key=lambda c: c.endTime)
+        if not start_times_ordered:
             continue
-        initial_state_id = registry.edge_target(hasInitialState, ordered[0].id)
-        final_state_id = registry.edge_target(hasFinalState, ordered[-1].id)
+        initial_state_id = registry.edge_target(hasInitialState, start_times_ordered[0].id)
+        final_state_id = registry.edge_target(hasFinalState, end_times_ordered[-1].id)
         if initial_state_id is None or final_state_id is None:
             continue
         adopt_boundary_states(

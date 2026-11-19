@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 
-from norm.ioa_observe.fields import attrs
+from norm.ioa_observe.fields import get_span_attrs
 from norm.ioa_observe.otel_io import infer_run_id, load_otel_export
 
 
@@ -82,4 +82,19 @@ class TestInferRunId:
 
     def test_reads_straight_off_span_attributes(self) -> None:
         span = _clickhouse_row()
-        assert attrs(span)["agent_id"] == "concierge_agent"
+        assert get_span_attrs(span)["agent_id"] == "concierge_agent"
+
+
+def test_event_session_id_strips_application_prefix() -> None:
+    from norm.ioa_observe.fields import get_event_attrs, get_event_session_id
+
+    event = {
+        "ServiceName": "noa-trip-planner-mas",
+        "LogAttributes": {"session.id": "noa-trip-planner-mas_60bf9dec-fde8-4281-a7a6-591cf903ebb1"},
+    }
+    assert get_event_session_id(event, get_event_attrs(event)) == "60bf9dec-fde8-4281-a7a6-591cf903ebb1"
+    # an application_id containing "_" is stripped as a whole prefix
+    event = {"ServiceName": "my_app", "LogAttributes": {"session.id": "my_app_abc"}}
+    assert get_event_session_id(event, get_event_attrs(event)) == "abc"
+    # no session.id at all
+    assert get_event_session_id({}, {}) == ""

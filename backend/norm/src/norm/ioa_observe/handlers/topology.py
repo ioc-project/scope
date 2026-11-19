@@ -17,7 +17,7 @@ from scope_ontology.models.edges import (
     hasToolCall,
     usesTool,
 )
-from scope_ontology.models.nodes import MAS, Agent, AgentCall, Session, State, ToolCall
+from scope_ontology.models.nodes import MAS, AgentCall, Session, State, ToolCall
 
 from ..fields import (
     _hash_id,
@@ -27,30 +27,29 @@ from ..fields import (
 )
 from ..registry import Registry
 from ..trajectory import add_final_state_transition, add_initial_state
-from .agent import _agent_id_for, _ensure_agent, _ensure_mas_call, _own_agent_id
+from .agent import _agent_id_for, _ensure_agent, _ensure_mas_call
 
 
 def handle_topology_edge_updated(
     event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry
 ) -> None:
-    """The handoff from one agent to another: an ``executesAgent`` edge from the source's
-    AgentCall to the target Agent.
-
-    The source is the AgentCall of ``source.agent.span.id``; the target is named only
-    (``target.agent``), so it is the Agent of that name. Nothing is created: the agents'
-    own events do that, and an edge to something that is not an agent (an MCP server, say)
-    matches nothing."""
-    source_span_id = str(event_attrs.get("source.agent.span.id") or "")
-    target_name = str(event_attrs.get("target.agent") or "")
-    session_id = get_event_session_id(event, event_attrs)
-    if not source_span_id or not target_name or not session_id:
+    record, attrs = event, event_attrs
+    meta = registry.metadata_for
+    if attrs.get("network.protocol.name") == "mcp" or attrs.get("topology.edge.kind") in (
+        "tool_call",
+        "mcp_message",
+    ):
         return
-    source = registry.find(
-        AgentCall, lambda call: call.spanId == source_span_id and call.sessionId == session_id
-    )
-    target = registry.find(Agent, lambda agent: agent.name == target_name)
-    if source is not None and target is not None and target.id != _own_agent_id(registry, source):
-        registry.add_edge(executesAgent(source_id=source.id, target_id=target.id))
+    source = str(attrs.get("source.agent.span.id") or "")
+    target = str(attrs.get("target.agent") or "")
+    session = _ensure_session_and_mas(record, attrs, registry)
+    if session is not None and source and target:
+        pending = meta(session).setdefault("handoffs", [])
+        hint = {"source": source, "target": target}
+        if hint not in pending:
+            pending.append(hint)
+            pending.sort(key=lambda item: (item["source"], item["target"]))
+    return
 
 
 def _ensure_session_and_mas(
@@ -98,6 +97,14 @@ def handle_topology_session_started(
     """Ensure the Session and its MAS, and give the Session its initial State."""
     session = _ensure_session_and_mas(event, event_attrs, registry)
     if session is not None:
+        start = min(session.startTime, get_event_start_time(event, event_attrs))
+        session = session.model_copy(
+            update={
+                "startTime": start,
+                "duration": (session.endTime - start) * 1000,
+            }
+        )
+        registry.upsert(session)
         _ensure_session_initial_state(registry, session)
 
 
@@ -118,7 +125,9 @@ def handle_topology_session_completed(
 
     # Session.endTime only ever moves forward, so it is the latest completion seen so far
     # (it starts at startTime, hence the check for no final State yet).
-    is_latest = registry.edge_target(hasFinalState, session.id) is None or end_time > session.endTime
+    is_latest = (
+        registry.edge_target(hasFinalState, session.id) is None or end_time > session.endTime
+    )
     if end_time > session.endTime:
         session.endTime = end_time  # type: ignore[attr-defined]
         session.duration = (end_time - session.startTime) * 1000.0  # type: ignore[attr-defined]
@@ -163,8 +172,7 @@ def _ensure_agent_call(
     # The Agent is keyed on the agent's name, so the Agent that an a2a.agent_card or a handoff
     # created under that name is the one reused. (The same name in another MAS is another
     # Agent: see _agent_id_for.) The AgentCall is what carries the span id.
-    mas_prefix = str(event_attrs.get("session.id") or "").partition("_")[0]
-    mas_ids = (application_id, mas_prefix)
+    mas_ids = (application_id,)
     agent = _ensure_agent(registry, _agent_id_for(registry, agent_id, mas_ids), agent_id, mas_ids)
     if application_id:
         registry.add_edge(belongsToMAS(source_id=agent.id, target_id=application_id))

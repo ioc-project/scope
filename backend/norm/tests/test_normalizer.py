@@ -97,8 +97,13 @@ def test_stream_normalizer_converges_to_batch_result() -> None:
         graph.apply(StreamNormalizer(graph).process(span))
 
     batch_nodes, batch_edges = normalize(spans)
-    assert {i for _, i in graph.nodes} == {n["id"] for n in batch_nodes}
-    assert set(graph.edges) == {(e["edge_type"], e["from_id"], e["to_id"]) for e in batch_edges}
+    assert graph.nodes == {(n["node_type"], n["id"]): n for n in batch_nodes}
+    assert {
+        key: {field: value for field, value in edge.items() if field not in ("from_type", "to_type")}
+        for key, edge in graph.edges.items()
+    } == {
+        (edge["edge_type"], edge["from_id"], edge["to_id"]): edge for edge in batch_edges
+    }
 
 
 def test_stream_normalizer_ignores_already_processed_span() -> None:
@@ -160,7 +165,7 @@ def test_topology_session_started_creates_session_and_mas() -> None:
     assert session["startTime"] == 1792075846.93875
     assert session["spanId"] == "211fdd62f03f330c"
     assert sorted(e["edge_type"] for e in delta.edges) == [
-        "executesSession", "hasInitialState", "hasState"
+        "executes", "executesSession", "hasInitialState", "hasState"
     ]
     assert not any(e["edge_type"] == "hasFinalState" for e in delta.edges)
 
@@ -205,7 +210,10 @@ def test_topology_node_events_build_agent_call_states_and_transition() -> None:
         graph.apply(normalizer.process(event, kind="event"))
 
     types = sorted(t for t, _ in graph.nodes)
-    assert types == ["Agent", "AgentCall", "MAS", "MASCall", "Session", "State", "State", "Transition"]
+    assert types == [
+        "Agent", "AgentCall", "MAS", "MASCall", "Session", "State", "State",
+        "Transition", "Transition", "Transition",
+    ]
     contents = sorted(n["content"] for (t, _), n in graph.nodes.items() if t == "State")
     assert contents == ["bye", "hello"]
     edge_types = {e["edge_type"] for e in graph.edges.values()}
@@ -255,7 +263,8 @@ def test_topology_session_completed_creates_missing_nodes_and_final_state() -> N
     assert {"executesSession", "hasInitialState", "hasFinalState", "inputTo", "leadsTo"} <= edge_types
     assert normalizer.process(completed, kind="event") == StreamDelta()
 
-    # started afterwards adds nothing; started-then-completed ends the session later
+    # Late starts correct timing without replacing the completion trajectory.
+    graph.apply(normalizer.process(started, kind="event"))
     assert normalizer.process(started, kind="event") == StreamDelta()
     graph2 = InMemoryGraph()
     n2 = StreamNormalizer(graph2)
@@ -263,6 +272,8 @@ def test_topology_session_completed_creates_missing_nodes_and_final_state() -> N
     graph2.apply(n2.process(completed, kind="event"))
     session = graph2.nodes[("Session", "213dad2f")]
     assert session["endTime"] > session["startTime"] and session["duration"] > 0
+    assert graph.nodes[("Session", "213dad2f")]["startTime"] == session["startTime"]
+    assert graph.nodes[("Session", "213dad2f")]["duration"] == session["duration"]
     assert sorted(t for t, _ in graph2.nodes) == types
 
 
@@ -465,13 +476,14 @@ def test_a2a_tool_started_is_a_handoff_not_a_tool() -> None:
     graph.apply(normalizer.process(started, kind="event"))
 
     # no Tool/ToolCall; the target is an unattached Agent named tool.name
-    assert list(graph.nodes) == [("Agent", "handoff_agent")]
-    assert not graph.edges
+    assert sorted(t for t, _ in graph.nodes) == ["Agent", "MAS", "Session"]
+    assert [i for t, i in graph.nodes if t == "Agent"] == ["handoff_agent"]
+    assert not any(e["edge_type"] == "executesAgent" for e in graph.edges.values())
     assert normalizer.process(started, kind="event") == StreamDelta()
 
     # an Agent of that name already there is used, not duplicated
     graph.apply(normalizer.process(_tool_event("tool.completed", **a2a, **{"tool.output": "out"}), kind="event"))
-    assert list(graph.nodes) == [("Agent", "handoff_agent")]
+    assert [i for t, i in graph.nodes if t == "Agent"] == ["handoff_agent"]
 
     # the target's own events then use that node (keyed on the name) and connect it
     node = _node_event("topology.node.started", **{"agent.name": "handoff_agent", "agent.input": "q"})
@@ -555,6 +567,8 @@ def test_a2a_agent_card_creates_unattached_agent_then_events_connect_it() -> Non
     assert _edges(late) == edges_before
     # a card without a description leaves the existing one alone
     nameless = json.dumps({"name": "schedule_agent"})
+    late.apply(late_normalizer.process(_card_event(nameless), kind="event"))
+    assert late.nodes[("Agent", span)]["description"] == "Updated."
     assert late_normalizer.process(_card_event(nameless), kind="event") == StreamDelta()
 
     for bad in ("not json", "[]", "{}"):
@@ -708,16 +722,17 @@ def test_a2a_message_received_keeps_the_message_on_the_recipients_call() -> None
     normalizer = StreamNormalizer(graph)
     received = _a2a_message_event("a2a.message.received", "2026-10-15T14:50:47.020000+00:00")
 
-    # the recipient's call is not there yet: the same nodes as sent, but no State
+    # Retain the pending message without inventing a recipient Agent or AgentCall.
     graph.apply(normalizer.process(received, kind="event"))
-    assert "State" not in {t for t, _ in graph.nodes}
-    assert "Schedule Agent" in {i for t, i in graph.nodes if t == "Agent"}
+    assert sorted(t for t, _ in graph.nodes) == ["MAS", "Session", "State"]
+    pending = next(n for (t, _), n in graph.nodes.items() if t == "State")
+    assert pending["rtNormalization"]["receiverName"] == "Schedule Agent"
 
     # once the recipient's own node.started has created its call, the message is kept on it
     node = _node_event("topology.node.started", **{"agent.name": "Schedule Agent", "agent.input": "q"})
     node["SpanId"] = "4163c385d3710aac"
     graph.apply(normalizer.process(node, kind="event"))
-    graph.apply(normalizer.process(received, kind="event"))
+    assert normalizer.process(received, kind="event") == StreamDelta()
     receiver_call = next(
         n["id"] for (t, _), n in graph.nodes.items() if t == "AgentCall" and n["spanId"] == "4163c385d3710aac"
     )
@@ -1002,7 +1017,8 @@ def test_edge_updated_bridges_the_handoff_between_two_agent_calls() -> None:
     second["LogAttributes"]["event.time"] = "2026-10-15T14:50:48.900000+00:00"
     for event in (first, first_done, second):
         graph.apply(normalizer.process(event, kind="event"))
-    assert "ProcessingCall" not in {t for t, _ in graph.nodes}
+    # Timestamp fallback can already bridge siblings; explicit hints preserve provenance.
+    assert "ProcessingCall" in {t for t, _ in graph.nodes}
 
     # the source is found by its span id, the target by its name only
     handoff = _edge_updated_event("aaaa", "worker")
@@ -1010,9 +1026,19 @@ def test_edge_updated_bridges_the_handoff_between_two_agent_calls() -> None:
     assert "ProcessingCall" in {t for t, _ in graph.nodes}
     assert "Processing" in {t for t, _ in graph.nodes}
     assert any(e["edge_type"] == "hasProcessingCall" for e in graph.edges.values())
+    target_call = next(
+        n for (t, _), n in graph.nodes.items() if t == "AgentCall" and n["spanId"] == "bbbb"
+    )
+    assert target_call["handoffSourceSpanIds"] == ["aaaa"]
     assert normalizer.process(handoff, kind="event") == StreamDelta()
 
     # a target that is no agent with a call (an MCP server) matches nothing
-    assert normalizer.process(_edge_updated_event("aaaa", "debug"), kind="event") == StreamDelta()
-    # nor does an unknown source span
-    assert normalizer.process(_edge_updated_event("nope", "worker"), kind="event") == StreamDelta()
+    graph.apply(normalizer.process(_edge_updated_event("aaaa", "debug"), kind="event"))
+    assert ("Agent", "debug") not in graph.nodes
+    # Unknown sources are retained for late arrival, not turned into executions.
+    graph.apply(normalizer.process(_edge_updated_event("nope", "worker"), kind="event"))
+    hints = graph.nodes[("Session", "213dad2f")]["rtNormalization"]["handoffs"]
+    assert {"source": "nope", "target": "worker"} in hints
+    assert not any(
+        n["spanId"] == "nope" for (t, _), n in graph.nodes.items() if t == "AgentCall"
+    )

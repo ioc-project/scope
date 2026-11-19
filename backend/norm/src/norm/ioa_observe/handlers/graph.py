@@ -1,6 +1,6 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
-"""Handler for the "*.graph" span name: declared MAS/Agent structural nodes.
+"""Retain graph metadata and declare only matching observed agents.
 
 This is the one authoritative source of "declared" structural data, so it
 always overwrites (``registry.upsert``) rather than fills-in-if-absent --
@@ -11,18 +11,14 @@ first never blocks this handler's richer data from landing.
 
 from __future__ import annotations
 
-import json
-import logging
 from typing import Any
 
 from scope_ontology.models.base import KGBase
 from scope_ontology.models.edges import belongsToMAS
 from scope_ontology.models.nodes import MAS, Agent, StructuralElement
 
-from ..fields import get_span_application_id
+from ..fields import get_span_application_id, parse_json_object
 from ..registry import Registry
-
-log = logging.getLogger(__name__)
 
 
 def _declare(
@@ -69,21 +65,26 @@ def handle_graph(
     graph_raw = span_attrs.get("gen_ai.ioa.graph")
     if not graph_raw:
         return
-    try:
-        graph_data: dict = json.loads(graph_raw)
-    except (TypeError, ValueError, json.JSONDecodeError):
-        log.warning(
-            "Could not parse gen_ai.ioa.graph for span %s -- skipping structural "
-            "graph extraction (span name %s)",
-            span.get("SpanId"),
-            span.get("SpanName"),
-        )
-        return
+    graph_data = parse_json_object(graph_raw, "gen_ai.ioa.graph")
+    graph_nodes = graph_data.get("nodes", {})
+    if not isinstance(graph_nodes, dict):
+        raise ValueError("gen_ai.ioa.graph.nodes must be an object")
+    mas = registry.get(MAS, application_id)
+    if mas is not None and graph_data:
+        registry.metadata_for(mas)["graphNodes"] = graph_nodes
 
-    graph_nodes: dict[str, dict] = graph_data.get("nodes") or {}
-    for node_id, node in graph_nodes.items():
-        if node_id in ("__start__", "__end__"):
-            continue
-        agent_name = str(node.get("name") or node_id)
-        agent: Agent = _declare(registry, Agent, node_id, name=agent_name)
-        registry.add_edge(belongsToMAS(source_id=agent.id, target_id=application_id))
+
+def reconcile_graph_agents(registry: Registry) -> None:
+    """Graph nodes describe execution, not roles; require runtime agent evidence."""
+    for mas in registry.all_of(MAS):
+        graph_nodes = registry.metadata_for(mas).get("graphNodes", {})
+        for agent in registry.all_of(Agent):
+            if mas.id not in registry.edges_from(belongsToMAS, agent.id):
+                continue
+            aliases = [agent.id, agent.name, *registry.metadata_for(agent).get("aliases", [])]
+            if any(
+                key in aliases or str(value.get("name") or key) in aliases
+                for key, value in graph_nodes.items()
+                if isinstance(value, dict)
+            ):
+                registry.upsert(agent.model_copy(update={"declared": True}))

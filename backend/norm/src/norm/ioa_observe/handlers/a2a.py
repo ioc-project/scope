@@ -10,9 +10,9 @@ from typing import Any
 from scope_ontology.models.edges import belongsToMAS, hasState
 from scope_ontology.models.nodes import Agent, AgentCall, State
 
-from ..fields import _hash_id
+from ..fields import _hash_id, get_event_application_id, get_event_session_id, get_event_start_time
 from ..registry import Registry
-from .agent import _agent_id_for, _ensure_agent, _latest_call_of
+from .agent import _agent_id_for, _ensure_agent
 from .topology import _ensure_agent_call, _ensure_session_and_mas
 
 
@@ -61,8 +61,13 @@ def handle_a2a_message_sent(
     state = registry.add(
         State(
             id=_hash_id(
-                "state", "a2a.message.sent", session_id, source_span_id,
-                target_name, message_id, content,
+                "state",
+                "a2a.message.sent",
+                session_id,
+                source_span_id,
+                target_name,
+                message_id,
+                content,
             ),
             sessionId=session_id,
             content=content,
@@ -74,35 +79,11 @@ def handle_a2a_message_sent(
 def handle_a2a_message_received(
     event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry
 ) -> None:
-    """Ensure the same nodes as ``a2a.message.sent``, and retain the incoming message as a
-    State of the recipient's AgentCall without changing its initial or final State.
-
-    The event names the recipient only by ``target.agent`` -- its span is not in it, and
-    its AgentCall is normally created a few milliseconds later by its own
-    ``topology.node.started`` -- so the State is added only if that call is already there;
-    otherwise nothing of the message is kept."""
-    parties = _ensure_message_parties(event, event_attrs, registry)
-    if parties is None:
-        return
-    _, session_id, source_span_id, target_name, message_id, content = parties
-    receiver_call = _latest_call_of(registry, target_name, session_id)
-    if receiver_call is None or not content:
-        return
-    state = registry.add(
-        State(
-            id=_hash_id(
-                "state", "a2a.message.received", session_id, source_span_id,
-                target_name, message_id, content,
-            ),
-            sessionId=session_id,
-            content=content,
-        )
-    )
-    registry.add_edge(hasState(source_id=receiver_call.id, target_id=state.id))
+    _handle_a2a_message(event, event_attrs, registry)
 
 
 def _agent_card(event_attrs: dict[str, Any]) -> dict[str, Any]:
-    """The agent card carried in ``capability.content`` (a JSON object), or {} if absent or malformed."""
+    """The agent card in ``capability.content``, or {} if absent or malformed."""
     content = event_attrs.get("capability.content")
     if isinstance(content, str):
         try:
@@ -126,10 +107,13 @@ def handle_a2a_agent_card(
     one of that name already there is reused and only gets its description."""
     card = _agent_card(event_attrs)
     name = str(card.get("name") or "")
-    mas_name = str(event_attrs.get("session.id") or "").partition("_")[0]
+    mas_name = get_event_application_id(event, event_attrs)
     if not name or not mas_name:
         return
-    if _ensure_session_and_mas(event, {**event_attrs, "application_id": mas_name}, registry) is None:
+    if (
+        _ensure_session_and_mas(event, {**event_attrs, "application_id": mas_name}, registry)
+        is None
+    ):
         return
     description = str(card.get("description") or "")
     agent = _ensure_agent(registry, _agent_id_for(registry, name, (mas_name,)), name, (mas_name,))
@@ -164,3 +148,46 @@ def handle_a2a_tool_started(
     # target. The ontology has no Agent -> Agent relationship; a handoff is otherwise a
     # bridge ProcessingCall between the two AgentCalls (heuristics/handoff.py), and the
     # target's AgentCall does not exist yet when this event arrives.
+
+
+def _handle_a2a_message(
+    event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry
+) -> None:
+    record, attrs = event, event_attrs
+    meta = registry.metadata_for
+    name = str(attrs.get("event.name") or "")
+    source = str(attrs.get("source.agent.span.id") or "")
+    call = registry.find(AgentCall, lambda n: n.spanId == source)
+    content = str(
+        attrs.get("message.output" if name.endswith("completed") else "message.input") or ""
+    )
+    session_id = get_event_session_id(record, attrs)
+    if session_id and content:
+        _ensure_session_and_mas(record, attrs, registry)
+        state = registry.add(
+            State(
+                id=_hash_id(
+                    "state",
+                    name,
+                    session_id,
+                    str(attrs.get("message.id") or ""),
+                    content,
+                ),
+                sessionId=session_id,
+                content=content,
+            )
+        )
+        if name.endswith("received"):
+            meta(state)["receiverName"] = str(attrs.get("target.agent") or "")
+            meta(state)["eventTime"] = get_event_start_time(record, attrs)
+        else:
+            meta(state)["ownerSpanId"] = source
+        if call is not None and name.endswith("completed"):
+            registry.add_edge(hasState(source_id=call.id, target_id=state.id))
+    return
+
+
+def handle_a2a_message_completed(
+    event: dict[str, Any], event_attrs: dict[str, Any], registry: Registry
+) -> None:
+    _handle_a2a_message(event, event_attrs, registry)

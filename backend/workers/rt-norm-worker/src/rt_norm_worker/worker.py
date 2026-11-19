@@ -24,7 +24,7 @@ def read_records(path: Path = DEFAULT_TRACES_PATH) -> Iterator[dict[str, Any]]:
 
 
 class Graph(GraphReader, Protocol):
-    """Where the KG lives: read what a span needs, write back what changed."""
+    """Read the relevant graph and apply deltas, including corrected earlier timestamps."""
 
     def apply(self, delta: Any) -> None: ...
 

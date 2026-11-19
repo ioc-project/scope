@@ -3,10 +3,59 @@
 Standalone worker (no `worker-base`) that normalizes OTel **spans** and **logs**, one record at a
 time, into the Neo4j knowledge graph, and calls back the URL of every rule a log record matches.
 
-Nothing is kept between records: each is normalized against the graph as stored. What each log
-event creates is in [`backend/norm/docs/events.md`](../../norm/docs/events.md).
+Each record is normalized against the stored graph and compact trace context held in process
+memory. The shared handlers are described in
+[`backend/norm/docs/events.md`](../../norm/docs/events.md). Identity, lifecycle and ownership
+reconciliation live in shared `norm`; the worker provides ingestion, persistence and callbacks.
 
 All commands run from `backend/`.
+
+## Reconciliation
+
+- Child LLM/tool calls retain their owning agent span id. Ownership and capability-use edges
+  are backfilled when the agent arrives, including when its span finishes after its children.
+  Parent chains can cross transport/framework spans, including sessionless MCP server spans.
+  Private in-memory trace context preserves these links across arrival orders within the
+  lifetime of one worker store, but does not survive restarts.
+- Lifecycle events create provisional calls. Completed spans enrich those same calls with
+  authoritative timing, content and metrics; an event sharing the span id does not suppress
+  the span. Late started events also correct event-only calls' input and start time.
+- A propagated `<application>_<session>` identifies the originating MAS. A different
+  participating service name (for example an MCP server) does not create another MAS.
+- Graph metadata is retained on the MAS, but only graph nodes matched to observed agents are
+  declared as Agents. Routers and tool-serving graph nodes are not assumed to be agents.
+- Topology handoff hints are retained until both agent calls exist. They connect execution
+  trajectories, not a second `executesAgent` target on the sender. MCP/tool edges do not
+  manufacture recipient Agents.
+- `llm.tools.presented` retains offered tools and links them to the owning agent when known.
+  A2A incoming messages and completion replies are retained as message States; they do not
+  replace an agent's own final State.
+
+Compact reconciliation hints and processed event ids are persisted as `rtNormalization`
+properties on the relevant graph nodes. No raw telemetry replay buffer is stored. A new
+worker instance can continue reconciliation using these graph hints, but must rebuild any
+required transport ancestry by replaying the relevant spans/events. Redelivered
+events/completed spans are idempotent once context has been rebuilt. Both Neo4j and the
+dry-run store accept earlier start-time corrections.
+
+These guarantees also apply to direct users of `norm.StreamNormalizer`. Batch span
+normalization uses the same identity, ownership, graph-role and trajectory reconciliation.
+This is not a migration or cleanup of previously misclassified graph data. Use a fresh graph
+for an end-to-end comparison; the worker does not delete unrelated existing MAS/Agent nodes.
+Ontology/SHACL checks are diagnostic and are not bypassed or changed by this worker.
+
+Private ancestry is cached in memory by trace and span id on the `Neo4jStore` instance.
+The CLI and HTTP receiver reuse that instance across records/requests; a fresh store starts
+with empty context, including a separate file-ingestion command. No `_NormalizationTrace`
+nodes are read or written. Existing nodes created by older worker versions are left untouched;
+exclude them from views until explicitly cleaned up.
+
+Restarting the worker loses this context, and multiple workers do not share it. Route records
+for a trace to the same worker/store. To repair missing ownership after a restart, replay the
+relevant spans and MCP events into that same instance. Already persisted KG relationships are
+not removed merely because the cache is empty. The cache currently has no eviction or expiry,
+so its memory usage grows with the number of spans processed during the store's lifetime.
+No raw telemetry payloads are cached, and older duplicate MAS/Agent identities are not removed.
 
 ## Setup
 

@@ -68,8 +68,8 @@ def handle_session_end(
         span,
         span_attrs,
     )
-    session.endTime = ended_at  # type: ignore[attr-defined]
-    session.duration = max(0.0, (ended_at - session.startTime) * 1000.0)  # type: ignore[attr-defined]
+    session.endTime = max(session.endTime, ended_at)  # type: ignore[attr-defined]
+    session.duration = max(0.0, (session.endTime - session.startTime) * 1000.0)  # type: ignore[attr-defined]
     end_success = get_span_success(span, span_attrs)
     if end_success is not None:
         session.success = end_success  # type: ignore[attr-defined]

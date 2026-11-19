@@ -20,38 +20,54 @@ from scope_ontology.models.edges import (
 from scope_ontology.models.nodes import AgentCall, MASCall, Session
 
 from ..registry import Registry
-from ..trajectory import adopt_boundary_states
+from ..trajectory import _clear_boundaries, adopt_boundary_states
 
 
 def assign_container_boundary_states(registry: Registry) -> None:
-    for mas_call in registry.all_of(MASCall):
-        children = [
-            registry.get(AgentCall, target_id)
-            for target_id in registry.edges_from(hasAgentCall, mas_call.id)
-        ]
-        ordered = sorted((c for c in children if c is not None), key=lambda c: c.startTime)
-        if not ordered:
-            continue
-        initial_state_id = registry.edge_target(hasInitialState, ordered[0].id)
-        final_state_id = registry.edge_target(hasFinalState, ordered[-1].id)
-        if initial_state_id is None or final_state_id is None:
-            continue
-        adopt_boundary_states(
-            registry, mas_call.id, mas_call.sessionId, initial_state_id, final_state_id
-        )
+    for cls, child_cls, edge in (
+        (MASCall, AgentCall, hasAgentCall),
+        (Session, MASCall, hasMASCall),
+    ):
+        for container in registry.all_of(cls):
+            children = [
+                registry.get(child_cls, node_id)
+                for node_id in registry.edges_from(edge, container.id)
+            ]
+            children = [child for child in children if child is not None]
+            if not children:
+                continue
+            first = min(children, key=lambda node: (node.startTime, node.id))
+            last = max(children, key=lambda node: (node.endTime, node.id))
+            initial = registry.edge_target(hasInitialState, first.id)
+            final = registry.edge_target(hasFinalState, last.id)
+            if initial and final:
+                _clear_boundaries(registry, container.id)
+                adopt_boundary_states(registry, container.id, container.sessionId, initial, final)
 
-    for session in registry.all_of(Session):
-        children = [
-            registry.get(MASCall, target_id)
-            for target_id in registry.edges_from(hasMASCall, session.id)
-        ]
-        ordered = sorted((c for c in children if c is not None), key=lambda c: c.startTime)
-        if not ordered:
-            continue
-        initial_state_id = registry.edge_target(hasInitialState, ordered[0].id)
-        final_state_id = registry.edge_target(hasFinalState, ordered[-1].id)
-        if initial_state_id is None or final_state_id is None:
-            continue
-        adopt_boundary_states(
-            registry, session.id, session.sessionId, initial_state_id, final_state_id
-        )
+
+def update_container_times(registry: Registry) -> None:
+    meta = registry.metadata_for
+    for cls, child_cls, edge in (
+        (MASCall, AgentCall, hasAgentCall),
+        (Session, MASCall, hasMASCall),
+    ):
+        for container in registry.all_of(cls):
+            children = [registry.get(child_cls, i) for i in registry.edges_from(edge, container.id)]
+            children = [c for c in children if c is not None]
+            if children:
+                start = min(container.startTime, *(c.startTime for c in children))
+                end = max(container.endTime, *(c.endTime for c in children))
+                registry.upsert(
+                    container.model_copy(
+                        update={
+                            "startTime": start,
+                            "endTime": end,
+                            "duration": (end - start) * 1000,
+                            **(
+                                {"spanId": meta(container).get("sessionSpanId", "")}
+                                if cls is Session
+                                else {}
+                            ),
+                        }
+                    )
+                )

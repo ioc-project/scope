@@ -3,20 +3,17 @@
 
 """Writes one span's KG delta straight to Neo4j, updating nodes in place."""
 
-import logging
 import json
+import logging
 from collections.abc import Sequence
 from typing import Any
 
-from norm import StreamDelta
+from norm import StreamDelta, SpanContext
 
 logger = logging.getLogger(__name__)
 
 # Node types merged on `name` (unique constraint) instead of `id`; mirrors scope.client.dal.
 NAME_KEYED_NODE_TYPES = frozenset({"LLM"})
-# Set when a node is first created and never changed afterwards (endTime is not: it advances
-# as a container, e.g. an AgentCall or Session, completes).
-IMMUTABLE_PROPS = frozenset({"startTime"})
 _NON_PROPS = frozenset({"node_type"})
 _EDGE_NON_PROPS = frozenset({"edge_type", "from_id", "from_type", "to_id", "to_type"})
 
@@ -49,10 +46,11 @@ def _node(label: str, props: dict[str, Any]) -> dict[str, Any]:
 
 
 class Neo4jStore:
-    """Neo4j implementation of norm's ``GraphReader``, plus writer for its deltas."""
+    """Neo4j graph reader/writer with store-local, in-memory trace context."""
 
     def __init__(self, connector: Any):
         self._db = connector
+        self._span_contexts: dict[str, dict[str, SpanContext]] = {}
 
     def load(
         self, session_id: str, node_ids: Sequence[str]
@@ -61,7 +59,7 @@ class Neo4jStore:
         params = {"sid": session_id, "ids": list(node_ids)}
         nodes: dict[tuple[str, str], dict[str, Any]] = {}
         for row in self._db.execute(
-            "MATCH (n) WHERE n.sessionId = $sid OR n.id IN $ids "
+            "MATCH (n) WHERE ($sid <> '' AND n.sessionId = $sid) OR n.id IN $ids "
             "OR (n:Agent AND n.name IN $ids) "
             "RETURN labels(n)[0] AS label, properties(n) AS props",
             params,
@@ -72,16 +70,28 @@ class Neo4jStore:
         edges: list[dict[str, Any]] = []
         for row in self._db.execute(
             "MATCH (a)-[r]->(b) "
-            "WHERE a.sessionId = $sid OR b.sessionId = $sid "
+            "WHERE ($sid <> '' AND (a.sessionId = $sid OR b.sessionId = $sid)) "
             "OR (a:Agent AND a.name IN $ids) OR (b:Agent AND b.name IN $ids) "
             "OR (a.id IN $ids AND b.id IN $ids) "
-            "RETURN type(r) AS edge_type, a.id AS from_id, b.id AS to_id, "
+            "RETURN type(r) AS edge_type, properties(r) AS props, a.id AS from_id, b.id AS to_id, "
             "labels(a)[0] AS from_label, properties(a) AS from_props, "
             "labels(b)[0] AS to_label, properties(b) AS to_props",
             params,
         ):
-            edges.append({"edge_type": row["edge_type"], "from_id": row["from_id"], "to_id": row["to_id"]})
-            for label, props in ((row["from_label"], row["from_props"]), (row["to_label"], row["to_props"])):
+            edges.append(
+                {
+                    **{k: _decode(v) for k, v in row.get("props", {}).items()},
+                    "edge_type": row["edge_type"],
+                    "from_id": row["from_id"],
+                    "to_id": row["to_id"],
+                    "from_type": row["from_label"],
+                    "to_type": row["to_label"],
+                }
+            )
+            for label, props in (
+                (row["from_label"], row["from_props"]),
+                (row["to_label"], row["to_props"]),
+            ):
                 node = _node(label, props)
                 nodes.setdefault((node["node_type"], node["id"]), node)
         return list(nodes.values()), edges
@@ -96,16 +106,19 @@ class Neo4jStore:
             self._upsert_node(node)
         for edge in delta.edges:
             self._upsert_edge(edge)
+        for context in delta.span_contexts:
+            self._span_contexts.setdefault(context.trace_id, {})[context.span_id] = context
+
+    def load_span_contexts(self, trace_id: str) -> list[SpanContext]:
+        return list(self._span_contexts.get(trace_id, {}).values())
 
     def _upsert_node(self, node: dict[str, Any]) -> None:
         node_type = _safe(str(node["node_type"]))
         props = _props(node, _NON_PROPS)
-        on_match = {k: v for k, v in props.items() if k not in IMMUTABLE_PROPS}
         key = "name" if node_type in NAME_KEYED_NODE_TYPES else "id"
         self._db.execute_command(
-            f"MERGE (n:{node_type} {{{key}: $key}}) "
-            "ON CREATE SET n += $props ON MATCH SET n += $on_match",
-            {"key": props[key], "props": props, "on_match": on_match},
+            f"MERGE (n:{node_type} {{{key}: $key}}) SET n += $props",
+            {"key": props[key], "props": props},
         )
 
     def _upsert_edge(self, edge: dict[str, Any]) -> None:

@@ -32,6 +32,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Vectors are asked for at this size from the API embedders that support it, to keep the knowledge graph small:
+# 1024 numbers per vector instead of 1536 (text-embedding-3-small) or 3072 (text-embedding-3-large).
+DEFAULT_EMBEDDING_DIMENSIONS = 1024
+
+
+def _resolve_embedding_dimensions(cli_value: Optional[int]) -> int:
+    """The --embedding-dimensions option, else EMBEDDING_DIMENSIONS, else the default; 0 means the model's own size."""
+    if cli_value is not None:
+        return cli_value
+    raw = os.getenv("EMBEDDING_DIMENSIONS", "").strip()
+    if not raw:
+        return DEFAULT_EMBEDDING_DIMENSIONS
+    try:
+        value = int(raw)
+    except ValueError:
+        raise click.BadParameter(f"EMBEDDING_DIMENSIONS must be a whole number, got {raw!r}") from None
+    if value < 0:
+        raise click.BadParameter(f"EMBEDDING_DIMENSIONS must be 0 or more, got {value}")
+    return value
+
 
 def _build_embedding_worker(
     rabbitmq_url: str,
@@ -43,6 +63,7 @@ def _build_embedding_worker(
     debug: bool,
     embedder_type: Optional[str],
     embedding_model: Optional[str],
+    embedding_dimensions: Optional[int] = None,
 ) -> "BaseWorker":
     """Build and return an EmbeddingWorker instance."""
     from embedding_worker import worker
@@ -57,6 +78,7 @@ def _build_embedding_worker(
         debug=debug,
         embedder=embedder_type,
         model=embedding_model,
+        dimensions=embedding_dimensions,
     )
 
 
@@ -70,6 +92,7 @@ async def run_worker_async(
     debug: bool,
     embedder_type: Optional[str],
     embedding_model: Optional[str],
+    embedding_dimensions: Optional[int] = None,
 ):
     """Run the worker asynchronously."""
     worker = _build_embedding_worker(
@@ -82,6 +105,7 @@ async def run_worker_async(
         debug=debug,
         embedder_type=embedder_type,
         embedding_model=embedding_model,
+        embedding_dimensions=embedding_dimensions,
     )
     await worker.run()
 
@@ -93,6 +117,7 @@ async def run_once_mode(
     debug: bool,
     embedder_type: Optional[str],
     embedding_model: Optional[str],
+    embedding_dimensions: Optional[int] = None,
 ):
     """Run worker in run-once mode (Argo-compatible, single message)."""
     worker = _build_embedding_worker(
@@ -105,6 +130,7 @@ async def run_once_mode(
         debug=debug,
         embedder_type=embedder_type,
         embedding_model=embedding_model,
+        embedding_dimensions=embedding_dimensions,
     )
     await worker.run_argo_message(input_path, output_path)
 
@@ -172,6 +198,18 @@ async def run_once_mode(
     help="Model identifier for embeddings (default: all-MiniLM-L6-v2 or EMBEDDING_MODEL env var)",
 )
 @click.option(
+    "--embedding-dimensions",
+    type=click.IntRange(min=0),
+    default=None,
+    help=(
+        f"Size of the vectors requested from an API embedder (default: {DEFAULT_EMBEDDING_DIMENSIONS} or "
+        "EMBEDDING_DIMENSIONS env var; 0 keeps the model's own size). Only models that can shorten their "
+        "vectors (OpenAI text-embedding-3, and gateways that forward the parameter) accept it; if the model "
+        "refuses, the worker logs a warning and uses the model's own size. Every stored vector must have the "
+        "same size: change it only with a new database, or re-embed the sessions."
+    ),
+)
+@click.option(
     "--run-once",
     "run_once",
     is_flag=True,
@@ -206,6 +244,7 @@ def main(
     debug: bool,
     embedder_type: Optional[str],
     embedding_model: Optional[str],
+    embedding_dimensions: Optional[int],
     run_once: bool,
     input: Optional[str],
     output: Optional[str],
@@ -232,6 +271,7 @@ def main(
     _feedback_queue = feedback_queue or os.getenv("EMBEDDING_FEEDBACK_QUEUE")
     _embedder_type = embedder_type or os.getenv("EMBEDDING_EMBEDDER_TYPE", "SentenceTransformerEmbedder")
     _embedding_model = embedding_model or os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+    _embedding_dimensions = _resolve_embedding_dimensions(embedding_dimensions)
     _max_inflight_messages = resolve_max_inflight_messages(
         max_inflight_messages,
         error_subject="Embedding max inflight messages",
@@ -245,6 +285,7 @@ def main(
     logger.info(f"Output Queues: {_output_queue}")
     logger.info(f"Embedder Type: {_embedder_type}")
     logger.info(f"Embedding Model: {_embedding_model}")
+    logger.info(f"Embedding Dimensions: {_embedding_dimensions or 'model default'}")
     logger.info(f"Max Inflight Messages: {_max_inflight_messages}")
     logger.info(f"Debug Mode: {debug}")
     logger.info("=" * 60)
@@ -261,6 +302,7 @@ def main(
                 debug=debug,
                 embedder_type=_embedder_type,
                 embedding_model=_embedding_model,
+                embedding_dimensions=_embedding_dimensions,
             )
         )
     else:
@@ -275,6 +317,7 @@ def main(
                 debug=debug,
                 embedder_type=_embedder_type,
                 embedding_model=_embedding_model,
+                embedding_dimensions=_embedding_dimensions,
             )
         )
 

@@ -225,6 +225,99 @@ class TestComplete:
         for call in create.call_args_list[1:]:
             assert not {"logprobs", "top_logprobs", "temperature"} & set(call.kwargs)
 
+    def test_the_finish_reason_is_kept(self):
+        svc = LLMService(mode="live", api_key="k")
+        response = _response()
+        response.choices[0].finish_reason = "length"
+        with patch("mce.engine.llm._OpenAI") as client:
+            client.return_value.chat.completions.create.return_value = response
+            assert svc.complete("q", model="gpt-4o").finish_reason == "length"
+
+    def test_a_connection_error_does_not_switch_the_options_off(self):
+        svc = LLMService(mode="live", api_key="k")
+        with patch("mce.engine.llm._OpenAI") as client:
+            create = client.return_value.chat.completions.create
+            create.side_effect = [Exception("Connection error."), _response()]
+            with pytest.raises(RuntimeError, match="Connection error"):
+                svc.complete("q", model="gpt-4o", temperature=0.0, logprobs=True)
+            assert create.call_count == 1  # not retried as if an option were refused
+            svc.complete("q2", model="gpt-4o", temperature=0.0, logprobs=True)
+        assert {"temperature", "logprobs"} <= set(create.call_args.kwargs)  # still sent
+
+    @pytest.mark.parametrize("status", [401, 403, 408, 429])
+    def test_credentials_timeouts_and_rate_limits_are_not_option_rejections(
+        self, status
+    ):
+        class ApiError(Exception):
+            status_code = status
+
+        svc = LLMService(mode="live", api_key="k")
+        with patch("mce.engine.llm._OpenAI") as client:
+            create = client.return_value.chat.completions.create
+            create.side_effect = ApiError("nope")
+            with pytest.raises(RuntimeError):
+                svc.complete("q", model="gpt-4o", temperature=0.0)
+        assert create.call_count == 1
+
+    def test_a_bad_request_without_a_name_drops_the_options(self):
+        class BadRequest(Exception):
+            status_code = 400
+
+        svc = LLMService(mode="live", api_key="k")
+        with patch("mce.engine.llm._OpenAI") as client:
+            create = client.return_value.chat.completions.create
+            create.side_effect = [BadRequest("invalid request"), _response()]
+            svc.complete("q", model="gpt-4o", temperature=0.0, logprobs=True)
+        assert create.call_count == 2
+        assert not {"temperature", "logprobs"} & set(create.call_args.kwargs)
+
+    def test_a_refused_response_format_is_dropped_alone(self):
+        svc = LLMService(mode="live", api_key="k")
+        schema = {"type": "json_schema", "json_schema": {"name": "x"}}
+        with patch("mce.engine.llm._OpenAI") as client:
+            create = client.return_value.chat.completions.create
+            create.side_effect = [
+                Exception(
+                    "Unsupported parameter: 'response_format' of type json_schema"
+                ),
+                _response(),
+                _response(),
+            ]
+            svc.complete(
+                "q",
+                model="gpt-4o",
+                temperature=0.0,
+                logprobs=True,
+                response_format=schema,
+            )
+            svc.complete(
+                "q2",
+                model="gpt-4o",
+                temperature=0.0,
+                logprobs=True,
+                response_format=schema,
+            )
+        assert create.call_count == 3  # fail + retry, then straight through
+        for call in create.call_args_list[1:]:
+            assert "response_format" not in call.kwargs
+            assert call.kwargs["temperature"] == 0.0 and call.kwargs["logprobs"] is True
+
+    def test_refused_sampling_options_leave_the_response_format_alone(self):
+        svc = LLMService(mode="live", api_key="k")
+        schema = {"type": "json_schema", "json_schema": {"name": "x"}}
+        with patch("mce.engine.llm._OpenAI") as client:
+            create = client.return_value.chat.completions.create
+            create.side_effect = [Exception("logprobs is not supported"), _response()]
+            svc.complete(
+                "q",
+                model="gpt-4o",
+                temperature=0.0,
+                logprobs=True,
+                response_format=schema,
+            )
+        assert create.call_args.kwargs["response_format"] == schema
+        assert "logprobs" not in create.call_args.kwargs
+
     def test_a_failure_without_optional_options_is_not_retried(self):
         svc = LLMService(mode="live", api_key="k")
         with patch("mce.engine.llm._OpenAI") as client:
@@ -359,9 +452,19 @@ class TestMetricAccounting:
         service.text = "I cannot evaluate this."
         (result,) = Groundedness().compute_batch(["s1"], [_CONVERSATION])
         assert result.error and "Score" in result.error
-        assert (
-            result.metadata["evaluation_total_tokens"] == 120
-        )  # the call was paid for
+        # the call was paid for, and so was the repair call that asked for the missing score
+        assert result.metadata["evaluation_total_tokens"] == 2 * 120
+
+    def test_usage_is_kept_when_the_judge_reply_is_unusable_and_not_repaired(
+        self, service, monkeypatch
+    ):
+        from mce.providers.native.metrics.quality.groundedness import Groundedness
+
+        monkeypatch.setenv("MCE_JUDGE_REPAIR", "0")
+        service.text = "I cannot evaluate this."
+        (result,) = Groundedness().compute_batch(["s1"], [_CONVERSATION])
+        assert result.error and "Score" in result.error
+        assert result.metadata["evaluation_total_tokens"] == 120
 
     def test_tool_calls_scored_in_worker_threads_are_all_counted(self, service):
         from mce.providers.native.metrics.quality.tool_utilization_accuracy import (

@@ -161,6 +161,8 @@ metrics:
 | `MCE_JUDGE_SAMPLES` | Judge calls averaged per LLM-judged metric (default `1`) |
 | `MCE_JUDGE_TEMPERATURE` | Judge sampling temperature (default `0.0` for one sample, `0.7` for several) |
 | `MCE_JUDGE_LOGPROBS` | Ask the judge for token log-probabilities to score continuously (default on) |
+| `MCE_JUDGE_STRUCTURED` | Ask the judge for a JSON verdict (`reasoning`, `score`) with a JSON-schema `response_format`, instead of free text ending in `Score:` (default on) |
+| `MCE_JUDGE_REPAIR` | When a reply has no score, ask once for just the score before giving up (default on) |
 
 LLM-as-judge metrics (e.g. `AnswerRelevancy`) additionally need `OPENAI_API_KEY`,
 `LLM_MODEL_NAME`, and optionally `LLM_BASE_MODEL_URL_MCE`.
@@ -176,9 +178,18 @@ Native LLM-judge metrics ask the model for an integer 1–5 against a written ru
 - With `MCE_JUDGE_SAMPLES` above 1 the per-call scores are averaged. This multiplies the judge calls
   and so the evaluation cost.
 
-A reply with no `Score:` value, or a missing input (an empty conversation, a tool call without
-output), makes the metric **fail**: the result carries an `error` and is not persisted. It is never
-stored as a score of 0.
+The judge is asked for a JSON verdict (`MCE_JUDGE_STRUCTURED`). With long inputs a free-text reply
+often ends without the final `Score:` line: in a probe against `gpt-4o`, replies to a prompt with
+4,000 characters of tool output or more regularly had a full analysis and no score. A JSON verdict
+does not have that failure, and log-probability weighting still applies to its score. An endpoint that
+rejects `response_format` is detected and the option is dropped for it; a free-text `Score:` reply is
+still understood. A reply that still has no score is followed by one repair call that asks for just
+the score (`MCE_JUDGE_REPAIR`); the rejected reply is logged with its length, its `finish_reason`
+and its beginning and end.
+
+If the repair call does not give a score either, or an input is missing (an empty conversation, a tool
+call without output), the metric **fails**: the result carries an `error` and is not persisted. It is
+never stored as a score of 0.
 
 ### Evaluation cost
 

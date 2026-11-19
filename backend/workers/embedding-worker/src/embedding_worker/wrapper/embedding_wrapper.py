@@ -22,14 +22,13 @@ class EmbeddingDALHandler(Protocol):
     def ingest_embeddings(self, embeddings: List[Dict[str, Any]]) -> None: ...
 
 
-def _build_embedder(embedder_name: str, model: str):
+def _build_embedder(embedder_name: str, model: str, dimensions: Optional[int] = None):
     from dem import embedding
 
-    embedder_map = {
-        "SentenceTransformerEmbedder": embedding.SentenceTransformerEmbedder,
-        "OpenAIEmbedder": embedding.OpenAIEmbedder,
-    }
-    return embedder_map[embedder_name](model_id=model)
+    if embedder_name == "OpenAIEmbedder":
+        # Only the API embedders can return shorter vectors; a local model has the size it has.
+        return embedding.OpenAIEmbedder(model_id=model, dimensions=dimensions)
+    return embedding.SentenceTransformerEmbedder(model_id=model)
 
 
 class EmbeddingWrapper:
@@ -40,6 +39,7 @@ class EmbeddingWrapper:
         debug: bool = False,
         embedder: Optional[str] = None,
         model: Optional[str] = None,
+        dimensions: Optional[int] = None,
     ):
         """
         Initialize the EmbeddingWrapper.
@@ -50,6 +50,7 @@ class EmbeddingWrapper:
             debug: Enable debug mode (saves embeddings to CSV)
             embedder: Embedder type (e.g., 'OpenAIEmbedder', 'SentenceTransformerEmbedder')
             model: Model identifier (e.g., 'azure/text-embedding-3-small')
+            dimensions: Size of the vectors to ask an API embedder for (None or 0: the model's own size)
         """
         self.args = args
         self.db_handler = db_handler
@@ -62,7 +63,7 @@ class EmbeddingWrapper:
         # Select embedder with fallback to default
         embedder_str = embedder if embedder in AVAILABLE_EMBEDDERS else DEFAULT_EMBEDDER
         logger.info(f"Using embedder: {embedder_str}")
-        self.embedder = _build_embedder(embedder_str, self.model)
+        self.embedder = _build_embedder(embedder_str, self.model, dimensions)
 
     def process_session(self, session_id: str):
         """

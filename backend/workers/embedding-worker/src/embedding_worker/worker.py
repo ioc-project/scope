@@ -50,6 +50,7 @@ class EmbeddingWorker(BaseWorker):
         debug: bool = False,
         embedder: Optional[str] = None,
         model: Optional[str] = None,
+        dimensions: Optional[int] = None,
     ):
         super().__init__(
             rabbitmq_url=rabbitmq_url,
@@ -80,6 +81,7 @@ class EmbeddingWorker(BaseWorker):
             debug=debug,
             embedder=embedder,
             model=model,
+            dimensions=dimensions,
         )
 
     async def handle_message(self, msg: queue_message.BaseQueueMessage):

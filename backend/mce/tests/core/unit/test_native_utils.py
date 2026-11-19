@@ -146,13 +146,24 @@ class _JudgeMetric:
     def __init__(self, replies):
         self.replies = list(replies)
         self.calls = []
+        self.prompts = []
         self._completion = None
 
     def call_llm(self, prompt, **kwargs):
         self.calls.append(kwargs)
+        self.prompts.append(prompt)
         reply = self.replies.pop(0)
-        text, logprobs = reply if isinstance(reply, tuple) else (reply, None)
-        self._completion = CompletionResult(text=text, logprobs=logprobs)
+        if isinstance(reply, Exception):
+            raise reply
+        # a reply is a text, or (text, logprobs) or (text, logprobs, finish_reason)
+        text, logprobs, finish = (
+            (reply + (None, None))[:3]
+            if isinstance(reply, tuple)
+            else (reply, None, None)
+        )
+        self._completion = CompletionResult(
+            text=text, logprobs=logprobs, finish_reason=finish
+        )
         return text
 
     def pop_completion(self):
@@ -167,15 +178,18 @@ class TestJudgeScoring:
             "MCE_JUDGE_SAMPLES",
             "MCE_JUDGE_TEMPERATURE",
             "MCE_JUDGE_LOGPROBS",
+            "MCE_JUDGE_STRUCTURED",
+            "MCE_JUDGE_REPAIR",
         ):
             monkeypatch.delenv(name, raising=False)
 
-    def test_defaults_are_deterministic_and_ask_for_logprobs(self):
+    def test_defaults_are_deterministic_and_ask_for_logprobs_and_a_json_verdict(self):
         metric = _JudgeMetric(["Reasoning: ok\nScore: 4"])
         llm_g_eval_score(metric, "p")
-        assert metric.calls == [
-            {"temperature": 0.0, "logprobs": True, "top_logprobs": 5}
-        ]
+        (call,) = metric.calls
+        assert call["temperature"] == 0.0
+        assert (call["logprobs"], call["top_logprobs"]) == (True, 5)
+        assert call["response_format"]["type"] == "json_schema"
 
     def test_score_is_continuous_when_the_endpoint_returns_logprobs(self):
         logprobs = _logprobs({"4": 0.6, "5": 0.3, "3": 0.1}, "4")
@@ -200,13 +214,15 @@ class TestJudgeScoring:
 
     def test_an_unusable_sample_is_skipped_not_scored_as_zero(self, monkeypatch):
         monkeypatch.setenv("MCE_JUDGE_SAMPLES", "2")
+        monkeypatch.setenv("MCE_JUDGE_REPAIR", "0")
         metric = _JudgeMetric(["I cannot say", "Score: 4"])
         _, _, raw = llm_g_eval_score(metric, "p")
         assert raw == 4.0
 
     def test_no_usable_sample_raises(self):
+        # the reply, then the repair call's reply: neither has a score
         with pytest.raises(JudgeScoreError):
-            llm_g_eval_score(_JudgeMetric(["I cannot say"]), "p")
+            llm_g_eval_score(_JudgeMetric(["I cannot say", "I still cannot say"]), "p")
 
     def test_out_of_range_scores_are_clamped(self):
         assert llm_g_eval_score(_JudgeMetric(["Score: 9"]), "p")[2] == 5.0
@@ -231,6 +247,149 @@ class TestJudgeScoring:
         monkeypatch.setenv("MCE_JUDGE_TEMPERATURE", "hot")
         settings = judge_settings()
         assert (settings.samples, settings.temperature) == (1, 0.0)
+
+
+class TestStructuredVerdict:
+    """The judge is asked for a JSON verdict; free text is still understood."""
+
+    @pytest.fixture(autouse=True)
+    def _clean_env(self, monkeypatch):
+        for name in ("MCE_JUDGE_STRUCTURED", "MCE_JUDGE_REPAIR", "MCE_JUDGE_SAMPLES"):
+            monkeypatch.delenv(name, raising=False)
+
+    def test_the_request_asks_for_json_and_carries_a_schema(self):
+        metric = _JudgeMetric(['{"reasoning": "ok", "score": 4}'])
+        llm_g_eval_score(metric, "the task")
+        assert metric.prompts[0].startswith("the task")
+        assert "JSON object" in metric.prompts[0]
+        schema = metric.calls[0]["response_format"]["json_schema"]
+        assert schema["strict"] is True
+        assert schema["schema"]["properties"]["score"]["enum"] == [1, 2, 3, 4, 5]
+        assert schema["schema"]["required"] == ["reasoning", "score"]
+
+    def test_a_json_verdict_gives_the_score_and_the_reasoning(self):
+        metric = _JudgeMetric(['{"reasoning": "good call", "score": 4}'])
+        normalized, reasoning, raw = llm_g_eval_score(metric, "p")
+        assert (raw, normalized, reasoning) == (4.0, 0.75, "good call")
+
+    def test_a_fenced_json_verdict_is_read(self):
+        metric = _JudgeMetric(['```json\n{"reasoning": "r", "score": 2}\n```'])
+        assert llm_g_eval_score(metric, "p")[2] == 2.0
+
+    def test_a_numeric_string_score_is_read(self):
+        metric = _JudgeMetric(['{"reasoning": "r", "score": "3"}'])
+        assert llm_g_eval_score(metric, "p")[2] == 3.0
+
+    def test_a_boolean_is_not_a_score(self):
+        with pytest.raises(JudgeScoreError):
+            parse_score('{"reasoning": "r", "score": true}')
+
+    def test_the_score_of_a_json_verdict_still_gets_logprob_weighting(self):
+        # tokens of {"reasoning": "ok", "score": 4}: the digit follows the "score" key
+        tokens = [
+            {"token": t, "logprob": 0.0, "top": []}
+            for t in ('{"', "reasoning", '":"', "ok", '","', "score", '":', " ")
+        ]
+        top = [
+            {"token": d, "logprob": math.log(p)}
+            for d, p in {"4": 0.6, "5": 0.3, "3": 0.1}.items()
+        ]
+        tokens += [
+            {"token": "4", "logprob": math.log(0.6), "top": top},
+            {"token": "}", "logprob": 0.0, "top": []},
+        ]
+        metric = _JudgeMetric([('{"reasoning": "ok", "score": 4}', tokens)])
+        assert llm_g_eval_score(metric, "p")[2] == pytest.approx(4.2)
+
+    def test_a_free_text_reply_is_still_accepted(self):
+        metric = _JudgeMetric(["Reasoning: ok\nScore: 4"])
+        assert llm_g_eval_score(metric, "p")[2] == 4.0
+
+    def test_structured_output_can_be_turned_off(self, monkeypatch):
+        monkeypatch.setenv("MCE_JUDGE_STRUCTURED", "0")
+        metric = _JudgeMetric(["Score: 4"])
+        llm_g_eval_score(metric, "the task")
+        assert "response_format" not in metric.calls[0]
+        assert metric.prompts == ["the task"]
+
+
+class TestRepairAndDiagnostics:
+    @pytest.fixture(autouse=True)
+    def _clean_env(self, monkeypatch):
+        for name in ("MCE_JUDGE_STRUCTURED", "MCE_JUDGE_REPAIR", "MCE_JUDGE_SAMPLES"):
+            monkeypatch.delenv(name, raising=False)
+
+    ANALYSIS = "The tool was right (5/5). The output is repetitive (4/5)."
+
+    def test_a_reply_without_a_score_is_repaired_by_asking_for_it(self, caplog):
+        metric = _JudgeMetric([self.ANALYSIS, "Score: 4"])
+        with caplog.at_level("INFO"):
+            normalized, _, raw = llm_g_eval_score(metric, "the task")
+        assert (raw, normalized) == (4.0, 0.75)
+        assert len(metric.calls) == 2
+        repair_prompt = metric.prompts[1]
+        assert (
+            "Your analysis so far" in repair_prompt and self.ANALYSIS in repair_prompt
+        )
+        assert (
+            "the task" in repair_prompt
+        )  # a short task is repeated, so the scale is known
+        assert metric.calls[1] == {
+            "temperature": 0.0
+        }  # plain text, no schema, no logprobs
+        assert "recovered by a repair call" in caplog.text
+
+    def test_a_large_prompt_is_not_repeated_in_the_repair_call(self):
+        metric = _JudgeMetric([self.ANALYSIS, "Score: 3"])
+        llm_g_eval_score(metric, "x" * 7000)
+        assert "Task:" not in metric.prompts[1]
+        assert len(metric.prompts[1]) < 2000
+
+    def test_an_empty_reply_is_repaired_too(self):
+        metric = _JudgeMetric(["", "Score: 2"])
+        assert llm_g_eval_score(metric, "p")[2] == 2.0
+        assert "(empty)" in metric.prompts[1]
+
+    def test_no_score_after_the_repair_fails_the_metric(self):
+        metric = _JudgeMetric([self.ANALYSIS, "I would rather not say"])
+        with pytest.raises(JudgeScoreError):
+            llm_g_eval_score(metric, "p")
+        assert len(metric.calls) == 2  # one repair, not a loop
+
+    def test_a_failing_repair_call_reports_the_original_problem(self):
+        metric = _JudgeMetric([self.ANALYSIS, RuntimeError("gateway down")])
+        with pytest.raises(JudgeScoreError, match="no 'Score:'"):
+            llm_g_eval_score(metric, "p")
+
+    def test_the_repair_can_be_turned_off(self, monkeypatch):
+        monkeypatch.setenv("MCE_JUDGE_REPAIR", "0")
+        metric = _JudgeMetric([self.ANALYSIS])
+        with pytest.raises(JudgeScoreError):
+            llm_g_eval_score(metric, "p")
+        assert len(metric.calls) == 1
+
+    def test_a_good_reply_makes_one_call(self):
+        metric = _JudgeMetric(['{"reasoning": "r", "score": 5}'])
+        llm_g_eval_score(metric, "p")
+        assert len(metric.calls) == 1
+
+    def test_the_rejected_reply_is_logged_with_its_finish_reason(self, caplog):
+        long_reply = "start of the analysis " + "x" * 400 + " the very end"
+        metric = _JudgeMetric([(long_reply, None, "length"), "Score: 3"])
+        with caplog.at_level("WARNING"):
+            llm_g_eval_score(metric, "p")
+        text = caplog.text
+        assert "FakeJudge: judge sample 0 unusable" in text
+        assert "finish_reason=length" in text
+        assert f"reply of {len(long_reply)} chars" in text
+        assert (
+            "start of the analysis" in text and "the very end" in text
+        )  # head and tail
+
+    def test_each_sample_is_repaired_on_its_own(self, monkeypatch):
+        monkeypatch.setenv("MCE_JUDGE_SAMPLES", "2")
+        metric = _JudgeMetric([self.ANALYSIS, "Score: 2", "Score: 4"])
+        assert llm_g_eval_score(metric, "p")[2] == pytest.approx(3.0)
 
 
 class TestExtractConversationText:

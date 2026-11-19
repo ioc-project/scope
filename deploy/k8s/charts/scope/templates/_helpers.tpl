@@ -108,8 +108,18 @@ branch workers (cognitive-failure, cognition-protocols) that are deployed, so th
 {{- join "," (uniq $queues) -}}
 {{- end }}
 
+{{- /*
+Name of the OpenTelemetry collector Service/Deployment. Follows
+otelCollector.fullnameOverride (the name the subchart really uses) so the
+endpoint and ConfigMap names stay consistent with it.
+*/ -}}
 {{- define "scope.otelCollectorName" -}}
-{{- printf "%s-otel-collector" (include "scope.fullname" .) -}}
+{{- default (printf "%s-otel-collector" (include "scope.fullname" .)) .Values.otelCollector.fullnameOverride -}}
+{{- end }}
+
+{{- define "scope.otelCollectorConfigMapName" -}}
+{{- $cm := .Values.otelCollector.configMap | default dict -}}
+{{- default (printf "%s-config" (include "scope.otelCollectorName" .)) $cm.existingName -}}
 {{- end }}
 
 {{- define "scope.apiBaseUrl" -}}

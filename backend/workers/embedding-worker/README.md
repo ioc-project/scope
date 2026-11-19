@@ -85,8 +85,13 @@ EMBEDDING_INPUT_QUEUE=new_session_to_embedding
 EMBEDDING_OUTPUT_QUEUE=new_session_to_grouping
 EMBEDDING_EMBEDDER_TYPE=OpenAIEmbedder
 EMBEDDING_MODEL=azure/text-embedding-3-small
+EMBEDDING_DIMENSIONS=1024   # vector size asked of the API (default 1024; 0 = the model's own size)
 OPENAI_API_KEY=your-api-key
 ```
+
+`EMBEDDING_DIMENSIONS` (`--embedding-dimensions`) only applies to `OpenAIEmbedder`, and to models that can shorten
+their vectors. Every vector in a database must have the same size, so change it only on an empty database, or embed
+the existing sessions again.
 
 ## Testing
 

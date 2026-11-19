@@ -12,6 +12,9 @@ global:
   # Base resource name used for shared internal services such as scope-api,
   # scope-clickhouse, scope-rabbitmq, scope-neo4j, and scope-otel-collector.
   baseName: "scope"
+  # Name of the OpenTelemetry collector Service, used by scope-api to build the
+  # OTLP endpoint. Must equal otelCollector.fullnameOverride below.
+  otelCollectorName: scope-otel-collector
   # Optional shared external dependency endpoints.
   # Set these once to avoid duplicating host/port across component sections.
   # Component-level values still override when explicitly set.
@@ -253,6 +256,9 @@ neo4j:
 
 otelCollector:
   enabled: true
+  # NOTE: fullnameOverride and configMap.existingName are read by the umbrella
+  # templates (OTLP endpoint, ConfigMap name). When renaming (e.g. a custom
+  # global.baseName), change both together.
   fullnameOverride: scope-otel-collector
   # When disabled, this chart does not inject OTEL_EXPORTER_OTLP_ENDPOINT.
   # Use an external mechanism if telemetry export is still required.
@@ -491,8 +497,10 @@ workers:
       - new_session_to_mce
       - new_session_to_emb
     feedbackQueue: ""
-    maxInflightMessages: "128"
-    extraEnv: {}
+    maxInflightMessages: "64"
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-norm-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -519,8 +527,14 @@ workers:
       - new_session_to_stateful_eval
     feedbackQueue: ""
     embedderType: OpenAIEmbedder
-    maxInflightMessages: "32"
-    extraEnv: {}
+    # Size of the vectors asked of the embedding API, to keep the knowledge graph small ("0": the model's own size).
+    # Only models that can shorten their vectors accept it. Keep it the same for all the data of a database: changing
+    # it on an existing one needs the sessions to be embedded again.
+    dimensions: "1024"
+    maxInflightMessages: "16"
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-embedding-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -546,7 +560,9 @@ workers:
     feedbackQueue: ""
     configPath: /scope/mce_config.yaml
     maxInflightMessages: "64"
-    extraEnv: {}
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-mce-worker
       # Overrides the image tag whose default is the chart appVersion.
@@ -581,7 +597,9 @@ workers:
     volumes:
       - name: mce-config
         configMap:
-          name: scope-mce-config
+          # Templated (tpl): must match the ConfigMap created by this chart,
+          # which follows global.baseName.
+          name: '{{ include "scope.mceConfigMapName" . }}'
     resources:
       requests:
         memory: 384Mi
@@ -601,7 +619,7 @@ workers:
     feedbackQueue: ""
     maxDistance: "0.3"
     maxNeighbors: "10"
-    maxInflightMessages: "16"
+    maxInflightMessages: "8"
     extraEnv: {}
     image:
       repository: ghcr.io/ioc-project/container-images/scope-grouping-worker
@@ -679,7 +697,7 @@ workers:
     anomalyConfigFile: ""
     consistencyConfigFile: ""
     normalBehaviourConfigFile: ""
-    maxInflightMessages: "6"
+    maxInflightMessages: "4"
     batchSize: "20"
     extraEnv: {}
     image:
@@ -707,7 +725,9 @@ workers:
     feedbackQueue: ""
     configPath: /scope/stateful_eval_config.yaml
     maxInflightMessages: "32"
-    extraEnv: {}
+    # glibc keeps freed memory in one allocator heap per thread: two are enough (see docs/analysis)
+    extraEnv:
+      MALLOC_ARENA_MAX: "2"
     image:
       repository: ghcr.io/ioc-project/container-images/scope-stateful-eval-worker
       # Overrides the image tag whose default is the chart appVersion.

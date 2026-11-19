@@ -3,8 +3,8 @@
 """Stateless, record-at-a-time normalization against a graph database.
 
 ``build_kg`` needs the whole span array. ``StreamNormalizer.process`` takes a
-single span and keeps nothing between calls: the graph already stored in the
-database *is* the state. For each span it
+single span and keeps nothing between calls: the stored graph and adapter-managed
+trace context provide its state. For each span it
 
 1. loads what it needs from the database through a ``GraphReader`` (the
    span's session subgraph plus the structural nodes the span touches),
@@ -15,7 +15,8 @@ database *is* the state. For each span it
    for the caller to write back.
 
 Transport ancestry is loaded separately, including spans without session ids.
-It is persisted through ``StreamDelta.span_contexts``, never as ontology executions.
+It is retained through ``StreamDelta.span_contexts``, never as ontology executions.
+Its lifetime and durability depend on the adapter.
 
 The heuristics' derived items (bridge ProcessingCalls, container-boundary
 Transitions and States) are dropped from the loaded graph and rebuilt every
@@ -68,7 +69,7 @@ class StreamDelta:
     database holds that the recomputed graph no longer contains. Edges carry
     ``from_type``/``to_type`` so they can be written without their endpoint
     nodes being part of the same delta. ``span_contexts`` is private ancestry
-    evidence that adapters must persist separately from ontology nodes.
+    evidence that adapters must retain separately from ontology nodes.
     """
 
     nodes: list[dict[str, Any]] = field(default_factory=list)

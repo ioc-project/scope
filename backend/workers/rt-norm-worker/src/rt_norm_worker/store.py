@@ -5,7 +5,6 @@
 
 import json
 import logging
-from dataclasses import asdict
 from collections.abc import Sequence
 from typing import Any
 
@@ -47,10 +46,11 @@ def _node(label: str, props: dict[str, Any]) -> dict[str, Any]:
 
 
 class Neo4jStore:
-    """Neo4j implementation of norm's ``GraphReader``, plus writer for its deltas."""
+    """Neo4j graph reader/writer with store-local, in-memory trace context."""
 
     def __init__(self, connector: Any):
         self._db = connector
+        self._span_contexts: dict[str, dict[str, SpanContext]] = {}
 
     def load(
         self, session_id: str, node_ids: Sequence[str]
@@ -98,16 +98,6 @@ class Neo4jStore:
 
     def apply(self, delta: StreamDelta) -> None:
         """Apply a delta: removals first, then nodes, then edges (endpoints must exist)."""
-        for context in delta.span_contexts:
-            self._db.execute_command(
-                "MERGE (t:_NormalizationTrace {traceId: $trace_id}) SET t += $props",
-                {
-                    "trace_id": context.trace_id,
-                    "props": _props(
-                        {f"span:{context.span_id}": asdict(context)}, frozenset()
-                    ),
-                },
-            )
         for edge in delta.removed_edges:
             self._delete_edge(edge)
         for node in delta.removed_nodes:
@@ -116,18 +106,11 @@ class Neo4jStore:
             self._upsert_node(node)
         for edge in delta.edges:
             self._upsert_edge(edge)
+        for context in delta.span_contexts:
+            self._span_contexts.setdefault(context.trace_id, {})[context.span_id] = context
 
     def load_span_contexts(self, trace_id: str) -> list[SpanContext]:
-        rows = self._db.execute(
-            "MATCH (t:_NormalizationTrace {traceId: $trace_id}) RETURN properties(t) AS props",
-            {"trace_id": trace_id},
-        )
-        return [
-            SpanContext(**_decode(value))
-            for row in rows
-            for key, value in row["props"].items()
-            if key.startswith("span:")
-        ]
+        return list(self._span_contexts.get(trace_id, {}).values())
 
     def _upsert_node(self, node: dict[str, Any]) -> None:
         node_type = _safe(str(node["node_type"]))

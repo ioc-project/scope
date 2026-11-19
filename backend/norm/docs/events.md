@@ -16,7 +16,8 @@ the handlers are in [`handlers/`](../src/norm/ioa_observe/handlers/).
 4. Ownership, pending messages/tools/handoffs and derived trajectories are reconciled.
 5. Only the difference is returned as a `StreamDelta` and written back.
 
-Nothing is kept between events: the stored graph is the state. Consequences:
+The normalizer itself keeps no state between events: it uses the stored graph and
+adapter-managed trace context. Consequences:
 
 - Handlers are **idempotent**. Replaying an event changes nothing.
 - Handlers are **order-tolerant**. Most of them create whatever is missing above the node they
@@ -58,8 +59,11 @@ Intermediate spans need not have a session id: private trace context retains the
 or manufacturing ontology executions. Known session boundaries and trace ids are
 respected; missing links and cyclic parent chains remain unresolved rather than guessed.
 
-Streaming adapters must implement `GraphReader.load_span_contexts(trace_id)` and persist
-`StreamDelta.span_contexts` as well as ontology deltas. A sessionless transport arriving
+Streaming adapters must implement `GraphReader.load_span_contexts(trace_id)` and retain
+`StreamDelta.span_contexts` separately from ontology deltas. The realtime worker retains
+this context in memory on its store instance, not in Neo4j. It is lost on restart and is
+not shared across workers; replay the relevant spans/events into the same instance to
+rebuild it. A sessionless transport arriving
 last rechecks sessions referenced by that trace. Without `TraceId`, ancestry is scoped
 to the explicit session; a span with neither identifier cannot be correlated safely.
 Batch normalization uses the same ancestry resolver.

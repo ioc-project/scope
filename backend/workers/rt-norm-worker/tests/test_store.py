@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-from norm import InMemoryGraph, StreamDelta, SpanContext
+from norm import InMemoryGraph, StreamDelta, SpanContext, StreamNormalizer
 
 from rt_norm_worker.store import Neo4jStore
 
@@ -100,37 +100,71 @@ def test_memory_store_applies_earlier_start_time_corrections():
     assert graph.nodes[("Session", "s1")]["startTime"] == 10.0
 
 
-def test_private_trace_context_roundtrips_sessionless_spans_without_ontology_nodes():
-    class ContextDB:
-        def __init__(self):
-            self.traces = {}
-            self.commands = []
-
-        def execute_command(self, command, params):
-            self.commands.append(command)
-            self.traces.setdefault(params["trace_id"], {}).update(params["props"])
-
-        def execute(self, query, params):
-            assert "_NormalizationTrace" in query
-            properties = self.traces.get(params["trace_id"])
-            return (
-                [{"props": {"traceId": params["trace_id"], **properties}}]
-                if properties
-                else []
-            )
-
-    db = ContextDB()
+def test_private_trace_context_stays_in_memory_and_is_scoped_to_store_lifetime():
+    db = PopulatedDB()
     store = Neo4jStore(db)
     sessionless = SpanContext("trace", "server", "client", "", "")
     client = SpanContext("trace", "client", "", "agent", "session")
+    other_trace = SpanContext("other", "server", "", "other-agent", "other-session")
     store.apply(StreamDelta(span_contexts=[sessionless]))
-    store.apply(StreamDelta(span_contexts=[client]))
-    restored = Neo4jStore(db).load_span_contexts("trace")
-    assert set(restored) == {sessionless, client}
-    assert Neo4jStore(db).load_span_contexts("different") == []
-    assert all(
-        command == "MERGE (t:_NormalizationTrace {traceId: $trace_id}) SET t += $props"
-        for command in db.commands
-    )
+    store.apply(StreamDelta(span_contexts=[client, other_trace]))
+    assert set(store.load_span_contexts("trace")) == {sessionless, client}
+    assert store.load_span_contexts("other") == [other_trace]
+    assert store.load_span_contexts("different") == []
     store.apply(StreamDelta(span_contexts=[sessionless]))
     assert set(store.load_span_contexts("trace")) == {sessionless, client}
+    enriched = SpanContext("trace", "server", "client", "agent", "session")
+    store.apply(StreamDelta(span_contexts=[enriched]))
+    assert set(store.load_span_contexts("trace")) == {enriched, client}
+    assert store.load_span_contexts("other") == [other_trace]
+    assert Neo4jStore(db).load_span_contexts("trace") == []
+    assert db.commands == []
+    assert db.reads == []
+
+
+def test_late_sessionless_transport_backfills_ownership_using_store_memory(monkeypatch):
+    db = PopulatedDB()
+    store = Neo4jStore(db)
+    graph = InMemoryGraph()
+    monkeypatch.setattr(store, "load", graph.load)
+    common = {
+        "TraceId": "trace",
+        "Timestamp": "2026-11-10 00:00:00.000000000",
+        "Duration": 1_000_000_000,
+        "SpanAttributes": {"application_id": "app", "session.id": "app_s1"},
+    }
+    records = [
+        {
+            **common,
+            "SpanName": "planner.agent",
+            "SpanId": "agent",
+            "SpanAttributes": {**common["SpanAttributes"], "agent_id": "planner"},
+        },
+        {
+            **common,
+            "SpanName": "search.tool",
+            "SpanId": "tool",
+            "ParentSpanId": "server",
+            "SpanAttributes": {**common["SpanAttributes"], "ioa_observe.entity.name": "search"},
+        },
+        {
+            **common,
+            "SpanName": "tools/call search",
+            "SpanId": "server",
+            "ParentSpanId": "agent",
+            "SpanAttributes": {},
+        },
+    ]
+    for record in records:
+        delta = StreamNormalizer(store).process(record, "span")
+        store.apply(delta)
+        graph.apply(delta)
+        graph.span_contexts.clear()
+    owner = next(n for (kind, _), n in graph.nodes.items() if kind == "AgentCall")
+    call = next(n for (kind, _), n in graph.nodes.items() if kind == "ToolCall")
+    assert ("hasToolCall", owner["id"], call["id"]) in graph.edges
+    assert store.load_span_contexts("trace")
+    assert db.reads == []
+    assert not any("_NormalizationTrace" in query for query, _ in db.commands)
+    for record in records:
+        assert StreamNormalizer(store).process(record, "span") == StreamDelta()

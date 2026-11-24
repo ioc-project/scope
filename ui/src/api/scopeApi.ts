@@ -274,12 +274,11 @@ export const useSessionStatefulEval = (sessionId: string) => {
   });
 };
 
-const fetchSpanStatefulEval = async (
-  sessionId: string,
-  spanId: string
-): Promise<SpanStatefulEval> => {
+const fetchSessionSpansStatefulEval = async (
+  sessionId: string
+): Promise<SpanStatefulEval[]> => {
   const response = await fetch(
-    `${OCE_API_BASE_URL}/metrics/sessions/${sessionId}/spans/${spanId}`,
+    `${OCE_API_BASE_URL}/metrics/sessions/${sessionId}/spans`,
     {
       method: 'GET',
       headers: {
@@ -290,7 +289,7 @@ const fetchSpanStatefulEval = async (
 
   if (!response.ok) {
     throw new Error(
-      `Failed to fetch span stateful eval: ${response.statusText}`
+      `Failed to fetch session spans stateful eval: ${response.statusText}`
     );
   }
 
@@ -299,17 +298,15 @@ const fetchSpanStatefulEval = async (
   return data;
 };
 
-export const useSpanListStatefulEval = (
-  sessionId: string,
-  spanIds: string[]
-) => {
-  return useQueries({
-    queries: spanIds.map((spanId) => {
-      return {
-        queryKey: ['spanStatefulEval', sessionId, spanId],
-        queryFn: () => fetchSpanStatefulEval(sessionId, spanId)
-      };
-    })
+/**
+ * Metrics of every span of a session, in a single request.
+ * Spans without any metric are omitted from the result.
+ */
+export const useSessionSpansStatefulEval = (sessionId: string) => {
+  return useQuery<SpanStatefulEval[]>({
+    queryKey: ['sessionSpansStatefulEval', sessionId],
+    queryFn: () => fetchSessionSpansStatefulEval(sessionId),
+    enabled: !!sessionId
   });
 };
 
@@ -490,10 +487,14 @@ const fetchSemanticGroups = async (
   return data?.nodes;
 };
 
-export const useSemanticGroups = (applicationId: string) => {
+export const useSemanticGroups = (
+  applicationId: string,
+  enabled: boolean = true
+) => {
   return useQuery<SemanticGroup[]>({
     queryKey: ['semanticGroups', applicationId],
-    queryFn: () => fetchSemanticGroups(applicationId)
+    queryFn: () => fetchSemanticGroups(applicationId),
+    enabled
   });
 };
 

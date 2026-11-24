@@ -837,6 +837,29 @@ def compute_metrics(body: MetricsComputeRequest) -> Any:
 
 
 @router.get(
+    "/sessions/{session_id}/spans",
+    response_model=list[SpanMetricsResponse],
+)
+def get_session_spans_metrics(
+    session_id: str,
+    metrics_client=Depends(_client),  # noqa: B008
+    redis_client: redis_lib.Redis = Depends(get_redis),  # noqa: B008
+) -> Any:
+    """Return metrics for every span of a session (spans without metrics are omitted)."""
+    key = make_cache_key("metrics:session_spans", {"session": session_id})
+    return cached(
+        redis_client=redis_client,
+        key=key,
+        fetch=lambda: [
+            span.model_dump()
+            for span in metrics_client.get_session_spans_metrics(session_id)
+        ],
+        ttl=settings.CACHE_TTL_SECONDS,
+        enabled=settings.CACHE_ENABLED,
+    )
+
+
+@router.get(
     "/sessions/{session_id}/spans/{span_id}",
     response_model=SpanMetricsResponse,
 )

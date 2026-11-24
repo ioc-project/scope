@@ -23,7 +23,9 @@ from pathlib import Path
 from threading import Thread
 
 from google.protobuf.json_format import MessageToDict
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+)
 
 OUT = Path(__file__).resolve().parent / "traces" / "trip_planner_sessions.jsonl.gz"
 requests: list[ExportTraceServiceRequest] = []
@@ -57,8 +59,13 @@ def span_to_json(span) -> dict:
 def main() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", 0), Receiver)
     Thread(target=server.serve_forever, daemon=True).start()
-    env = {**os.environ, "OTLP_HTTP_ENDPOINT": f"http://127.0.0.1:{server.server_address[1]}"}
-    subprocess.run([sys.executable, "trip_planner.py", "--questions", "all"], env=env, check=True)
+    env = {
+        **os.environ,
+        "OTLP_HTTP_ENDPOINT": f"http://127.0.0.1:{server.server_address[1]}",
+    }
+    subprocess.run(
+        [sys.executable, "trip_planner.py", "--questions", "all"], env=env, check=True
+    )
 
     sessions: dict[str, list[dict]] = defaultdict(list)
     resource: dict = {}
@@ -67,16 +74,28 @@ def main() -> None:
             resource = MessageToDict(resource_spans.resource)
             for scope_spans in resource_spans.scope_spans:
                 for span in scope_spans.spans:
-                    attributes = {kv.key: kv.value.string_value for kv in span.attributes}
+                    attributes = {
+                        kv.key: kv.value.string_value for kv in span.attributes
+                    }
                     sessions[attributes["session.id"]].append(span_to_json(span))
 
     OUT.parent.mkdir(exist_ok=True)
-    ordered = sorted(sessions.items(), key=lambda item: min(int(s["startTimeUnixNano"]) for s in item[1]))
+    ordered = sorted(
+        sessions.items(),
+        key=lambda item: min(int(s["startTimeUnixNano"]) for s in item[1]),
+    )
     with gzip.open(OUT, "wt", encoding="utf-8") as handle:
         for session_id, spans in ordered:
             spans.sort(key=lambda s: int(s["startTimeUnixNano"]))
-            handle.write(json.dumps({"session_id": session_id, "resource": resource, "spans": spans}) + "\n")
-    print(f"{len(ordered)} sessions, {sum(len(s) for _, s in ordered)} spans written to {OUT}")
+            handle.write(
+                json.dumps(
+                    {"session_id": session_id, "resource": resource, "spans": spans}
+                )
+                + "\n"
+            )
+    print(
+        f"{len(ordered)} sessions, {sum(len(s) for _, s in ordered)} spans written to {OUT}"
+    )
 
 
 if __name__ == "__main__":

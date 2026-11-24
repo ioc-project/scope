@@ -137,6 +137,23 @@ def span_metrics_query(
     return _metrics_with_subgraph(anchor, "span", "spanId", hops), params
 
 
+def session_spans_metrics_query(session_id: str) -> tuple[str, dict[str, Any]]:
+    """Return the metrics of every span (execution element) of a session at once.
+
+    One row per span that has at least one metric result.  Equivalent to
+    running :func:`span_metrics_query` with ``hops=0`` for each span of the
+    session, in a single round trip.
+    """
+    query = f"""
+        MATCH (span:{_EXECUTION_LABELS} {{sessionId: $session_id}})
+        MATCH (r:MetricResult)-[:measures]->(span), (r)-[:ofMetricType]->(d:Metric)
+        RETURN
+            span.spanId AS spanId,
+            collect(DISTINCT {_METRIC_MAP}) AS metrics
+        """
+    return query, {"session_id": session_id}
+
+
 # ── category / application-level read queries ────────────────────────────────
 
 _ROW_PROJECTION = """

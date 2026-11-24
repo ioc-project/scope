@@ -68,9 +68,12 @@ def test_the_query_is_scoped_to_the_application_and_range() -> None:
     query, params = db.calls[0]
     assert "LLMCall" in query
     assert params == {"applicationId": "app", "startEpoch": 0.0, "endEpoch": 1200.0}
-    assert query == ui_queries.application_llm_usage_by_session_query(
-        application_id="app", start_epoch=0.0, end_epoch=1200.0
-    )[0]
+    assert (
+        query
+        == ui_queries.application_llm_usage_by_session_query(
+            application_id="app", start_epoch=0.0, end_epoch=1200.0
+        )[0]
+    )
 
 
 def test_database_errors_are_wrapped() -> None:
@@ -217,8 +220,20 @@ def test_the_most_active_agent_is_the_one_with_the_most_self_time() -> None:
     db = FakeDb(
         [
             # supervisor encloses the worker: 4s of its own, the worker has 6s
-            {"sessionId": "s1", "agentId": "sup", "agentName": "super-visor", "startTime": 0.0, "endTime": 10.0},
-            {"sessionId": "s1", "agentId": "wrk", "agentName": "worker", "startTime": 2.0, "endTime": 8.0},
+            {
+                "sessionId": "s1",
+                "agentId": "sup",
+                "agentName": "super-visor",
+                "startTime": 0.0,
+                "endTime": 10.0,
+            },
+            {
+                "sessionId": "s1",
+                "agentId": "wrk",
+                "agentName": "worker",
+                "startTime": 2.0,
+                "endTime": 8.0,
+            },
         ]
     )
 
@@ -236,8 +251,20 @@ def test_the_most_active_agent_is_the_one_with_the_most_self_time() -> None:
 def test_sessions_are_not_nested_into_each_other() -> None:
     db = FakeDb(
         [
-            {"sessionId": "s1", "agentId": "a", "agentName": "a", "startTime": 0.0, "endTime": 10.0},
-            {"sessionId": "s2", "agentId": "b", "agentName": "b", "startTime": 2.0, "endTime": 5.0},
+            {
+                "sessionId": "s1",
+                "agentId": "a",
+                "agentName": "a",
+                "startTime": 0.0,
+                "endTime": 10.0,
+            },
+            {
+                "sessionId": "s2",
+                "agentId": "b",
+                "agentName": "b",
+                "startTime": 2.0,
+                "endTime": 5.0,
+            },
         ]
     )
     name, share = _get_application_most_active_agent(db, application_id="app")
@@ -245,7 +272,10 @@ def test_sessions_are_not_nested_into_each_other() -> None:
 
 
 def test_no_agent_calls_means_no_most_active_agent() -> None:
-    assert _get_application_most_active_agent(FakeDb([]), application_id="app") == ("", 0.0)
+    assert _get_application_most_active_agent(FakeDb([]), application_id="app") == (
+        "",
+        0.0,
+    )
 
 
 def test_most_active_agent_errors_are_wrapped() -> None:

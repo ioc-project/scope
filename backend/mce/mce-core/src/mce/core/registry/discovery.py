@@ -43,6 +43,7 @@ _IGNORED_PLUGIN_PACKAGES_ENV = "MCE_IGNORED_PLUGIN_PACKAGES"
 def _normalize_package_name(name: str) -> str:
     return name.strip().lower().replace("_", "-").replace(".", "-")
 
+
 # Module-level cache: None means "not yet computed", list means already computed.
 _DISCOVERY_CACHE: list[Metric] | None = None
 _DISCOVERY_LOCK = threading.Lock()
@@ -670,8 +671,17 @@ def _discover_plugin_metrics() -> list[Metric]:
     eps = entry_points(group=_PLUGIN_GROUP)
     for ep in eps:
         package = getattr(getattr(ep, "dist", None), "name", None)
-        if ignored and isinstance(package, str) and _normalize_package_name(package) in ignored:
-            logger.debug("Plugin %s of %s is ignored (%s)", ep.name, package, _IGNORED_PLUGIN_PACKAGES_ENV)
+        if (
+            ignored
+            and isinstance(package, str)
+            and _normalize_package_name(package) in ignored
+        ):
+            logger.debug(
+                "Plugin %s of %s is ignored (%s)",
+                ep.name,
+                package,
+                _IGNORED_PLUGIN_PACKAGES_ENV,
+            )
             continue
         try:
             cls = ep.load()

@@ -13,7 +13,9 @@ from scope.client import sessions
 
 
 def test_latent_space_without_umap_answers_501(monkeypatch):
-    monkeypatch.setitem(sys.modules, "umap", None)  # importing it raises ImportError, as when it is not installed
+    monkeypatch.setitem(
+        sys.modules, "umap", None
+    )  # importing it raises ImportError, as when it is not installed
     with pytest.raises(HTTPException) as raised:
         sessions._get_session_latent_space(None, None, session_id="s1")
     assert raised.value.status_code == 501

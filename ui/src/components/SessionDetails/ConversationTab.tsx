@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Box, IconButton, Stack, Typography, useTheme } from '@mui/material';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useParams } from 'react-router';
 import { Spinner } from '@open-ui-kit/core';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/api/kgInspectorApi';
 import { getHierarchyColor } from '@/utils/graphUtils';
 import { GLOBAL_BACKGROUND_COLOR } from '@/common/styles';
+import IoSection from '@/components/FormattedContent/IoSection';
 
 const SUB_CALL_LABELS: Record<AgentSubCallMessage['call_type'], string> = {
   llm: 'LLM call',
@@ -34,6 +36,56 @@ const formatTimestamp = (timestamp: number): string => {
   if (!timestamp) return '';
   const date = new Date(timestamp * 1000);
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+};
+
+/**
+ * Connector drawn between an agent's input and its output: a line fading from
+ * the input color to the output color, with a pill in the middle.
+ */
+const FlowDivider = ({
+  label,
+  onClick
+}: {
+  label: string;
+  onClick?: () => void;
+}) => {
+  const theme = useTheme();
+  const line = {
+    flex: 1,
+    height: '2px',
+    borderRadius: 1,
+    background: `linear-gradient(90deg, ${theme.palette.info.main}, ${theme.palette.success.main})`,
+    opacity: 0.6
+  };
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      gap={1}
+      sx={{ my: 0.75, cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+    >
+      <Box sx={line} />
+      <Stack
+        direction="row"
+        alignItems="center"
+        gap={0.5}
+        sx={{
+          px: 1,
+          py: 0.25,
+          borderRadius: 4,
+          border: `1px solid ${theme.palette.divider}`,
+          color: theme.palette.text.secondary
+        }}
+      >
+        <ArrowDownwardIcon sx={{ fontSize: 14 }} />
+        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+          {label}
+        </Typography>
+      </Stack>
+      <Box sx={{ ...line, transform: 'scaleX(-1)' }} />
+    </Stack>
+  );
 };
 
 export const ConversationTab = () => {
@@ -80,7 +132,10 @@ export const ConversationTab = () => {
   if (messages.length === 0) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+        <Typography
+          variant="body2"
+          sx={{ color: theme.palette.text.secondary }}
+        >
           No agent messages found for this session.
         </Typography>
       </Box>
@@ -152,45 +207,19 @@ export const ConversationTab = () => {
                 </Stack>
 
                 {call.input && (
-                  <Box sx={{ mb: 0.5 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontWeight: 600,
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      {call.call_type === 'llm' ? 'Prompt' : 'Input'}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                    >
-                      {call.input}
-                    </Typography>
-                  </Box>
+                  <IoSection
+                    label={call.call_type === 'llm' ? 'Prompt' : 'Input'}
+                    direction="input"
+                    value={call.input}
+                  />
                 )}
 
                 {call.output && (
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: theme.palette.text.secondary,
-                        fontWeight: 600,
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      {call.call_type === 'llm' ? 'Response' : 'Output'}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                    >
-                      {call.output}
-                    </Typography>
-                  </Box>
+                  <IoSection
+                    label={call.call_type === 'llm' ? 'Response' : 'Output'}
+                    direction="output"
+                    value={call.output}
+                  />
                 )}
               </Box>
             );
@@ -261,74 +290,46 @@ export const ConversationTab = () => {
               </Stack>
 
               {message.input && (
-                <Box sx={{ mb: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.palette.text.secondary,
-                      fontWeight: 600,
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    Input
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                  >
-                    {message.input}
-                  </Typography>
-                </Box>
+                <IoSection
+                  label="Input"
+                  direction="input"
+                  value={message.input}
+                />
+              )}
+
+              {message.calls.length > 0 && (
+                <FlowDivider
+                  label={`${message.calls.length} call${message.calls.length > 1 ? 's' : ''}`}
+                  onClick={() => toggleCollapsed(message.transition_id)}
+                />
               )}
 
               {isCollapsed && lastLlmCall?.output && (
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: theme.palette.text.secondary,
-                      fontWeight: 600,
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    Response
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                  >
-                    {lastLlmCall.output}
-                  </Typography>
-                </Box>
+                <IoSection
+                  label="Response"
+                  direction="output"
+                  value={lastLlmCall.output}
+                />
               )}
 
               {!isCollapsed && (
                 <>
-                  {message.output && (
-                    <Box sx={{ mb: message.calls.length > 0 ? 1 : 0 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: theme.palette.text.secondary,
-                          fontWeight: 600,
-                          textTransform: 'uppercase'
-                        }}
-                      >
-                        Output
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                      >
-                        {message.output}
-                      </Typography>
-                    </Box>
-                  )}
-
                   {message.calls.length > 0 && (
-                    <Stack direction="column" gap={1} sx={{ mt: 1, pl: 2 }}>
+                    <Stack direction="column" gap={1} sx={{ pl: 2 }}>
                       {message.calls.map((call) => renderCall(call))}
                     </Stack>
+                  )}
+
+                  {message.calls.length > 0 && message.output && (
+                    <FlowDivider label="Response" />
+                  )}
+
+                  {message.output && (
+                    <IoSection
+                      label="Response"
+                      direction="output"
+                      value={message.output}
+                    />
                   )}
                 </>
               )}

@@ -1,17 +1,17 @@
 # Cognition Fabric integration
 
-OXP is the **Observability & Explainability Platform** for the IoC Cognition Fabric. It turns
-multi-agent system telemetry into a queryable Knowledge Graph, enriches that graph with analysis
-engines, and publishes curated Insights for Cognition Engines and other consumers.
+SCOPE provides observability and explainability for IoC Cognition Fabric. It turns
+multi-agent system telemetry into a queryable knowledge graph, enriches that graph with analysis
+engines, and publishes curated insights for Cognition Engines and other consumers.
 
-## What OXP does
+## What SCOPE does
 
-OXP processes each session through three stages:
+SCOPE processes each session through three stages:
 
 1. **Observe and normalize** OTel spans and runtime events into a common MAS execution model.
 2. **Enrich** the Knowledge Graph with metrics, embeddings, semantic groups, findings, impact,
 	 resource-use analysis, and evaluation results.
-3. **Explain** observed behavior through Insights exposed by the Claris API and Intelligence
+3. **Explain** observed behavior through insights exposed by the Analytics API and Intelligence
 	 Catalog.
 
 The Knowledge Graph is the shared spine of the platform. Pipeline stages write enriched data to it,
@@ -50,7 +50,7 @@ Start the stack:
 docker compose up --build
 ```
 
-Override the registry, tag, or integration-specific MCE config as needed:
+Override the registry or tag for the prebuilt workers, or supply a custom MCE config:
 
 ```bash
 OXP_IMG_TAG=1.2.3 docker compose up               # pin a specific version
@@ -59,8 +59,8 @@ MCE_CONFIG_FILE=/path/to/mce_config.yaml docker compose up
 ```
 
 The `mce` worker and [Analytics API](ioc-analytics-api/README.md) share the implementation in
-[SCOPE's MCE packages](../../backend/mce). The worker reads
-[`mce_config.yaml`](mce_config.yaml) for integration-specific metric and engine settings.
+[SCOPE's MCE packages](../../backend/mce). The worker defaults to
+[SCOPE's shared MCE configuration](../../deploy/docker-compose/config/mce_config.yaml).
 The Analytics API does not read that file.
 
 Compose builds `event-exporter` locally and exposes its OTLP/gRPC endpoint on port `4417`, leaving

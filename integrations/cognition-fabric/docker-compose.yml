@@ -38,7 +38,7 @@ x-worker-base: &worker-base
       condition: service_healthy
   volumes:
     - type: bind
-      source: ${MCE_CONFIG_FILE:-./mce_config.yaml}
+      source: ${MCE_CONFIG_FILE:-../../deploy/docker-compose/config/mce_config.yaml}
       target: /claris/mce_config.yaml
     - /dev/null:/app/workflows/.env
   environment: *worker-env

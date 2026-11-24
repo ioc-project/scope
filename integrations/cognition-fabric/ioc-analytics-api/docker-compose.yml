@@ -146,7 +146,7 @@ services:
       NEO4J_DB: ${NEO4J_DATABASE:-neo4j}
       MAX_INFLIGHT_MESSAGES: ${MCE_MAX_INFLIGHT_MESSAGES:-16}
     volumes:
-      - ${MCE_CONFIG_FILE:-../mce_config.yaml}:/scope/mce_config.yaml:ro
+      - ${MCE_CONFIG_FILE:-../../../deploy/docker-compose/config/mce_config.yaml}:/scope/mce_config.yaml:ro
     restart: always
     depends_on:
       rabbitmq:

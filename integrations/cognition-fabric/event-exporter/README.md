@@ -54,7 +54,7 @@ needs `CREATE TABLE` and `INSERT` permissions. Startup fails if initialization f
 | Total database write budget per OTLP request | `CLICKHOUSE_TIMEOUT` | `10s` |
 
 Use HTTPS for remote deployments; endpoints must not embed credentials or query
-parameters. Compose uses the same database settings as the analytics API, with
+parameters. Compose uses the same database settings as the Cognition Fabric API, with
 `claris` as its default database.
 
 ## Normalized Event Storage
@@ -77,8 +77,8 @@ It uses `ReplacingMergeTree`, monthly event-time partitions, and no automatic TT
 App and tenant IDs are read from log attributes first, then resource attributes:
 `application_id` (preferred), `app_id`, or `application.id`, and `tenant_id` or `tenant.id`. They are storage
 metadata, not additions to the realtime event schema. Incoming attributes are not
-an authorization mechanism. The analytics API's
-[realtime pull endpoints](../ioc-analytics-api/api/README.md#realtime-event-pull-api)
+an authorization mechanism. The Cognition Fabric API's
+[realtime pull endpoints](../../../backend/api/README.md#cognition-fabric-endpoints)
 accept optional tenant/MAS scope filters; omitting them broadens the query.
 A trusted gateway must authenticate callers and authorize the requested scope,
 including queries with omitted scope filters, before allowing access.

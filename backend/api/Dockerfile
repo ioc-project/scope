@@ -23,16 +23,21 @@ COPY uv.lock /src/api/uv.lock
 COPY api/pyproject.toml /src/api/pyproject.toml
 COPY --from=ontology . /ontology
 
+ARG SCOPE_API_EXTRAS=""
+
 # Install dependencies without installing source code yet.
 RUN --mount=type=cache,target=/root/.cache/uv \
-  cd /src && uv sync --frozen --no-dev --no-install-project --no-install-workspace --no-sources --extra latent-space --extra clickhouse-sqlalchemy --project /src/api
+  cd /src && uv sync --frozen --no-dev --no-install-project --no-install-workspace --no-sources --extra latent-space --extra clickhouse-sqlalchemy $SCOPE_API_EXTRAS --project /src/api
 
 # Copy the API source code.
 COPY api /src/api
+COPY mce/mce-core /src/mce/mce-core
+COPY mce/mce-provider-native /src/mce/mce-provider-native
+COPY mce/mce-provider-sdk /src/mce/mce-provider-sdk
 
 # Install the ioc-scope-api package
 RUN --mount=type=cache,target=/root/.cache/uv \
-  cd /src && uv sync --frozen --no-dev --no-editable --extra latent-space --extra clickhouse-sqlalchemy --project /src/api
+  cd /src && uv sync --frozen --no-dev --no-editable --extra latent-space --extra clickhouse-sqlalchemy $SCOPE_API_EXTRAS --project /src/api
 
 FROM python:3.13-slim-trixie AS runner
 
@@ -46,3 +51,10 @@ USER user
 EXPOSE 8000
 
 CMD ["/app/bin/dev"]
+
+FROM runner AS cognition-fabric
+ENV SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS=true \
+    SCOPE_API_RELOAD=false \
+    CACHE_ENABLED=false
+
+FROM runner AS default

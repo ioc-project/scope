@@ -124,6 +124,32 @@ class RetrievalRequest:
 
 
 @dataclass
+class CEFinding:
+    """A CE finding (evaluation decision) stored in the Cognition Store."""
+
+    finding_id: str = ""
+    mas_id: str = ""
+    trace_id: str = ""
+    session_id: str = ""
+    outcome: str = ""
+    reason: str = ""
+    source_agent_id: str = ""
+    destination_agent_id: str = ""
+    action_class: str = ""
+    direction: str = ""
+    timestamp: str = ""
+
+
+@dataclass
+class PriorFindingsResult:
+    """Result of fetching prior CE findings."""
+
+    mas_id: str
+    findings: list[CEFinding] = field(default_factory=list)
+    context_complete: bool = True
+
+
+@dataclass
 class MetricRequirements:
     """Describes what data a metric computation needs.
 

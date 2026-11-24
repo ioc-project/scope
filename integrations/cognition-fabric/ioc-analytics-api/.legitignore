@@ -1,9 +1,0 @@
-value_amqp://guest:guest@localhost/ #default username and password for rabbitMQ
-value_guest:guest #default username and password for rabbitMQ
-value_PUT-SOMETHING-HERE # placeholder for password
-value_set-it-here
-value_your-llm-api-key-here
-
-value_url_https://artifactory.devhub-cloud.cisco.com/artifactory/api/pypi/outshift-pypi
-value_3D2A04A76C66938C6B68F1A78B9DE23F #false alert referring to variable with default neo4j setting
-Dockerfile

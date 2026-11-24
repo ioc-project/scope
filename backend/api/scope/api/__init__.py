@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from scope.api.api_v1.api import router as v1_router
+from scope.api.api_v1.api import create_router as create_v1_router
 from scope.api.api_v2.api import router as v2_router
 from scope.core.exceptions import SCOPEError
 from scope.health import healthz
@@ -23,6 +24,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Run one-time setup before the app starts serving requests."""
     _ensure_tables()
+    if app.state.cognition_fabric_endpoints:
+        from scope.api.cognition_fabric import ensure_cognition_store_tables
+
+        ensure_cognition_store_tables()
     _check_redis()
     yield
 
@@ -56,18 +61,9 @@ def _ensure_tables() -> None:
         logger.error("could not ensure trace_labels table: %s", exc)
 
 
-app = FastAPI(
-    title="SCOPE API",
-    description="REST API to retrieve data from databases",
-    version="0.1.0",
-    lifespan=lifespan,
-)
-
-
 # ── Centralized exception handlers ───────────────────────────────────────────
 
 
-@app.exception_handler(SCOPEError)
 async def scope_error_handler(request: Request, exc: SCOPEError) -> JSONResponse:
     """Map SCOPE domain exceptions to structured JSON error responses."""
     if exc.status_code < 500:
@@ -87,7 +83,6 @@ async def scope_error_handler(request: Request, exc: SCOPEError) -> JSONResponse
     )
 
 
-@app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all for unexpected errors — log and return 500."""
     logger.error("Unhandled %s: %s", type(exc).__name__, exc, exc_info=exc)
@@ -97,23 +92,40 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     )
 
 
-# Set all CORS enabled origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
-
-
 # ── Health check ─────────────────────────────────────────────────────────────
-@app.get("/healthz", tags=["health"])
 def health_check():
     """Liveness / keep-alive probe."""
     return healthz()
 
 
-# ── Versioned API (all new endpoints live here) ──────────────────────────────
-app.include_router(v1_router)
-app.include_router(v2_router)
+def create_app() -> FastAPI:
+    cognition_fabric_enabled = (
+        os.getenv("SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS", "false").lower() == "true"
+    )
+    app = FastAPI(
+        title="Cognition Fabric API" if cognition_fabric_enabled else "SCOPE API",
+        description="REST API to retrieve data from databases",
+        version="0.2.0" if cognition_fabric_enabled else "0.1.0",
+        lifespan=lifespan,
+    )
+    app.state.cognition_fabric_endpoints = cognition_fabric_enabled
+    app.add_exception_handler(SCOPEError, scope_error_handler)
+    app.add_exception_handler(Exception, unhandled_error_handler)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+    app.get("/healthz", tags=["health"])(health_check)
+    app.include_router(create_v1_router(cognition_fabric_enabled))
+    if cognition_fabric_enabled:
+        from scope.api.cognition_fabric import router
+
+        app.include_router(router)
+    app.include_router(v2_router)
+    return app
+
+
+app = create_app()

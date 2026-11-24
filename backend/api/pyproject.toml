@@ -34,6 +34,12 @@ latent-space = [
     "umap-learn>=0.5.7",
     "numba>=0.60.0",
 ]
+cognition-fabric = [
+    "psycopg2-binary>=2.9.10",
+    "ioc-scope-mce-core>=2.0.0",
+    "ioc-scope-mce-provider-native>=2.0.0",
+    "ioc-scope-mce-provider-sdk>=2.0.0",
+]
 
 
 [build-system]
@@ -47,6 +53,10 @@ packages = ["scope"]
 dev = "scope.app:main"
 
 [dependency-groups]
+client-gen = [
+    "openapi-python-client>=0.29.1,<0.30.0",
+    "pyyaml>=6.0",
+]
 dev = [
     "fakeredis>=2.0.0",
     "httpx>=0.28.1",

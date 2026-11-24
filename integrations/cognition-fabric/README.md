@@ -11,7 +11,7 @@ SCOPE processes each session through three stages:
 1. **Observe and normalize** OTel spans and runtime events into a common MAS execution model.
 2. **Enrich** the Knowledge Graph with metrics, embeddings, semantic groups, findings, impact,
 	 resource-use analysis, and evaluation results.
-3. **Explain** observed behavior through insights exposed by the Analytics API and Intelligence
+3. **Explain** observed behavior through insights exposed by the Cognition Fabric API and Intelligence
 	 Catalog.
 
 The Knowledge Graph is the shared spine of the platform. Pipeline stages write enriched data to it,
@@ -39,8 +39,10 @@ cd integrations/cognition-fabric
 cp .env.template .env
 ```
 
-Edit `.env` to point to a ClickHouse instance. Compose builds the Analytics API and event
+Edit `.env` to point to a ClickHouse instance. Compose builds the Cognition Fabric API and event
 exporter locally, starts RabbitMQ and Neo4j, and pulls the `norm` worker image from GHCR.
+Set `POSTGRES_URL` in `.env` for the Cognition Store (or use the
+[local Postgres overlay](#local-postgres-for-cognition-store)).
 Authenticate to GHCR if needed:
 
 ```bash
@@ -60,7 +62,8 @@ OXP_IMG_TAG=1.2.3 docker compose up               # pin a specific version
 CLARIS_REGISTRY=my.registry/path docker compose up # use a mirror
 ```
 
-The [Analytics API](ioc-analytics-api/README.md) still uses
+The [Cognition Fabric API](../../backend/api/README.md#cognition-fabric-endpoints)
+runs the same SCOPE backend with `SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS=true`. It still uses
 [SCOPE's MCE packages](../../backend/mce) to compute metrics on demand. This stack does not
 run background enrichment workers or a Redis cache.
 
@@ -70,6 +73,16 @@ Compose builds `event-exporter` locally and exposes its OTLP/gRPC endpoint on po
 `EVENT_EXPORTER_CONFIG_FILE` to mount a different rules file.
 The shipped rules use `localhost:9100` for callbacks, which refers to the exporter container in
 Compose; use a reachable callback address in your rules file to deliver notifications.
+
+### Local Postgres for Cognition Store
+
+To use a local Postgres instance instead of an external `POSTGRES_URL`, leave
+`POSTGRES_URL` and `DATABASE_URL` unset in `.env`, set `POSTGRES_PASSWORD` there,
+and start Compose with the overlay:
+
+```bash
+docker compose -f docker-compose.yml -f cognition-store.yml up --build
+```
 
 ## Container image releases
 

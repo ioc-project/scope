@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Annotated, Any, Generator
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 
 try:
     from fastapi import Path as _FastAPIPath
@@ -49,6 +49,7 @@ else:
 # _db_connector: ClickHouseConnector | None = None
 _db_connector: SQLAlchemyConnector | None = None
 _neo4j_connector: Neo4JConnector | None = None
+_postgres_connector: SQLAlchemyConnector | None = None
 _redis_client: Any | None = None
 
 
@@ -137,6 +138,27 @@ def get_neo4j_db() -> Generator[Connector, None, None]:
     yield _get_neo4j_singleton()
 
 
+def get_postgres_db() -> Generator[SQLAlchemyConnector, None, None]:
+    """Provide the shared Postgres connector for Cognition Store."""
+    global _postgres_connector
+    if _postgres_connector is None:
+        url = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+        if not url:
+            host = os.getenv("POSTGRES_HOST", "localhost")
+            port = os.getenv("POSTGRES_PORT", "5432")
+            username = os.getenv("POSTGRES_USER", "oxppostgresuser")
+            password = os.getenv("POSTGRES_PASSWORD", "")
+            database = os.getenv("POSTGRES_DB", "oxp")
+            url = (
+                f"postgresql://{quote_plus(username)}:{quote_plus(password)}"
+                f"@{host}:{port}/{database}"
+            )
+        connector = SQLAlchemyConnector(url=url)
+        connector.connect()
+        _postgres_connector = connector
+    yield _postgres_connector
+
+
 def get_neo4j_connector() -> Connector:
     """Return the shared Neo4j connector configured from API settings/env."""
     return _get_neo4j_singleton()
@@ -149,7 +171,7 @@ def get_redis() -> Any:
 
 def close_all() -> None:
     """Dispose singleton connectors (call during app shutdown)."""
-    global _db_connector, _neo4j_connector, _redis_client
+    global _db_connector, _neo4j_connector, _postgres_connector, _redis_client
     if _db_connector is not None:
         _db_connector.close()
         _db_connector = None
@@ -161,4 +183,7 @@ def close_all() -> None:
     if _redis_client is not None:
         _redis_client.close()
         _redis_client = None
+    if _postgres_connector is not None:
+        _postgres_connector.close()
+        _postgres_connector = None
         logger.info("Redis singleton client closed")

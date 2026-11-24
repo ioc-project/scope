@@ -21,6 +21,7 @@ from scope.client._kg import KGClient
 from scope.client._labels import LabelsClient
 from scope.client._live_topology import LiveTopologyClient
 from scope.client._metrics import MetricsClient
+from scope.client._realtime_events import RealtimeEventsClient
 from scope.client._semanticgroups import SemanticGroupsClient
 from scope.client._sessions import SessionsClient
 from scope.client._symbolic import SymbolicClient
@@ -32,6 +33,7 @@ from scope.query_builders.types import Dialect
 
 
 class LocalClient(
+    RealtimeEventsClient,
     UIClient,
     KGClient,
     SessionsClient,

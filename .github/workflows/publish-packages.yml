@@ -63,7 +63,7 @@ jobs:
               ("ioc-scope-ontology", "ontology"),
               ("ioc-scope-worker-base", "backend/worker-base"),
               ("ioc-scope-api", "backend/api"),
-              ("ioc-scope-client", "integrations/cognition-fabric/ioc-analytics-api/api/clients/python"),
+              ("ioc-scope-client", "backend/api/clients/python"),
               ("ioc-scope-norm", "backend/norm"),
               ("ioc-scope-mce-core", "backend/mce/mce-core"),
               ("ioc-scope-mce-helper", "backend/mce/mce-helper"),
@@ -129,18 +129,18 @@ jobs:
           uv tool install build
           uv tool install twine
 
-      - name: Generate the Analytics API client
+      - name: Generate the Cognition Fabric API client
         if: matrix.name == 'ioc-scope-client'
-        working-directory: integrations/cognition-fabric/ioc-analytics-api/api
+        working-directory: backend/api
         run: >-
-          uv run --locked --python 3.13 --package oxp-api --only-group client-gen
+          uv run --locked --python 3.13 --package ioc-scope-api --only-group client-gen
           openapi-python-client generate --path specs/oxp_openapi.yaml
           --config clients/python/openapi-python-client.yaml
           --meta setup --output-path clients/python --overwrite
 
-      - name: Test the Analytics API client
+      - name: Test the Cognition Fabric API client
         if: matrix.name == 'ioc-scope-client'
-        working-directory: integrations/cognition-fabric/ioc-analytics-api/api/clients/python
+        working-directory: backend/api/clients/python
         run: uv run --no-project --python 3.11 --with pytest --with httpx --with attrs python -m pytest -q tests
 
       - name: Build package

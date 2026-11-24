@@ -75,14 +75,17 @@ services:
 
   ioc-analytics-api:
     build:
-      context: ./ioc-analytics-api
+      context: ../../backend
       additional_contexts:
-        scope_backend: ../../backend
         ontology: ../../ontology
       dockerfile: api/Dockerfile
+      target: cognition-fabric
+      args:
+        SCOPE_API_EXTRAS: --extra cognition-fabric
     env_file: .env
     environment:
-      OXP_API_RELOAD: "false"
+      SCOPE_API_RELOAD: "false"
+      SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS: "${SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS:-true}"
       CACHE_ENABLED: "false"
       CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-host.docker.internal}
       CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8123}

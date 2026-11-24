@@ -1,0 +1,20 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+#
+# Mirrors workers.cognitive-failure.config in k8s/charts/scope/values.yaml.
+# The failures of the challenges taxonomy to look for. Only the ones listed run, and each one listed makes the
+# judge prompt longer; with none, nothing is detected. See backend/cognitive_failure_config.yaml for the others.
+failures:
+  # Individual
+  - IR-1   # earlier instructions lost as the context fills
+  - IC-1   # a commitment dropped under interference
+  - IC-2   # the plan is not revised when the context changes
+  - IE-1   # false confidence: does not know what it does not know
+  # Dyadic
+  - DR-2   # information lost or truncated at a handoff
+  - DC-3   # positions exchanged, no binding proposal
+  - DC-4   # task delegated to the wrong peer
+  - DE-1   # query routed to a peer without the knowledge, or the worse reply adopted
+  # Collective
+  - CC-3   # conflicting sub-agent outputs committed without reconciliation
+  - CE-1   # confident output with no collective verification

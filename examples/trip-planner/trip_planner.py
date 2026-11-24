@@ -24,6 +24,8 @@ import os
 from pathlib import Path
 from typing import Literal, TypedDict
 
+import certifi
+import httpx
 from ioa_observe.sdk import Observe
 from ioa_observe.sdk.decorators import agent, graph, tool as observed_tool
 from ioa_observe.sdk.tracing import session_start
@@ -149,6 +151,7 @@ llm = ChatOpenAI(
     temperature=0,
     base_url=os.getenv("OPENAI_BASE_URL"),
     api_key=os.getenv("OPENAI_API_KEY"),
+    http_client=httpx.Client(verify=certifi.where()),
 )
 
 SPECIALISTS = {

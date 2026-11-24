@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 # Notification rules: each normalized client event is matched against every
 # rule's filter expression; a match triggers a POST to that rule's callback_url.
 #

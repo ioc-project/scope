@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Package config loads the notification rules file: a list of
 // (filter expression, callback URL) entries.
 package config

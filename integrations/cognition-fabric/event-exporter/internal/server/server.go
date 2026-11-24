@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Package server implements the OTLP/gRPC logs collector service: it prints
 // normalized events and evaluates them against notification rules.
 package server

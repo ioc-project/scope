@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Command event-exporter is a minimal OTLP/gRPC logs endpoint: it accepts
 // logs over gRPC, prints every request it receives, and evaluates each log
 // record's attributes against a configured set of notification rules.

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 project_name_override: ioc-scope-client
 package_name_override: scope_client
 post_hooks:

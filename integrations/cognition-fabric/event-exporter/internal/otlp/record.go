@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Package otlp flattens OTLP log payloads into a structured shape that
 // mirrors the ClickHouse otel_logs table:
 //

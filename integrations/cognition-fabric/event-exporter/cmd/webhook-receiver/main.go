@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Command webhook-receiver is a minimal HTTP server for locally exercising
 // the notification rules in config.yaml: it exposes a single callback
 // endpoint, prints the body of every request it receives, and responds

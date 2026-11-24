@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 package otlp
 
 //go:generate go run github.com/atombender/go-jsonschema@v0.24.1 --only-models --tags json --capitalization ID --package otlp --output client_event_gen.go realtime-client-event.schema.json

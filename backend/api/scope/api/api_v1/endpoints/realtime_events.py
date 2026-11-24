@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Pull access to the normalized events persisted by event-exporter."""
 
 from __future__ import annotations

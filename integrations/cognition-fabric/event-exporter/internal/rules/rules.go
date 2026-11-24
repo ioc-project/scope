@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+// SPDX-License-Identifier: Apache-2.0
+
 // Package rules compiles configured filter expressions and evaluates them
 // against a log record's attributes.
 package rules

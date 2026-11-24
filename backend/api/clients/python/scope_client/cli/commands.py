@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Curated CLI commands. Each one wraps a generated endpoint module's ``sync_detailed``."""
 
 import argparse

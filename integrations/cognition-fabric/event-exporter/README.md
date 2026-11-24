@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # event-exporter
 
 A minimal OTLP/gRPC logs endpoint. It accepts logs exported by an OpenTelemetry

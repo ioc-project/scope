@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Contracts for generic cognition-store items and subscriptions."""
 
 from datetime import datetime

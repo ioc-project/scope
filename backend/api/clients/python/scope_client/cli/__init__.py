@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Command line interface for making simple requests to the OXP API.
 
 Usage: ``python -m scope_client.cli [options] <command> [command options]``.

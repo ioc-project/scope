@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Subscription endpoint tests backed by isolated PostgreSQL schemas."""
 
 import json

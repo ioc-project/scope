@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Opt-in SQL integration tests against an existing local ClickHouse container.
 
 Set OXP_REALTIME_CLICKHOUSE_CONTAINER to its container ID/name. These tests create

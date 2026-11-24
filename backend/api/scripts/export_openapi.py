@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
 """Export the Cognition Fabric OpenAPI spec without starting the server.
 
 The FastAPI lifespan is not run and Neo4j connecting is disabled, so no Redis

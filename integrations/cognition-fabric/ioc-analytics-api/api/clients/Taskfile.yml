@@ -1,6 +1,6 @@
 version: "3"
 
-# Defaults match the claris-api service in the root docker-compose.yml
+# Defaults match the ioc-analytics-api service in the integration's docker-compose.yml
 # (host port 8081, no auth). Override with env vars or `task OXP_BASE_URL=...`.
 # A bearer token is read from OXP_TOKEN by the CLI. Global CLI options (--expect-*, --retries)
 # must come before the subcommand.
@@ -33,9 +33,9 @@ tasks:
       - uv run --frozen --project ../.. --package oxp-api --only-group client-gen openapi-python-client generate --path {{.SPEC}} --config openapi-python-client.yaml --meta setup --output-path . --overwrite
 
   up:
-    desc: Start the claris-api service (and its dependencies) from the root docker-compose.yml
+    desc: Start ioc-analytics-api and its dependencies from the integration's Compose file
     cmds:
-      - docker compose -f {{.COMPOSE_FILE}} up -d claris-api
+      - docker compose -f {{.COMPOSE_FILE}} up -d ioc-analytics-api
 
   down:
     desc: Stop the services started by the root docker-compose.yml

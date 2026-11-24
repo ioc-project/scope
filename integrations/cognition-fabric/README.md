@@ -30,15 +30,18 @@ its curated Insights.
 
 ## Local setup
 
-This is a separate Compose stack from SCOPE's default deployment. From the SCOPE repository root:
+This is a separate Compose stack from SCOPE's default deployment. Its project name is
+`scope-cognition-fabric`, so Compose generates container names such as
+`scope-cognition-fabric-ioc-analytics-api-1`. From the SCOPE repository root:
 
 ```bash
 cd integrations/cognition-fabric
 cp .env.template .env
 ```
 
-Edit `.env` for your environment. The Analytics API, event exporter, and SCOPE MCE worker build
-locally. The other workers still pull their existing GHCR images. Authenticate to GHCR if needed:
+Edit `.env` to point to a ClickHouse instance. Compose builds the Analytics API and event
+exporter locally, starts RabbitMQ and Neo4j, and pulls the `norm` worker image from GHCR.
+Authenticate to GHCR if needed:
 
 ```bash
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <your-github-username> --password-stdin
@@ -50,18 +53,16 @@ Start the stack:
 docker compose up --build
 ```
 
-Override the registry or tag for the prebuilt workers, or supply a custom MCE config:
+Override the registry or tag for the prebuilt `norm` worker as needed:
 
 ```bash
 OXP_IMG_TAG=1.2.3 docker compose up               # pin a specific version
 CLARIS_REGISTRY=my.registry/path docker compose up # use a mirror
-MCE_CONFIG_FILE=/path/to/mce_config.yaml docker compose up
 ```
 
-The `mce` worker and [Analytics API](ioc-analytics-api/README.md) share the implementation in
-[SCOPE's MCE packages](../../backend/mce). The worker defaults to
-[SCOPE's shared MCE configuration](../../deploy/docker-compose/config/mce_config.yaml).
-The Analytics API does not read that file.
+The [Analytics API](ioc-analytics-api/README.md) still uses
+[SCOPE's MCE packages](../../backend/mce) to compute metrics on demand. This stack does not
+run background enrichment workers or a Redis cache.
 
 Compose builds `event-exporter` locally and exposes its OTLP/gRPC endpoint on port `4417`, leaving
 `4317` available for the OTel Collector. Collectors on the Compose network can send logs to

@@ -78,7 +78,7 @@ The API is then available at **http://127.0.0.1:8000** (`OXP_API_PORT` to change
 Notes:
 - `dev` (`scope.app:main`) starts `uvicorn` on `0.0.0.0` with **auto-reload enabled by default**. Set `OXP_API_RELOAD=false` for anything that is not local development.
 - To run uvicorn directly: `uvicorn scope.api:app --host 0.0.0.0 --port 8000`. The ASGI application is `scope.api:app` (not `scope.app:app`).
-- The OXP worker containers ([`docker-compose.yml`](../docker-compose.yml)) expect the API at `http://host.docker.internal:8081` (`API_BASE_URL`), so use `OXP_API_PORT=8081` when running it for the compose stack.
+- The Cognition Fabric worker containers ([`docker-compose.yml`](../../docker-compose.yml)) expect the API at `http://host.docker.internal:8081` (`API_BASE_URL`), so use `OXP_API_PORT=8081` when running the API outside Compose.
 - At startup the API creates the `trace_labels` table if needed and pings Redis (logging whether caching is enabled). Neo4j and Redis outages do not prevent startup: Neo4j-backed endpoints (metrics in particular) answer `503` until the database is reachable.
 
 ### Database schemas

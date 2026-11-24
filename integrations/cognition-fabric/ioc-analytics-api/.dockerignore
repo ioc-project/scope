@@ -1,0 +1,13 @@
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+.git
+.gitignore
+.DS_Store
+**/.env
+**/.pytest_cache
+**/*.egg-info
+**/.mypy_cache
+**/.ruff_cache
+html_data.json

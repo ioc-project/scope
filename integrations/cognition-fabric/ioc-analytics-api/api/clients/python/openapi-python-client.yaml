@@ -1,0 +1,5 @@
+project_name_override: ioc-scope-client
+package_name_override: scope_client
+post_hooks:
+  - "ruff check . --fix-only"
+  - "ruff format ."

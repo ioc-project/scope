@@ -1,0 +1,40 @@
+[project]
+name = "oxp-lib"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "api",
+]
+[tool.uv.sources]
+oxp-api = { workspace = true }
+ioc-scope-mce-core = { path = "../../../backend/mce/mce-core", editable = true }
+ioc-scope-mce-provider-native = { path = "../../../backend/mce/mce-provider-native", editable = true }
+ioc-scope-mce-provider-sdk = { path = "../../../backend/mce/mce-provider-sdk", editable = true }
+ioc-scope-ontology = { path = "../../../ontology", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "pytest-asyncio>=0.21.0",
+    "requests-mock",
+    "pytest-docker>=3.2.5",
+    "ruff<=0.15.22",
+]
+
+[tool.pytest.ini_options]
+# Root pytest should only run root-owned package suites.
+testpaths = [
+    "api/tests",
+]
+pythonpath = [
+    "api",
+]
+addopts = [
+    "--import-mode=importlib",
+]

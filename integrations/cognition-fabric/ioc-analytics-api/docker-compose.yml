@@ -1,0 +1,422 @@
+name: oxp
+
+x-rabbitmq-env: &rabbitmq-env
+  RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+  RABBITMQ_URL: amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672/ # legit:ignore
+
+x-worker-env: &worker-env
+  <<: *rabbitmq-env
+  HOME: /oxp
+  MPLCONFIGDIR: /oxp/.config/matplotlib
+  API_BASE_URL: http://host.docker.internal:8081
+  NEO4J_HOST: neo4j:7687
+  NEO4J_URI: bolt://neo4j:7687
+  UV_LINK_MODE: copy
+  UV_PROJECT_ENVIRONMENT: /opt/venv
+  PYTHONUNBUFFERED: 1
+  MLFLOW_TRACKING_URI: http://${MLFLOW_HOST}:${MLFLOW_PORT:-5000}
+  CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-host.docker.internal}
+  CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8123}
+  CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-admin}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
+
+x-worker-base: &worker-base
+  env_file: .env
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+    neo4j:
+      condition: service_healthy
+  volumes:
+    - /dev/null:/app/workflows/.env
+  environment: *worker-env
+
+x-artifactory-build-secrets: &artifactory-build-secrets
+  - ARTIFACTORY_USERNAME
+  - ARTIFACTORY_PASSWORD
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD} # legit:ignore
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  claris-api:
+    build:
+      context: .
+      additional_contexts:
+        scope_backend: ../../../backend
+        ontology: ../../../ontology
+      dockerfile: api/Dockerfile
+    env_file: .env
+    environment:
+      CLARIS_API_RELOAD: "false"
+      CACHE_ENABLED: "false"
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-host.docker.internal}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8123}
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USERNAME:-admin}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-claris}
+      NEO4J_HOST: neo4j
+      NEO4J_PORT: ${NEO4J_PORT:-7687}
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+      NEO4J_DATABASE: ${NEO4J_DATABASE:-neo4j}
+    ports:
+      - "8081:8000"
+    restart: unless-stopped
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  neo4j:
+    image: neo4j:latest
+    volumes:
+        - /$HOME/neo4j/logs:/logs
+        - /$HOME/neo4j/config:/config
+        - /$HOME/neo4j/data:/data
+        - /$HOME/neo4j/plugins:/plugins
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    restart: always
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-testpassword} # legit:ignore
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  norm:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/norm-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command: ["--max-sessions", "-1"]
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${NORM_MAX_INFLIGHT_MESSAGES:-64}
+    restart: always
+
+  embedding:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/embedding-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command: ["--embedder-type", "OpenAIEmbedder", "--embedding-model", "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"]
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${EMBEDDING_MAX_INFLIGHT_MESSAGES:-16}
+      EMBEDDING_OUTPUT_QUEUE: ${EMBEDDING_OUTPUT_QUEUE:-new_session_to_grouping,new_session_embedding_to_decision_block}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  mce:
+    <<: *worker-base
+    build:
+      context: ../../../backend
+      additional_contexts:
+        ontology: ../../../ontology
+      dockerfile: workers/mce-worker/deploy/docker/Dockerfile
+    entrypoint: ["/opt/venv/bin/mce-worker-cli"]
+    environment:
+      <<: *worker-env
+      MCE_CONFIG_PATH: /scope/mce_config.yaml
+      NEO4J_DB: ${NEO4J_DATABASE:-neo4j}
+      MAX_INFLIGHT_MESSAGES: ${MCE_MAX_INFLIGHT_MESSAGES:-16}
+    volumes:
+      - ${MCE_CONFIG_FILE:-../mce_config.yaml}:/scope/mce_config.yaml:ro
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  grouping:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/grouping-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command: ["--embedding-model", "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"]
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${GROUPING_MAX_INFLIGHT_MESSAGES:-16}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  analysis:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/analysis-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command:
+      - "--embedding-model"
+      - "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${ANALYSIS_MAX_INFLIGHT_MESSAGES:-3}
+      ANOMALY_CONFIG_FILE: ${ANOMALY_CONFIG_FILE:-}
+      CONSISTENCY_CONFIG_FILE: ${CONSISTENCY_CONFIG_FILE:-}
+      NORMAL_BEHAVIOUR_CONFIG_FILE: ${NORMAL_BEHAVIOUR_CONFIG_FILE:-}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  hierarchical-grouping:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/hierarchical-grouping-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command:
+      - "--embedding-model"
+      - "${EMBEDDING_MODEL:-azure/text-embedding-3-small}"
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${HIERARCHICAL_GROUPING_MAX_INFLIGHT_MESSAGES:-1}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  intelligence:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/intelligence-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command:
+      - "--catalog-root"
+      - "intelligence-catalog"
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${INTELLIGENCE_MAX_INFLIGHT_MESSAGES:-1}
+      PERIODIC_TRIGGER_INTERVAL_SECONDS: ${INTELLIGENCE_PERIODIC_TRIGGER_INTERVAL_SECONDS:-600}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  decision-block:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/decision-block-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    environment:
+      <<: *worker-env
+      MAX_INFLIGHT_MESSAGES: ${DECISION_BLOCK_MAX_INFLIGHT_MESSAGES:-8}
+      DB_INPUT_QUEUE: ${DB_INPUT_QUEUE:-new_session_embedding_to_decision_block}
+      DB_NSEVAL_OUTPUT_Q: ${DB_NSEVAL_OUTPUT_Q:-new_session_to_nseval}
+      DB_STATEFUL_OUTPUT_Q: ${DB_STATEFUL_OUTPUT_Q:-new_session_to_stateful_eval}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      embedding:
+        condition: service_started
+
+  stateful-eval:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/stateful-eval-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    environment:
+      <<: *worker-env
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-${AI_GATEWAY_API_KEY:-}}
+      STATEFUL_EVAL_INPUT_QUEUE: ${STATEFUL_EVAL_INPUT_QUEUE:-new_session_to_stateful_eval}
+      MAX_INFLIGHT_MESSAGES: ${STATEFUL_EVAL_MAX_INFLIGHT_MESSAGES:-8}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      decision-block:
+        condition: service_started
+
+  neurosymbolic-eval:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/neurosymbolic-eval-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    environment:
+      <<: *worker-env
+      NSEVAL_INPUT_QUEUE: ${NSEVAL_INPUT_QUEUE:-new_session_to_nseval}
+      MAX_INFLIGHT_MESSAGES: ${NSEVAL_MAX_INFLIGHT_MESSAGES:-8}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      decision-block:
+        condition: service_started
+
+  impact_assessment_inference:
+    <<: *worker-base
+    build:
+      context: .
+      dockerfile: workers/impact-assessment-inference-worker/deploy/docker/Dockerfile
+      secrets: *artifactory-build-secrets
+    command: ["--max-sessions", "-1"]
+    profiles: ["mlflow"]
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      norm:
+        condition: service_started
+
+  mlflow_db:
+    image: postgres:17
+    profiles: ["mlflow"]
+    environment:
+      POSTGRES_USER: ${MLFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${MLFLOW_DB_PASSWORD}
+      POSTGRES_DB: ${MLFLOW_DB_NAME}
+    volumes:
+      - mlflow_db_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MLFLOW_DB_USER} -d ${MLFLOW_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    profiles: ["mlflow"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - ${MINIO_PORT:-9000}:${MINIO_PORT:-9000}
+      - ${MINIO_CONSOLE_PORT:-9001}:${MINIO_CONSOLE_PORT:-9001}
+    volumes:
+      - minio_data:/data
+    command: server /data --address ":${MINIO_PORT:-9000}" --console-address ":${MINIO_CONSOLE_PORT:-9001}"
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MINIO_PORT:-9000}/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio_init:
+    image: minio/mc:latest
+    profiles: ["mlflow"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:${MINIO_PORT:-9000} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing myminio/${MLFLOW_BUCKET_NAME};
+      exit 0;
+      "
+
+  mlflow:
+    build:
+      context: ./local_mlflow_for_testing
+      dockerfile: Dockerfile
+    profiles: ["mlflow"]
+    environment:
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
+      MLFLOW_BACKEND_STORE_URI: postgresql://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@mlflow_db:5432/${MLFLOW_DB_NAME}
+      MLFLOW_S3_ENDPOINT_URL: http://minio:${MINIO_PORT:-9000}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - ${MLFLOW_PORT:-5000}:${MLFLOW_PORT:-5000}
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port ${MLFLOW_PORT:-5000}
+      --backend-store-uri postgresql://${MLFLOW_DB_USER}:${MLFLOW_DB_PASSWORD}@mlflow_db:5432/${MLFLOW_DB_NAME}
+      --serve-artifacts
+      --artifacts-destination s3://${MLFLOW_BUCKET_NAME}/
+    restart: always
+    depends_on:
+      mlflow_db:
+        condition: service_healthy
+      minio_init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT:-5000}/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  mlflow_preloading:
+    build:
+      context: ./local_mlflow_for_testing/mlflow_preloading
+      dockerfile: Dockerfile
+    profiles: ["mlflow"]
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:${MLFLOW_PORT:-5000}
+
+volumes:
+  mlflow_db_data:
+  minio_data:
+
+secrets:
+  ARTIFACTORY_USERNAME:
+    environment: "UV_INDEX_OUTSHIFT_PYPI_USERNAME"
+  ARTIFACTORY_PASSWORD:
+    environment: "UV_INDEX_OUTSHIFT_PYPI_PASSWORD"

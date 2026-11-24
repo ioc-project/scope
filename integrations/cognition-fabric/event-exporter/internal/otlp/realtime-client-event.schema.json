@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agntcy.org/schemas/observe/realtime-client-event/1.0.0",
+  "title": "AGNTCY Observe Realtime Client Event",
+  "description": "A normalized event delivered to a client after subscription rules have matched.",
+  "allOf": [
+    { "$ref": "#/$defs/envelope" },
+    {
+      "oneOf": [
+        { "$ref": "#/$defs/sessionEvent" },
+        { "$ref": "#/$defs/agentEvent" },
+        { "$ref": "#/$defs/topologyEvent" },
+        { "$ref": "#/$defs/llmEvent" },
+        { "$ref": "#/$defs/toolEvent" },
+        { "$ref": "#/$defs/messageEvent" },
+        { "$ref": "#/$defs/definitionEvent" }
+      ]
+    }
+  ],
+  "$defs": {
+    "envelope": {
+      "type": "object",
+      "required": ["type", "time", "session", "source", "correlation", "data"],
+      "properties": {
+        "event_id": { "type": "string", "minLength": 1, "description": "Producer-supplied event.id, when present." },
+        "type": { "type": "string", "description": "Canonical runtime event name." },
+        "time": { "type": "string", "format": "date-time", "description": "Time at which the source event occurred." },
+        "session": {
+          "type": "object",
+          "required": ["id", "sequence"],
+          "properties": {
+            "id": { "type": "string", "description": "Source session ID, or empty for sessionless definition observations." },
+            "sequence": { "type": "integer", "minimum": 0, "description": "Source snapshot version; definition observations may use zero." }
+          },
+          "additionalProperties": false
+        },
+        "source": {
+          "type": "object",
+          "required": ["service_name"],
+          "properties": {
+            "service_name": { "type": "string", "minLength": 1 },
+            "service_version": { "type": "string" },
+            "instrumentation_scope": { "type": "string" },
+            "instrumentation_scope_version": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "correlation": {
+          "type": "object",
+          "properties": {
+            "trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+            "span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+            "call_id": { "type": "string", "minLength": 1, "description": "Tool, LLM, or protocol call identifier when one exists." },
+            "message_id": { "type": "string", "minLength": 1 },
+            "fork_id": { "type": "string", "minLength": 1 },
+            "parent_event_id": { "type": "string", "minLength": 1, "description": "Producer-supplied event.parent.id linking to the originating event." },
+            "trace_flags": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "data": { "type": "object" }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": { "type": { "enum": ["a2a.agent_card", "mcp.tools.discovered", "mcp.tools.published"] } },
+        "required": ["type"]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "session": {
+            "properties": {
+              "id": { "minLength": 1 },
+              "sequence": { "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "sessionEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["topology.session.started", "topology.session.completed"] },
+        "data": { "$ref": "#/$defs/sessionData" }
+      }
+    },
+    "agentEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["topology.node.started", "topology.node.completed"] },
+        "data": { "$ref": "#/$defs/agentData" }
+      }
+    },
+    "topologyEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "topology.edge.updated" },
+        "data": { "$ref": "#/$defs/topologyData" }
+      }
+    },
+    "llmEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["llm.started", "llm.completed"] },
+        "data": { "$ref": "#/$defs/llmData" }
+      }
+    },
+    "toolEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["tool.started", "tool.completed"] },
+        "data": { "$ref": "#/$defs/toolData" }
+      }
+    },
+    "messageEvent": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["a2a.message.sent", "a2a.message.received", "a2a.message.completed", "slim.message.sent", "slim.message.received", "mcp.message.sent", "mcp.message.received", "mcp.message.completed"]
+        },
+        "data": { "$ref": "#/$defs/messageData" }
+      }
+    },
+    "definitionEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["a2a.agent_card", "mcp.tools.discovered", "mcp.tools.published"] },
+        "data": { "$ref": "#/$defs/definitionData" }
+      }
+    },
+    "definitionData": {
+      "type": "object",
+      "required": ["capability"],
+      "properties": {
+        "capability": {
+          "type": "object",
+          "properties": {
+            "content": {},
+            "source": { "enum": ["server-published", "client-discovered"] },
+            "provider": {
+              "type": "object",
+              "required": ["id"],
+              "properties": { "id": { "type": "string" } },
+              "additionalProperties": false
+            },
+            "capture": {
+              "type": "object",
+              "required": ["state"],
+              "properties": { "state": { "enum": ["complete", "redacted", "disabled", "truncated", "unavailable"] } },
+              "additionalProperties": false
+            },
+            "content_size": { "type": "integer", "minimum": 0, "description": "Original content size in bytes, when reported by the producer." }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "sessionData": { "type": "object", "properties": {}, "additionalProperties": false },
+    "agentData": {
+      "type": "object",
+      "required": ["agent"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/agent" },
+        "input": {},
+        "output": {}
+      },
+      "additionalProperties": false
+    },
+    "topologyData": {
+      "type": "object",
+      "required": ["edge"],
+      "properties": {
+        "edge": {
+          "type": "object",
+          "required": ["id", "kind", "status", "source_agent", "target_agent"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "kind": { "type": "string", "minLength": 1 },
+            "status": { "enum": ["sent", "received", "observed"] },
+            "source_agent": { "type": "string", "minLength": 1 },
+            "target_agent": { "type": "string", "minLength": 1 },
+            "source_agent_trace_id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+            "source_agent_span_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+            "evidence": { "type": "string" },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "protocol": { "enum": ["agent_handoff", "a2a", "slim", "mcp"] },
+            "operation": { "type": "string" },
+            "message_id": { "type": "string" },
+            "fork_id": { "type": "string" },
+            "sequence": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "llmData": {
+      "type": "object",
+      "required": ["call_id", "model"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "agent": { "$ref": "#/$defs/agent" },
+        "operation": { "type": "string" },
+        "provider": { "type": "string" },
+        "response_id": { "type": "string" },
+        "input": {},
+        "output": {}
+      },
+      "additionalProperties": false
+    },
+    "toolData": {
+      "type": "object",
+      "required": ["tool"],
+      "properties": {
+        "tool": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "call_id": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "agent": { "$ref": "#/$defs/agent" },
+        "input": {},
+        "output": {}
+      },
+      "additionalProperties": false
+    },
+    "messageData": {
+      "type": "object",
+      "required": ["protocol", "source_agent", "target_agent"],
+      "properties": {
+        "protocol": { "enum": ["a2a", "slim", "mcp"] },
+        "source_agent": { "type": "string", "minLength": 1 },
+        "target_agent": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string" },
+        "message_id": { "type": "string" },
+        "fork_id": { "type": "string" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "input": {},
+        "output": {}
+      },
+      "additionalProperties": false
+    },
+    "agent": {
+      "type": "object",
+      "required": ["name"],
+      "properties": { "name": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    }
+  }
+}

@@ -31,6 +31,21 @@ group "backend" {
   ]
 }
 
+target "cognition-fabric-event-exporter" {
+  inherits   = ["docker-metadata-action"]
+  context    = "integrations/cognition-fabric/event-exporter"
+  dockerfile = "Dockerfile"
+  platforms  = ["linux/amd64", "linux/arm64"]
+}
+
+target "cognition-fabric-ioc-analytics-api" {
+  inherits   = ["docker-metadata-action"]
+  context    = "integrations/cognition-fabric/ioc-analytics-api"
+  contexts   = { scope_backend = "backend", ontology = "ontology" }
+  dockerfile = "api/Dockerfile"
+  platforms  = ["linux/amd64", "linux/arm64"]
+}
+
 target "ui" {
   inherits   = ["docker-metadata-action"]
   context    = "ui"

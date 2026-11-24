@@ -1,0 +1,6 @@
+# Takes precedence over the generated pyproject.toml (git-ignored), so ruff behaves the same
+# in CI, where the client has not been generated, as it does locally and in the generator's post_hooks.
+line-length = 120
+
+[lint]
+select = ["F", "I", "UP"]

@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
+name: Image Builder for Cognition Fabric
+
+on:
+  push:
+    tags:
+      - 'cognition-fabric-v*'
+  workflow_dispatch:
+
+jobs:
+  prep:
+    name: Compute image tag
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - name: Compute release or dry-run tag
+        id: tag
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == cognition-fabric-v* ]]; then
+            tag=${GITHUB_REF_NAME#cognition-fabric-v}
+          else
+            tag=build-${GITHUB_SHA:0:12}
+          fi
+          if [[ ! "$tag" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$ ]]; then
+            echo "::error::Invalid Docker image tag: $tag"
+            exit 1
+          fi
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+
+  call-docker-build-push:
+    name: Build and push ${{ matrix.target }}
+    needs: prep
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - cognition-fabric-event-exporter
+          - cognition-fabric-ioc-analytics-api
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/reusable-docker-build-push.yml
+    with:
+      bake-targets: ${{ matrix.target }}
+      image-tag: ${{ needs.prep.outputs.image-tag }}
+      image-repo: ghcr.io/ioc-project/container-images/scope-${{ matrix.target }}
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

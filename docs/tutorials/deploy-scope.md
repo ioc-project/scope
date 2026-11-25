@@ -79,8 +79,9 @@ docker compose ps
 ```
 
 `--build` builds the images from the checkout. Without it, Compose pulls
-`ghcr.io/ioc-project/container-images/scope-*:${SCOPE_VERSION}`, so those tags must
-exist in the registry. The first build takes a while.
+`ghcr.io/ioc-project/container-images/scope-*:${SCOPE_VERSION}` (the UI image uses
+`${SCOPE_UI_VERSION}`), so those tags must exist in the registry. The first build takes
+a while.
 
 All services should reach `running` (and `healthy` where a healthcheck exists), and
 `clickhouse-setup` should show `exited (0)`: it is a one-shot job.

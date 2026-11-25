@@ -188,7 +188,7 @@ services:
       retries: 5
 
   api:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-api:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-api:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:
@@ -221,7 +221,7 @@ services:
         condition: service_healthy
 
   ui:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-ui:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-ui:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../ui
       dockerfile: Dockerfile
@@ -273,7 +273,7 @@ services:
 
   # Reads the spans of a session into the knowledge graph (norm), and embeds its states (embedding).
   ingestion:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-ingestion-worker:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-ingestion-worker:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:
@@ -309,7 +309,7 @@ services:
   # Groups the sessions by semantic similarity (grouping, hierarchical-grouping), and analyses the groups: anomalies,
   # consistency and normal behaviour (analysis), and insights (intelligence).
   semantic-analysis:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-semantic-analysis-worker:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-semantic-analysis-worker:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:
@@ -351,7 +351,7 @@ services:
 
   # Computes the metrics of a session (mce) and evaluates its states (stateful-eval).
   eval:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-eval-worker:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-eval-worker:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:
@@ -383,7 +383,7 @@ services:
 
   # Detects cognitive failures of the challenges taxonomy: it makes a judge-model call for each session.
   cognitive-failure:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-cognitive-failure-worker:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-cognitive-failure-worker:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:
@@ -407,7 +407,7 @@ services:
   # Detects which Cognition protocols (ACCORD, CONCORD) a session used, and evaluates the ones it used.
   # To run the stack without it, stop the service and remove its queue from EMBEDDING_OUTPUT_QUEUE.
   cognition-protocols:
-    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-cognition-protocols-worker:${SCOPE_VERSION:-1.0.0}
+    image: ${SCOPE_IMAGE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-cognition-protocols-worker:${SCOPE_VERSION:-1.1.0}
     build:
       context: ../../backend
       additional_contexts:

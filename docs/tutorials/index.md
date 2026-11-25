@@ -7,7 +7,9 @@
 
 The tutorial covers manual Observe SDK setup,
 coding-harness workflows, distributed context propagation and verification of
-traces and analysis ingestion.
+traces and analysis ingestion. The Observe SDK is required: SCOPE skips spans from
+hand-written OpenTelemetry exporters. For a coding agent, the page has
+[ready-to-paste `AGENTS.md` instructions](instrument-your-app.md#instructions-for-coding-agents).
 
 <div class="button-row" markdown>
 [Instrument an agent manually or with a coding harness](instrument-your-app.md){ .md-button .md-button--primary }

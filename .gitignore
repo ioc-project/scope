@@ -160,8 +160,6 @@ terraform_output.json
 .idea
 
 
-*.txt
-
 .dockerconfigjson
 
 app/src/bedrock_agent/deploy

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-25
+
 ### Fixed
 
 - **The `mce` worker computed one session at a time.** `MCEWrapper.process_mce_session` was `async` but called the blocking

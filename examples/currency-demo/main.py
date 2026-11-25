@@ -24,23 +24,35 @@ def lookup_rate(currency: str) -> float:
     return RATES[currency]
 
 
-@tool(name="convert_currency", description="Converts an amount with an exchange rate, rounded to cents")
+@tool(
+    name="convert_currency",
+    description="Converts an amount with an exchange rate, rounded to cents",
+)
 def convert_currency(amount: float, rate: float) -> float:
     return round(amount * rate, 2)
 
 
-@agent(name="rate_provider", description="Looks up the exchange rate for the requested currency")
+@agent(
+    name="rate_provider",
+    description="Looks up the exchange rate for the requested currency",
+)
 def rate_provider(currency: str) -> float:
     return lookup_rate(currency)
 
 
-@agent(name="currency_assistant", description="Converts the amount with the rate it is handed and writes the answer")
+@agent(
+    name="currency_assistant",
+    description="Converts the amount with the rate it is handed and writes the answer",
+)
 def assistant(amount: float, rate: float) -> str:
     converted = convert_currency(amount, rate)
     return f"{amount:.2f} USD = {converted:.2f} EUR (example rate)"
 
 
-@graph(name="currency_conversion", description="Converts US dollars to euros with two cooperating agents")
+@graph(
+    name="currency_conversion",
+    description="Converts US dollars to euros with two cooperating agents",
+)
 def run(amount: float) -> str:
     return assistant(amount, rate_provider("EUR"))
 
@@ -51,5 +63,8 @@ def handle_request(amount: float) -> str:
 
 
 if __name__ == "__main__":
-    Observe.init("currency-demo", api_endpoint=os.getenv("OTLP_HTTP_ENDPOINT", "http://localhost:4318"))
+    Observe.init(
+        "currency-demo",
+        api_endpoint=os.getenv("OTLP_HTTP_ENDPOINT", "http://localhost:4318"),
+    )
     print(handle_request(float(sys.argv[1]) if len(sys.argv) > 1 else 100))

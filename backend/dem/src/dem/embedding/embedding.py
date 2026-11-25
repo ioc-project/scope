@@ -356,7 +356,9 @@ class OpenAIEmbedder(EmbeddingModel):
     @classmethod
     def _is_too_long(cls, exc: Exception) -> bool:
         """Whether the API refused the request because a text is over the model's token limit."""
-        return getattr(exc, "status_code", None) == 400 and bool(cls._TOO_LONG.search(str(exc)))
+        return getattr(exc, "status_code", None) == 400 and bool(
+            cls._TOO_LONG.search(str(exc))
+        )
 
     def _create_embeddings_fitting(self, batch: list[str]):
         """Embed a batch, shortening the texts that are over the model's token limit instead of failing all of it.
@@ -378,11 +380,18 @@ class OpenAIEmbedder(EmbeddingModel):
                 len(shortened),
                 len(batch),
                 self.model_id,
-                ", ".join(f"{i}: {before} -> {after}" for i, (before, after) in sorted(shortened.items())),
+                ", ".join(
+                    f"{i}: {before} -> {after}"
+                    for i, (before, after) in sorted(shortened.items())
+                ),
             )
-        return SimpleNamespace(data=[SimpleNamespace(embedding=vector) for vector in vectors])
+        return SimpleNamespace(
+            data=[SimpleNamespace(embedding=vector) for vector in vectors]
+        )
 
-    def _embed_fitting(self, texts: list[str], offset: int, shortened: dict[int, list[int]]) -> list:
+    def _embed_fitting(
+        self, texts: list[str], offset: int, shortened: dict[int, list[int]]
+    ) -> list:
         try:
             return [item.embedding for item in self._create_embeddings(texts).data]
         except Exception as exc:
@@ -390,9 +399,9 @@ class OpenAIEmbedder(EmbeddingModel):
                 raise
             if len(texts) > 1:
                 middle = len(texts) // 2
-                return self._embed_fitting(texts[:middle], offset, shortened) + self._embed_fitting(
-                    texts[middle:], offset + middle, shortened
-                )
+                return self._embed_fitting(
+                    texts[:middle], offset, shortened
+                ) + self._embed_fitting(texts[middle:], offset + middle, shortened)
             text = texts[0]
             if len(text) <= 1:
                 raise
@@ -413,7 +422,8 @@ class OpenAIEmbedder(EmbeddingModel):
         chars = 0
         for text in sentences:
             if batch and (
-                len(batch) >= self._MAX_BATCH_TEXTS or chars + len(text) > self._MAX_BATCH_CHARS
+                len(batch) >= self._MAX_BATCH_TEXTS
+                or chars + len(text) > self._MAX_BATCH_CHARS
             ):
                 yield batch
                 batch, chars = [], 0

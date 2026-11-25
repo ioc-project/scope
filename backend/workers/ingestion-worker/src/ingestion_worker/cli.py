@@ -4,7 +4,8 @@
 
 import sys
 
-from worker_base.runner import Member, main as run_group
+from worker_base.runner import Member
+from worker_base.runner import main as run_group
 
 GROUP = "ingestion"
 

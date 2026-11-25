@@ -95,7 +95,9 @@ const ApplicationDetails = () => {
     useApplicationSessionsWithStatefulEval(
       applicationId ?? '',
       debouncedStartDate,
-      debouncedEndDate
+      debouncedEndDate,
+      // Only the session detail view reads this; tabs fetch their own copy.
+      isSessionDetailView
     );
 
   const {
@@ -106,18 +108,19 @@ const ApplicationDetails = () => {
 
   const {
     data: applicationSummaryMetricsData,
-    isLoading: isLoadingApplicationSummaryMetrics
+    isLoading: isLoadingApplicationSummaryMetrics,
+    isError: applicationSummaryMetricsError
   } = useApplicationSummaryMetrics(
     applicationId ?? '',
     debouncedStartDate,
     debouncedEndDate
   );
 
-  const {
-    data: semanticGroupsData,
-    isLoading: semanticGroupsLoading,
-    isError: semanticGroupsError
-  } = useSemanticGroups(applicationId ?? '');
+  // Only needed to show the parent group of an open session.
+  const { data: semanticGroupsData } = useSemanticGroups(
+    applicationId ?? '',
+    Boolean(sessionId)
+  );
 
   const parentSemanticGroupSessionDetails = useMemo(() => {
     if (!semanticGroupsData || !sessionId) return null;
@@ -293,11 +296,7 @@ const ApplicationDetails = () => {
     semanticGroupDetailsData?.group_name
   ]);
 
-  if (
-    applicationListFetching ||
-    semanticGroupDetailsLoading ||
-    isLoadingApplicationSummaryMetrics
-  ) {
+  if (applicationListFetching || semanticGroupDetailsLoading) {
     return (
       <Stack
         alignItems={'center'}
@@ -309,11 +308,7 @@ const ApplicationDetails = () => {
     );
   }
 
-  if (
-    applicationListError ||
-    semanticGroupDetailsError ||
-    isLoadingApplicationSummaryMetrics
-  ) {
+  if (applicationListError || semanticGroupDetailsError) {
     return <>An error occurred!</>;
   }
 
@@ -402,7 +397,17 @@ const ApplicationDetails = () => {
             </Tooltip> */}
             </Stack>
 
-            <HealthScore score={healthScore} onLearnMore={handleLearnMore} />
+            {isLoadingApplicationSummaryMetrics ? (
+              <Stack
+                alignItems={'center'}
+                justifyContent={'center'}
+                sx={{ width: '524px', minHeight: '96px' }}
+              >
+                <Spinner />
+              </Stack>
+            ) : applicationSummaryMetricsError ? null : (
+              <HealthScore score={healthScore} onLearnMore={handleLearnMore} />
+            )}
             {/* 
           <Stack direction={'row'} justifyContent={'flex-end'} gap={'24px'} sx={{ minWidth: '360px' }}>
             <Stack direction={'row'} gap={'8px'} alignItems={'center'}>

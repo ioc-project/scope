@@ -144,7 +144,7 @@ wheels = [
 
 [[package]]
 name = "analysis-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/analysis-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -208,7 +208,7 @@ wheels = [
 
 [[package]]
 name = "anomaly-detection-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/anomaly-detection-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -684,7 +684,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "cognitive-failure-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/cognitive-failure-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -752,7 +752,7 @@ wheels = [
 
 [[package]]
 name = "consistency-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/consistency-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -1016,7 +1016,7 @@ wheels = [
 
 [[package]]
 name = "dem"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "dem" }
 dependencies = [
     { name = "neo4j" },
@@ -1153,7 +1153,7 @@ wheels = [
 
 [[package]]
 name = "embedding-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/embedding-worker" }
 dependencies = [
     { name = "click" },
@@ -1197,7 +1197,7 @@ provides-extras = ["local", "dev"]
 
 [[package]]
 name = "eval-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/eval-worker" }
 dependencies = [
     { name = "ioc-scope-worker-base" },
@@ -1429,7 +1429,7 @@ wheels = [
 
 [[package]]
 name = "grouping-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/grouping-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -1532,7 +1532,7 @@ wheels = [
 
 [[package]]
 name = "hierarchical-grouping-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/hierarchical-grouping-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -1732,7 +1732,7 @@ wheels = [
 
 [[package]]
 name = "ingestion-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/ingestion-worker" }
 dependencies = [
     { name = "embedding-worker" },
@@ -1791,7 +1791,7 @@ wheels = [
 
 [[package]]
 name = "intelligence-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/intelligence-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -1851,7 +1851,7 @@ dependencies = [
 
 [[package]]
 name = "ioc-scope-api"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "api" }
 dependencies = [
     { name = "clickhouse-connect" },
@@ -1941,7 +1941,7 @@ dev = [
 
 [[package]]
 name = "ioc-scope-lib"
-version = "1.0.0"
+version = "1.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "dem", extra = ["all"] },
@@ -2220,7 +2220,7 @@ requires-dist = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
 
 [[package]]
 name = "ioc-scope-norm"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "norm" }
 dependencies = [
     { name = "ioc-scope-ontology" },
@@ -2327,7 +2327,7 @@ dev = [
 
 [[package]]
 name = "ioc-scope-worker-base"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "worker-base" }
 dependencies = [
     { name = "aio-pika" },
@@ -2793,7 +2793,7 @@ wheels = [
 
 [[package]]
 name = "mce-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/mce-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -3038,7 +3038,7 @@ wheels = [
 
 [[package]]
 name = "norm-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/norm-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -3078,7 +3078,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "normal-behaviour-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/normal-behaviour-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -4464,7 +4464,7 @@ wheels = [
 
 [[package]]
 name = "semantic-analysis-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/semantic-analysis-worker" }
 dependencies = [
     { name = "analysis-worker" },
@@ -4614,7 +4614,7 @@ wheels = [
 
 [[package]]
 name = "stateful-eval-worker"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "workers/stateful-eval-worker" }
 dependencies = [
     { name = "aio-pika" },
@@ -4656,7 +4656,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "stateful-evals"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "stateful-evals" }
 dependencies = [
     { name = "mdt-metrics" },

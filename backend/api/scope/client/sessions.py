@@ -1479,7 +1479,9 @@ def _get_session_latent_space(
 
     try:
         from umap import UMAP
-    except ImportError as exc:  # the `latent-space` extra is only installed in the API image
+    except (
+        ImportError
+    ) as exc:  # the `latent-space` extra is only installed in the API image
         raise HTTPException(
             status_code=501,
             detail="The latent space needs umap-learn: install ioc-scope-api[latent-space].",

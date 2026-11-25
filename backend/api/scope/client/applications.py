@@ -1206,7 +1206,9 @@ def _get_application_cost_timeline(
         session_id = row.get("sessionId")
         if session_start is None or not session_id:
             continue
-        index = min(int((float(session_start) - start_epoch) / period_size), PERIODS_COUNT - 1)
+        index = min(
+            int((float(session_start) - start_epoch) / period_size), PERIODS_COUNT - 1
+        )
         buckets[max(index, 0)].append((str(session_id), float(row.get("tokens") or 0)))
 
     tokens_timeline: list[TimelineData] = []
@@ -2166,7 +2168,8 @@ def _build_cognitive_failures(raw_failures: object) -> list[CognitiveFailure]:
             continue
         known = by_name.get(str(name))
         if known is None or (
-            _FAILURE_CONFIDENCE_RANK[confidence] > _FAILURE_CONFIDENCE_RANK[known.confidence]
+            _FAILURE_CONFIDENCE_RANK[confidence]
+            > _FAILURE_CONFIDENCE_RANK[known.confidence]
         ):
             by_name[str(name)] = CognitiveFailure(
                 name=str(name),

@@ -33,8 +33,18 @@ def _row():
             {"name": "Goal Alignment", "result": None, "value": None},
         ],
         "failures": [
-            {"name": "IR-1", "code": "IR-1", "confidence": "medium", "reasoning": "lost it"},
-            {"name": "IR-1", "code": "IR-1", "confidence": "high", "reasoning": "lost it again"},
+            {
+                "name": "IR-1",
+                "code": "IR-1",
+                "confidence": "medium",
+                "reasoning": "lost it",
+            },
+            {
+                "name": "IR-1",
+                "code": "IR-1",
+                "confidence": "high",
+                "reasoning": "lost it again",
+            },
             {"name": "CC-3", "code": "CC-3", "confidence": "low", "reasoning": "weak"},
             {"code": "DC-4", "confidence": "HIGH", "reasoning": "no name"},
             {"name": "No confidence", "code": "X"},
@@ -60,9 +70,7 @@ def test_sessions_with_cognitive_observability_mapping():
         ("Policy Safety", 0.9, "PERCENTAGE"),
         ("Task Completion", 0.5, "PERCENTAGE"),
     ]
-    assert [
-        (f.name, f.confidence, f.reasoning) for f in session.cognitiveFailures
-    ] == [
+    assert [(f.name, f.confidence, f.reasoning) for f in session.cognitiveFailures] == [
         ("IR-1", "high", "lost it again"),
         ("DC-4", "high", "no name"),
         ("CC-3", "low", "weak"),

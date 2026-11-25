@@ -38,7 +38,10 @@ import {
 import { useParams } from 'react-router';
 import { Span, SpanStatefulEvalMetric } from '@/types/scope.type';
 import ErrorIcon from '@mui/icons-material/Error';
-import { useSessionTimeline, useSpanListStatefulEval } from '@/api/scopeApi';
+import {
+  useSessionTimeline,
+  useSessionSpansStatefulEval
+} from '@/api/scopeApi';
 import MetricsTree from './MetricsTree';
 
 export interface ExecutionTraceProps {
@@ -349,25 +352,6 @@ function getMetricReasoning(
   return metric?.reasoning;
 }
 
-function collectAllSpanIds(
-  spans: (Span | null)[] | null | undefined
-): string[] {
-  if (!spans) return [];
-  const ids: string[] = [];
-
-  for (const span of spans) {
-    if (!span) continue;
-    if (span.spanId) {
-      ids.push(span.spanId);
-    }
-    if (span.childrenSpans) {
-      ids.push(...collectAllSpanIds(span.childrenSpans));
-    }
-  }
-
-  return ids;
-}
-
 export function childrenToTreeViewItems(
   metrics: Span[],
   parentId: string,
@@ -487,27 +471,20 @@ export const ExecutionTrace = ({
     'spans'
   );
   const { data, error, isLoading } = useSessionTimeline(sessionId ?? '');
-  const allSpanIds = useMemo(
-    () => collectAllSpanIds(data?.Spans),
-    [data?.Spans]
-  );
-  const spanStatefulEvalQueries = useSpanListStatefulEval(
-    sessionId ?? '',
-    allSpanIds
-  );
-  const spanStatefulEvalLoading = spanStatefulEvalQueries.some(
-    (q) => q.isLoading
-  );
-  const spanStatefulEvalError = spanStatefulEvalQueries.some((q) => q.error);
+  const {
+    data: spanStatefulEvalData,
+    isLoading: spanStatefulEvalLoading,
+    error: spanStatefulEvalError
+  } = useSessionSpansStatefulEval(sessionId ?? '');
 
   const spanMetricsMap = useMemo<SpanMetricsMap>(() => {
     const map: SpanMetricsMap = new Map();
     if (spanStatefulEvalLoading) return map;
 
-    spanStatefulEvalQueries.forEach((query) => {
-      if (query.data?.span_id && query.data?.metrics) {
-        const metrics = query.data.metrics;
-        map.set(query.data.span_id, {
+    (spanStatefulEvalData ?? []).forEach((spanEval) => {
+      if (spanEval.span_id && spanEval.metrics) {
+        const metrics = spanEval.metrics;
+        map.set(spanEval.span_id, {
           intentRecognition: getMetricValue(metrics, 'IntentRecognition'),
           intentRecognitionReasoning: getMetricReasoning(
             metrics,
@@ -522,7 +499,7 @@ export const ExecutionTrace = ({
     });
 
     return map;
-  }, [spanStatefulEvalQueries, spanStatefulEvalLoading]);
+  }, [spanStatefulEvalData, spanStatefulEvalLoading]);
 
   const lastSignatureRef = useRef<string>('');
 

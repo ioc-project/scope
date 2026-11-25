@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cognition-protocols-worker"
-version = "0.1.0"
+version = "1.2.0"
 description = "SCOPE ingestion worker that detects which Cognition protocols (ACCORD, CONCORD, and any plugged in) a session used and evaluates the ones it did."
 readme = "README.md"
 requires-python = ">=3.13"

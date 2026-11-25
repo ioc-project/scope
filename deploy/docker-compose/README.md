@@ -35,7 +35,8 @@ docker compose up -d --build
 
 `--build` builds the images from this checkout. Without it Compose pulls
 `ghcr.io/ioc-project/container-images/scope-*:${SCOPE_VERSION}`, so those tags must exist in the
-registry (override `SCOPE_IMAGE_REGISTRY` / `SCOPE_VERSION` in `.env` otherwise).
+registry (override `SCOPE_IMAGE_REGISTRY` / `SCOPE_VERSION` / `SCOPE_UI_VERSION` in `.env` otherwise;
+`SCOPE_UI_VERSION` sets the `scope-ui` tag).
 
 | What | Where |
 |---|---|

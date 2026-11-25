@@ -36,8 +36,8 @@ featureFlags:
   impactAssessment: "false"
   wasteEstimation: "false"
   neurosymbolicEval: "false"
-  cognitiveObservability: "false"
-  cognitionProtocols: "false"
+  cognitiveObservability: "true"
+  cognitionProtocols: "true"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:

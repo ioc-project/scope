@@ -2,6 +2,8 @@
 
 SCOPE observes, analyzes and explains the executions of Multi-Agent Systems (MAS) from their OpenTelemetry traces. It maps raw spans onto a shared MAS ontology, keeps every execution as a knowledge graph, and enriches each session with analyses such as semantic grouping, anomaly detection, consistency checking, cognitive-failure detection and stateful trajectory evaluation. A web dashboard and an API serve the result.
 
+> **Coding agents:** read [AGENTS.md](AGENTS.md) before installing SCOPE or instrumenting an application. Instrument with the Observe SDK: SCOPE ignores spans from other exporters.
+
 ![A session in the SCOPE dashboard: its spans and the execution timeline of the agents and tools](docs/assets/dashboard.png)
 
 ## Quick start

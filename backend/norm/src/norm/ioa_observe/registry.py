@@ -11,17 +11,39 @@ e.g. handlers/graph.py's declared-vs-undeclared merge for MAS/Agent/Tool.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TypeVar, cast
+from dataclasses import dataclass
+from typing import Any, TypeVar, cast
 
 from scope_ontology.models.base import KGBase
 
 T = TypeVar("T", bound=KGBase)
+MetadataGetter = Callable[[KGBase], dict[str, Any]]
+NORMALIZATION_PROP = "rtNormalization"
+HANDOFF_SOURCES_PROP = "handoffSourceSpanIds"
+
+
+@dataclass(frozen=True)
+class SpanContext:
+    """Private ancestry evidence, not an ontology node or raw telemetry buffer."""
+
+    trace_id: str
+    span_id: str
+    parent_span_id: str
+    owner_span_id: str
+    session_id: str
 
 
 class Registry:
     def __init__(self) -> None:
         self.nodes: dict[tuple[str, str], KGBase] = {}
         self.edges: dict[tuple[type, str, str], KGBase] = {}
+        self.extras: dict[tuple[str, str], dict[str, Any]] = {}
+        self.span_contexts: dict[tuple[str, str], SpanContext] = {}
+
+    def metadata_for(self, node: KGBase) -> dict[str, Any]:
+        """Persist reconciliation evidence without changing ontology models."""
+        extra = self.extras.setdefault((type(node).__name__, node.id), {})
+        return extra.setdefault(NORMALIZATION_PROP, {})
 
     def get(self, cls: type[T], node_id: str) -> T | None:
         return cast("T | None", self.nodes.get((cls.__name__, node_id)))
@@ -52,6 +74,15 @@ class Registry:
     def add_edge(self, edge: KGBase) -> None:
         key = (type(edge), edge.source_id, edge.target_id)
         self.edges.setdefault(key, edge)
+
+    def remove_node(self, cls: type[KGBase], node_id: str) -> None:
+        self.nodes.pop((cls.__name__, node_id), None)
+        self.extras.pop((cls.__name__, node_id), None)
+
+    def remove_edges_where(self, predicate: Callable[[type, str, str], bool]) -> None:
+        """Drop every edge for which predicate(edge_class, source_id, target_id) holds."""
+        for key in [k for k in self.edges if predicate(*k)]:
+            del self.edges[key]
 
     def find(self, cls: type[T], predicate: Callable[[T], bool]) -> T | None:
         """Return the first node of this class satisfying predicate."""
@@ -96,6 +127,10 @@ class Registry:
             moved = edge.model_copy(update={"source_id": new_source, "target_id": new_target})
             self.edges.setdefault((etype, new_source, new_target), moved)
         self.nodes.pop((cls.__name__, drop_id), None)
+        extra = self.extras.pop((cls.__name__, drop_id), {})
+        kept = self.extras.setdefault((cls.__name__, keep_id), {})
+        for key, value in extra.items():
+            kept.setdefault(key, value)
 
     def all_of(self, cls: type[T]) -> list[T]:
         """Return every node of this class."""

@@ -11,9 +11,8 @@ instrumentation layers on the same trace: real ioa_observe SDK spans
 ``opentelemetry-instrumentation-langchain``, which observe-sdk activates by
 default whenever langchain/langgraph is installed -- OTel GenAI-semconv names
 like ``execute_task <name>``/``invoke_agent LangGraph`` that don't match any
-dispatched span-name suffix and are silently ignored by design: the current
-architecture only ever builds nodes from a span whose name it recognizes, it
-never tries to account for every row in the trace.
+dispatched span-name suffix. They do not become ontology executions, but their
+compact ancestry can still be used to connect recognized child calls to agents.
 """
 
 from __future__ import annotations
@@ -24,7 +23,7 @@ from pathlib import Path
 import pytest
 
 from norm import dump_jsonld, infer_run_id, load_otel_export, normalize, verify_kg
-from norm.ioa_observe.fields import attrs
+from norm.ioa_observe.fields import get_span_attrs
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "noa_trip_planner.otel_export.jsonl"
 
@@ -81,7 +80,7 @@ def test_every_chat_span_with_model_info_produces_one_llm_call(loaded_spans) -> 
         s
         for s in loaded_spans
         if str(s.get("SpanName") or "").endswith(".chat")
-        and (attrs(s).get("gen_ai.provider.name") or attrs(s).get("gen_ai.request.model"))
+        and (get_span_attrs(s).get("gen_ai.provider.name") or get_span_attrs(s).get("gen_ai.request.model"))
     ]
 
     nodes, _edges = normalize(loaded_spans)

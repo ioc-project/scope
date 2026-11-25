@@ -129,7 +129,7 @@ services:
 
   norm:
     <<: *worker-base
-    image: ${CLARIS_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-norm-worker:${SCOPE_IMG_TAG:-latest}
+    image: ${SCOPE_REGISTRY:-ghcr.io/ioc-project/container-images}/scope-norm-worker:${SCOPE_IMG_TAG:-latest}
     command: ["--max-sessions", "-1"]
     environment:
       <<: *worker-env

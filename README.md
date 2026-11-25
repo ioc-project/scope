@@ -39,7 +39,7 @@ OTLP_HTTP_ENDPOINT=http://localhost:4318 uv run main.py 100
 
 The session shows up a few seconds after the example exits. The [first-trace tutorial](docs/tutorials/first-trace.md) walks through each step with screenshots, and explains how to query the knowledge graph.
 
-**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md); to see how SCOPE evaluates sessions against their peers, follow the [semantic analysis tutorial](docs/tutorials/semantic-analysis.md).
+**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md) (using the Observe SDK is required: SCOPE ignores spans from other exporters). If a coding agent does it, give it the [`AGENTS.md` instructions](docs/tutorials/instrument-your-app.md#instructions-for-coding-agents); to see how SCOPE evaluates sessions against their peers, follow the [semantic analysis tutorial](docs/tutorials/semantic-analysis.md).
 
 ## How it works
 

@@ -20,6 +20,7 @@ from scope.models.otel_traces import (
     CollectByApplicationResponse,
     ImpactAssessmentResponse,
     MonitorApplicationLevelData,
+    SingleValueData,
     MonitorByApplicationResponse,
     SemanticgroupsResponse,
     SessionsWithCognitiveObservabilityResponse,
@@ -29,6 +30,10 @@ from scope.models.otel_traces import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+class CognitionFabricApplicationDetails(MonitorApplicationLevelData):
+    traces: SingleValueData
 
 
 def _client(db: Connector = Depends(get_db)):  # noqa: B008
@@ -417,7 +422,6 @@ def get_application_semanticgroup_impact_assessment(
     )
 
 
-@router.get("/{application_id}", response_model=MonitorApplicationLevelData)
 def application_details(
     application_id: str,
     start_time: str = Query(""),
@@ -501,3 +505,32 @@ def application_details(
         ttl=settings.CACHE_TTL_SECONDS,
         enabled=settings.CACHE_ENABLED,
     )
+
+
+def _cognition_fabric_application_details(
+    details: Any = Depends(application_details),  # noqa: B008
+) -> CognitionFabricApplicationDetails:
+    if isinstance(details, MonitorApplicationLevelData):
+        details = details.model_dump()
+    return CognitionFabricApplicationDetails.model_validate(
+        {**details, "traces": {"value": 0, "unit": "SCALAR"}}
+    )
+
+
+def details_router(cognition_fabric_enabled: bool) -> APIRouter:
+    details = APIRouter()
+    details.add_api_route(
+        "/{application_id}",
+        _cognition_fabric_application_details
+        if cognition_fabric_enabled
+        else application_details,
+        methods=["GET"],
+        name="application_details",
+        description=application_details.__doc__,
+        response_model=(
+            CognitionFabricApplicationDetails
+            if cognition_fabric_enabled
+            else MonitorApplicationLevelData
+        ),
+    )
+    return details

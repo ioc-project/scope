@@ -6,6 +6,8 @@ SCOPE observes, analyzes and explains the executions of Multi-Agent Systems (MAS
 
 ![A session in the SCOPE dashboard: its spans and the execution timeline of the agents and tools](docs/assets/dashboard.png)
 
+SCOPE runs standalone or as the [comprehension layer of IoC Cognition Fabric](#cognition-fabric-integration).
+
 ## Quick start
 
 Run the whole stack on your machine with Docker Compose, send it the trace of a small two-agent example, and look at it in the dashboard. It takes about 15 minutes, most of it the first image build.
@@ -50,6 +52,15 @@ The session shows up a few seconds after the example exits. The [first-trace tut
 3. The session is enriched by the analysis workers (semantic grouping, anomaly detection, consistency checking, cognitive failures, stateful evaluation, metrics).
 4. The enriched knowledge graph is served through the [API](backend/api) and visualized in the [UI](ui), giving explainability and insight into the MAS's inner workings.
 
+## Cognition Fabric integration
+
+Within the Internet of Cognition (IoC), SCOPE turns multi-agent telemetry into knowledge graph data, analysis, and insights that Cognition Engines consume through the Fabric. The integration adds two components to that telemetry path:
+
+- The [Cognition Fabric API](backend/api/README.md#cognition-fabric-endpoints) uses the same SCOPE backend. Its optional `/api/v1/realtime` routes retrieve normalized events from ClickHouse by session, span, or event ID. The `/api/v1/cognition-store` routes manage items, subscriptions, and findings in PostgreSQL. A [Python client and CLI](backend/api/clients/README.md) are available.
+- The [event exporter](integrations/cognition-fabric/event-exporter/README.md) receives OTLP/gRPC logs from an OpenTelemetry Collector, stores normalized events in ClickHouse, and sends webhook notifications when configured rules match.
+
+The [Cognition Fabric Compose stack](integrations/cognition-fabric/README.md#local-setup) is separate from the standalone quick start above. It enables the Fabric endpoints by default and exposes the API on port `8081` and the event exporter on port `4417`. It requires an existing ClickHouse instance and PostgreSQL for the Cognition Store; the latter can run locally with the [Compose overlay](integrations/cognition-fabric/README.md#local-postgres-for-cognition-store). The stack supports on-demand metrics but does not run background enrichment workers.
+
 ## Documentation
 
 The documentation site is built from [`docs/`](docs/index.md) with `mkdocs.yml` and published at [ioc-project.github.io/scope](https://ioc-project.github.io/scope/):
@@ -79,6 +90,7 @@ The ontology reference documentation (Widoco and WebVOWL) is generated separatel
 | [`ontology/`](ontology) | The MAS telemetry ontology (Turtle/OWL) and the `scope-ontology` Python package. See [ontology/README.md](ontology/README.md). |
 | [`docs/`](docs) | Documentation site sources (MkDocs), built with `mkdocs.yml`. |
 | [`deploy/`](deploy) | Deployment: Helm charts for Kubernetes (`deploy/k8s`) and a Docker Compose stack (`deploy/docker-compose`) running the API, UI, workers and supporting infra. |
+| [`integrations/cognition-fabric/`](integrations/cognition-fabric) | Cognition Fabric Compose stack, event exporter, and integration setup guide. |
 
 ## Contributing
 

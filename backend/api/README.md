@@ -32,6 +32,29 @@ The API will be available at **http://127.0.0.1:8000**.
 
 OpenAPI specification docs are available at **http://127.0.0.1:8000/docs**.
 
+## Cognition Fabric endpoints
+
+`SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS` is read at startup and defaults to `false`.
+When disabled, the following routes are not registered or included in OpenAPI,
+and startup does not initialize the Cognition Store database.
+
+When enabled, `/api/v1/realtime` reads normalized events from ClickHouse by
+session ID, span ID, or event ID. `/api/v1/cognition-store` provides item,
+subscription, and finding operations backed by Postgres. Set `POSTGRES_URL`
+(or `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+and `POSTGRES_DB`) to a database where the app can initialize its tables.
+
+To run locally from `backend/api`:
+
+```bash
+SCOPE_ENABLE_COGNITION_FABRIC_ENDPOINTS=true SCOPE_API_PORT=8081 \
+  uv run --locked --package ioc-scope-api --extra cognition-fabric dev
+```
+
+The [Cognition Fabric Compose stack](../../integrations/cognition-fabric)
+enables these endpoints on port `8081`. See the [Python client guide](clients/README.md)
+for generated client and CLI usage.
+
 ## Running tests
 
 ```bash

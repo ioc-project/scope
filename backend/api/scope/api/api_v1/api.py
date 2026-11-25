@@ -69,3 +69,14 @@ router.include_router(
     prefix="/live_topology",
     tags=["live_topology"],
 )
+
+
+def create_router(cognition_fabric_enabled: bool) -> APIRouter:
+    v1 = APIRouter()
+    v1.include_router(router)
+    v1.include_router(
+        applications.details_router(cognition_fabric_enabled),
+        prefix="/api/v1/applications",
+        tags=["v1", "applications"],
+    )
+    return v1

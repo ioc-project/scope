@@ -1,0 +1,31 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
+services:
+  postgres-server:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oxppostgresuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for the local Cognition Store}
+      POSTGRES_DB: ${POSTGRES_DB:-scope}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ioc-analytics-api:
+    environment:
+      POSTGRES_HOST: postgres-server
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-oxppostgresuser}
+      POSTGRES_DB: ${POSTGRES_DB:-scope}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for the local Cognition Store}
+    depends_on:
+      postgres-server:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

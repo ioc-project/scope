@@ -1,0 +1,135 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
+version: "3"
+
+# Defaults match the Cognition Fabric API in the integration's docker-compose.yml
+# (host port 8081, no auth). Override with env vars or `task SCOPE_BASE_URL=...`.
+# A bearer token is read from SCOPE_TOKEN by the CLI. Global CLI options (--expect-*, --retries)
+# must come before the subcommand.
+vars:
+  SCOPE_BASE_URL: '{{.SCOPE_BASE_URL | default "http://localhost:8081"}}'
+  WAIT_RETRIES: '{{.WAIT_RETRIES | default "30"}}'
+  WAIT_DELAY: '{{.WAIT_DELAY | default "2"}}'
+  COMPOSE_FILE: ../../../integrations/cognition-fabric/docker-compose.yml
+  SPEC: ../../specs/scope_openapi.yaml
+  CLI: uv run --with httpx --with attrs python -m scope_client.cli --base-url {{.SCOPE_BASE_URL}}
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - task -l
+
+  generate:
+    desc: Generate the Python client from the OpenAPI spec (regenerates only when the spec or config changes)
+    dir: python
+    run: once
+    sources:
+      - "{{.SPEC}}"
+      - openapi-python-client.yaml
+      - ../../pyproject.toml
+      - ../../../uv.lock
+    generates:
+      - scope_client/client.py
+    cmds:
+      - uv run --locked --project ../.. --package ioc-scope-api --only-group client-gen openapi-python-client generate --path {{.SPEC}} --config openapi-python-client.yaml --meta setup --output-path . --overwrite
+
+  up:
+    desc: Start the Cognition Fabric API and its dependencies from the integration's Compose file
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} up -d ioc-analytics-api
+
+  down:
+    desc: Stop the services started by the root docker-compose.yml
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down
+
+  wait:
+    desc: Wait for the API to answer /healthz (WAIT_RETRIES x WAIT_DELAY seconds)
+    deps: [generate]
+    dir: python
+    cmds:
+      - "{{.CLI}} --retries {{.WAIT_RETRIES}} --retry-delay {{.WAIT_DELAY}} health"
+
+  test-health:
+    desc: Check /healthz and /api/v1/healthz
+    deps: [generate]
+    dir: python
+    cmds:
+      - "{{.CLI}} health"
+      - "{{.CLI}} health --v1"
+
+  test-features-info:
+    desc: Check /api/v1/features/info
+    deps: [generate]
+    dir: python
+    cmds:
+      - "{{.CLI}} features-info"
+
+  test-metrics-catalog:
+    desc: Check that the metrics catalog responds with a schema-valid body
+    deps: [generate]
+    dir: python
+    cmds:
+      - "{{.CLI}} --expect-json-key total --expect-json-key metrics metrics-catalog"
+
+  test-sessions:
+    desc: Check the session and application listings (empty results are fine)
+    deps: [generate]
+    dir: python
+    cmds:
+      - "{{.CLI}} --expect-json-key sessions sessions --limit 1"
+      - "{{.CLI}} --expect-json-key applications applications --limit 1"
+
+  test-session-data:
+    desc: Check spans and metric compute for SESSION_ID (skipped when SESSION_ID is unset)
+    deps: [generate]
+    dir: python
+    status:
+      - test -z "{{.SESSION_ID}}"
+    cmds:
+      - "{{.CLI}} --expect-json-key spans session-spans {{.SESSION_ID}} --limit 1"
+      - "{{.CLI}} metrics-compute --session-id {{.SESSION_ID}} --metric {{.METRIC_ID | default \"Cost\"}}"
+
+  test-cognition-store:
+    desc: Check the cognition store - info, item upsert and lookup, subscription create/list/cancel
+    deps: [generate]
+    dir: python
+    vars:
+      CE_ID: 00000000-0000-0000-0000-000000000001
+      NS: scope-client-smoke
+    cmds:
+      - "{{.CLI}} --expect-json-key item_count cognition-info"
+      - "{{.CLI}} --expect-json-key key store-put --ce-id {{.CE_ID}} --namespace {{.NS}} --key smoke --type smoke --value '{\"ok\": true}'"
+      - "{{.CLI}} store-list --namespace {{.NS}} --key smoke"
+      - "{{.CLI}} subscriptions --namespace {{.NS}}"
+      - |
+        ID=$({{.CLI}} --expect-json-key id subscribe --namespace {{.NS}} --type smoke --callback-url http://localhost:9/hook | python -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+        {{.CLI}} unsubscribe "$ID"
+
+  lint:
+    desc: Check formatting and lint of the hand-written client code (CLI and tests) with ruff
+    dir: python
+    cmds:
+      - uv run --locked --project ../.. --package ioc-scope-api --only-group client-gen ruff format --check scope_client/cli tests
+      - uv run --locked --project ../.. --package ioc-scope-api --only-group client-gen ruff check scope_client/cli tests
+
+  test-unit:
+    desc: Run the CLI unit tests (no server needed)
+    deps: [generate]
+    dir: python
+    cmds:
+      - uv run --no-project --with pytest --with httpx --with attrs python -m pytest -q tests
+
+  ci:
+    desc: Wait for the API, then run all smoke tests against it
+    cmds:
+      - task: lint
+      - task: wait
+      - task: test-health
+      - task: test-features-info
+      - task: test-metrics-catalog
+      - task: test-sessions
+      - task: test-cognition-store
+      - task: test-session-data

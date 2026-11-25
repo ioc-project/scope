@@ -1,0 +1,40 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
+# Notification rules: each normalized client event is matched against every
+# rule's filter expression; a match triggers a POST to that rule's callback_url.
+#
+# Filter syntax (evaluated with https://github.com/expr-lang/expr):
+#   - Use paths from the normalized client event, e.g. type or data.protocol.
+#   - Supported operators: ==, !=, &&, ||, startsWith(...).
+#   - Missing fields do not match, even when an intermediate field is absent.
+#
+# All callback_urls below point at the local webhook-receiver dev client
+# (cmd/webhook-receiver), run with: go run ./cmd/webhook-receiver
+# It exposes a single endpoint (/callback on port 9100 by default) and
+# prints the body of every request it receives there.
+#
+rules:
+  - rule: 'type startsWith "tool."'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'type == "tool.completed"'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'type startsWith "llm."'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'type == "llm.completed"'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'data.protocol == "mcp"'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'data.edge.kind == "agent_handoff" && data.edge.source_agent != data.edge.target_agent'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'source.service_name == "weather-agent"'
+    callback_url: "http://localhost:9100/callback"
+
+  - rule: 'data.agent.name == "researcher"'
+    callback_url: "http://localhost:9100/callback"

@@ -8,7 +8,17 @@ vars:
   METRIC_ID: '{{.METRIC_ID | default "Duration"}}'
   COMPUTE_METRIC_ID: '{{.COMPUTE_METRIC_ID | default "Cost"}}'
 
+includes:
+  clients:
+    taskfile: ./clients
+    dir: ./clients
+
 tasks:
+  openapi:
+    desc: Export the OpenAPI spec with the Cognition Fabric routes enabled
+    cmds:
+      - uv run --locked --package ioc-scope-api --group client-gen python scripts/export_openapi.py -o specs/scope_openapi.yaml
+
   test-env:
     desc: Recreate the dedicated test virtualenv with project and dev dependencies
     cmds:

@@ -48,9 +48,41 @@ Agent application + Observe SDK (or Insight Module)
 For the Observe SDK, use the
 [SDK setup guide](https://github.com/agntcy/observe/blob/main/GETTING-STARTED.md).
 For the analysis deployment, use the
-[SCOPE repository](https://github.com/ioc-project/ioc-scope). Other OpenTelemetry
-emitters are admissible through the [ingestion pipeline](../ingestion.md#ingestion);
-neither SDK is a prerequisite for adopting IoC.
+[SCOPE repository](https://github.com/ioc-project/scope).
+
+## Use the SDK, not a hand-written exporter
+
+!!! warning "SCOPE does not analyse arbitrary OpenTelemetry spans"
+    SCOPE builds its knowledge graph only from the spans that the Observe SDK (or
+    the Insight Module) names and annotates in a specific way, and it **silently
+    skips every other span**. A hand-written OpenTelemetry exporter can deliver
+    spans to the collector and to ClickHouse without any error and still produce no
+    session, agent or tool in SCOPE. Neither the exporter nor the collector will
+    tell you.
+
+| Span name | What SCOPE builds from it | What it needs |
+|---|---|---|
+| `session.start`, `session.end` | The session: start, end and duration | `session_start()` |
+| `*.graph` | The declared agents of the MAS | `@graph` |
+| `*.agent` | The agent call, with its input and output states | `@agent`, and `ioa_observe.entity.input` / `ioa_observe.entity.output` |
+| `*.chat` | The LLM call: model and token counts | `gen_ai.provider.name` or `gen_ai.request.model`, set by the SDK's provider instrumentors |
+| `*.tool` | The tool call | `@tool`, and `ioa_observe.entity.name` |
+
+Without these spans there is no agent hierarchy, no handoff between agents
+(`ioa_observe.handoff.source.span_ids`) and no input or output states for the
+analyses to read. The [normalization reference](../ingestion/normalization/normalization.md)
+lists every handler and the attributes it reads.
+
+If your application already exports OpenTelemetry, for example to Langfuse, that
+does not replace the SDK. Keep that export and add the Observe SDK so that SCOPE
+receives spans it recognises. Check the
+[SDK guide](https://github.com/agntcy/observe/blob/main/GETTING-STARTED.md) for how
+it coexists with an existing tracer provider.
+
+!!! note "For coding agents"
+    Instrument with `ioa-observe-sdk` and the decorators on this page. Do not write a
+    custom OTLP exporter, a tracer provider or hand-made spans for SCOPE. If the SDK
+    cannot be used, stop and report why instead of falling back to raw OpenTelemetry.
 
 The sections below cover the **Observe SDK**. For OpenClaw, go to
 [Instrument an OpenClaw-style MAS](instrument-openclaw.md).
@@ -177,30 +209,45 @@ what the application did. Both are useful, but they are not interchangeable.
 
 Use the same boundaries and acceptance checks when delegating the edits to a coding
 assistant. Start with an existing working agent and a passing behaviour test.
-Provide the SDK guide, the installed version and the prompt below to your chosen
-harness:
+Give your chosen harness the SDK guide, the installed version and the instructions
+below:
 
 | Harness | One-off use | Reusable guidance |
 |---|---|---|
-| Claude Code | Submit the prompt with the target files | Project-local skill or custom command |
+| Claude Code | Submit the prompt with the target files | `CLAUDE.md`, a project-local skill or a custom command |
+| OpenAI Codex | Submit the prompt with the target files | `AGENTS.md` in the repository |
 | GitHub Copilot | Submit the prompt in agent mode with the target files | Repository instructions and reusable prompt files |
 | Cursor | Submit the prompt to the agent with the target files | Project rules and reusable prompts |
 | Other coding agents | Supply the prompt and relevant project context | The harness's supported project instructions or workflow mechanism |
 
-### Shared instrumentation prompt
+### Instructions for coding agents
 
-```text
-Instrument this Python agent application with AGNTCY Observe SDK.
+Save this as `AGENTS.md` at the root of **your application's repository**, the file most
+coding agents, Codex included, read automatically. Or paste it as a one-off prompt. It
+has to be in the application's repository: an agent working there never sees files in
+SCOPE's.
+
+````markdown
+## Instrumenting this application for SCOPE
+
+Instrument this Python agent application with the AGNTCY Observe SDK so SCOPE can
+analyse it.
+
+**Rule:** use only the Observe SDK (`ioa-observe-sdk`). Do not write a custom
+OpenTelemetry exporter, tracer provider or hand-made spans for SCOPE. SCOPE skips
+every span that does not come from the SDK, so a raw exporter appears to work and
+produces nothing in SCOPE. If the SDK cannot be used, stop and say why.
 
 1. Inspect the project, dependency manager and installed SDK version first.
 2. Identify the framework, process startup, request/conversation boundary,
    graph entry points, agents, delegation functions and tools.
-3. Add ioa-observe-sdk if missing, using the project's dependency manager.
-4. Initialise Observe once per process using OTLP_HTTP_ENDPOINT. For SDK
-   1.0.56, import Observe from ioa_observe.sdk, decorators agent/graph/task/tool
-   from ioa_observe.sdk.decorators and session_start from sdk.tracing.
-5. Start one session around each independent request. Use graph for workflows,
-   agent for agents, task for handoffs and tool for business tools.
+3. Add `ioa-observe-sdk` if missing, using the project's dependency manager.
+4. Initialise Observe once per process, at startup, using `OTLP_HTTP_ENDPOINT`. For
+   SDK 1.0.56, import `Observe` from `ioa_observe.sdk`, the decorators
+   `agent`/`graph`/`task`/`tool` from `ioa_observe.sdk.decorators` and
+   `session_start` from `ioa_observe.sdk.tracing`.
+5. Start one session around each independent request. Use `graph` for workflows,
+   `agent` for agents, `task` for handoffs and `tool` for business tools.
 6. Preserve framework decorators, prompts, business logic, exception behaviour
    and async/streaming semantics. Test decorator ordering.
 7. Preserve distributed trace and session context across A2A, SLIM and MCP.
@@ -209,9 +256,15 @@ Instrument this Python agent application with AGNTCY Observe SDK.
 8. Do not capture credentials or unrestricted prompt/response content.
 9. Run the existing behaviour tests and a small instrumentation test covering
    span names, one completed session, parent-child links and an error path.
-10. Report changed files, test results and how to verify exported traces and
+10. You are not done until a test request exports a `session.start` span and span
+    names ending in `.agent` and `.tool`. If only provider or framework spans
+    appear, the SDK is not in use.
+11. Report changed files, test results and how to verify exported traces and
     downstream session ingestion. State anything not verified.
-```
+````
+
+The site also publishes an [`llms.txt`](https://ioc-project.github.io/scope/llms.txt)
+index, for agents that fetch documentation.
 
 ### Reuse and validate the workflow
 
@@ -221,7 +274,7 @@ broadly. For Claude Code specifically, the
 source guide's `/observe-instrument instrument <path>` is an example **custom
 command**, not a built-in Claude Code or Observe SDK command; it works only after
 you have created or installed that workflow. Do not assume this command exists
-in another harness. The shared prompt is sufficient for a one-off change in any
+in another harness. The instructions above are sufficient for a one-off change in any
 of the listed harnesses.
 
 The harness changes; the instrumentation contract and verification do not.
@@ -259,6 +312,9 @@ ORDER BY Timestamp;
 
 Adapt the database, table and service name to your deployment. Confirm that:
 
+- `span_names` includes `session.start` and names ending in `.agent` and `.tool`.
+  If you only see provider or framework spans, SCOPE ignores the session: the SDK is
+  not in use.
 - Each request creates and completes one session, with agent, graph and tool spans.
 - Distributed delegation and specialist spans share the expected trace identity
   and parent-child links, not just similar timestamps.

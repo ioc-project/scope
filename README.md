@@ -2,6 +2,8 @@
 
 SCOPE observes, analyzes and explains the executions of Multi-Agent Systems (MAS) from their OpenTelemetry traces. It maps raw spans onto a shared MAS ontology, keeps every execution as a knowledge graph, and enriches each session with analyses such as semantic grouping, anomaly detection, consistency checking, cognitive-failure detection and stateful trajectory evaluation. A web dashboard and an API serve the result.
 
+> **Coding agents:** read [AGENTS.md](AGENTS.md) before installing SCOPE or instrumenting an application. Instrument with the Observe SDK: SCOPE ignores spans from other exporters.
+
 ![A session in the SCOPE dashboard: its spans and the execution timeline of the agents and tools](docs/assets/dashboard.png)
 
 ## Quick start
@@ -39,7 +41,7 @@ OTLP_HTTP_ENDPOINT=http://localhost:4318 uv run main.py 100
 
 The session shows up a few seconds after the example exits. The [first-trace tutorial](docs/tutorials/first-trace.md) walks through each step with screenshots, and explains how to query the knowledge graph.
 
-**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md); to see how SCOPE evaluates sessions against their peers, follow the [semantic analysis tutorial](docs/tutorials/semantic-analysis.md).
+**Tear down** with `docker compose down` (add `-v` to also delete the data). To run SCOPE on Kubernetes instead, use the [Helm chart](deploy/k8s/charts/scope/README.md). To trace your own application, see [instrument your app](docs/tutorials/instrument-your-app.md) (using the Observe SDK is required: SCOPE ignores spans from other exporters). If a coding agent does it, give it the [`AGENTS.md` instructions](docs/tutorials/instrument-your-app.md#instructions-for-coding-agents); to see how SCOPE evaluates sessions against their peers, follow the [semantic analysis tutorial](docs/tutorials/semantic-analysis.md).
 
 ## How it works
 

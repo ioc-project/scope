@@ -2,15 +2,16 @@
 
 <p class="eyebrow">From OTel spans to a normalised execution model</p>
 
-SCOPE expects OpenTelemetry spans from the MAS. An OTel collector receives and stores them,
-and the ingestion pipeline turns them into a normalised MAS model in the knowledge graph.
+SCOPE expects OpenTelemetry spans from the MAS, produced by the Observe SDK or the
+Insight Module. An OTel collector receives and stores them, and the ingestion pipeline
+turns them into a normalised MAS model in the knowledge graph.
 
 ![SCOPE ingestion: from OTel spans to the normalised session in the knowledge graph](../assets/diagrams/scope-ingestion-arch.svg)
 
 ## The telemetry path
 
 
-1. The **MAS emits OTel spans**, through whichever instrumentation it uses.
+1. The **MAS emits OTel spans**, through the Observe SDK or the Insight Module.
 2. An **OTel collector** receives them over OTLP/HTTP.
 3. The collector exports them to a **span datastore**.
 4. The **ingestion pipeline** reads the spans from the datastore and builds the
@@ -18,7 +19,7 @@ and the ingestion pipeline turns them into a normalised MAS model in the knowled
 
 **SCOPE offers a default collector and datastore, but neither is mandatory.** The
 deployment includes an OTel collector and a ClickHouse instance, so a MAS can simply
-point its exporter at the collector. Both are replaceable: any OTel collector that
+point its SDK at the collector. Both are replaceable: any OTel collector that
 can forward the spans, and any datastore the ingestion pipeline can read from, can
 take their place without changing the rest of the platform.
 
@@ -29,8 +30,12 @@ take their place without changing the rest of the platform.
 
 ## Instrumentation
 
-**SCOPE requires OpenTelemetry, not a specific SDK.** Any MAS that emits
-semantic-convention-compliant spans can be ingested, whatever produces them:
+**SCOPE reads spans in the shape the Observe SDK produces.** Normalization builds the
+knowledge graph from spans named `session.start`, `session.end`, `*.graph`, `*.agent`,
+`*.chat` and `*.tool` that carry `ioa_observe.*` attributes. It
+**silently skips every other span**, so exporting OpenTelemetry that does not come
+from one of these instrumentations stores spans in the datastore but produces nothing
+in SCOPE.
 
 - **AGNTCY Observe SDK** — the reference instrumentation. The `ioa_observe_sdk`
   package decorates agent, tool and workflow functions and emits spans to an
@@ -38,20 +43,22 @@ semantic-convention-compliant spans can be ingested, whatever produces them:
 - **[Insight module for agentic systems](https://github.com/outshift-open/insight-module-for-agentic-systems/)**
   — an OpenTelemetry plugin for OpenClaw-style systems, and the alternative to the
   Observe SDK when the MAS is not an application you instrument with decorators.
-  Its telemetry is supported out of the box.
-- **Other emitters** — vendor SDKs, framework auto-instrumentation and custom
-  emitters are all admissible, as are the boundary-level traces propagated in
-  black-box mode.
+  It can emit the same `ioa_observe.*` attributes, so its spans normalise the same way.
+- **Other emitters** — vendor SDKs, framework auto-instrumentation and hand-written
+  exporters are not normalised today. Add the Observe SDK alongside them; see
+  [Use the SDK, not a hand-written exporter](../tutorials/instrument-your-app.md#use-the-sdk-not-a-hand-written-exporter).
 
 <div class="button-row" markdown>
 [Instrument an agent manually or with a coding harness](../tutorials/instrument-your-app.md){ .md-button }
 </div>
 
-!!! warning "Fidelity tracks instrumentation richness"
-    Fields that are not convention-compliant are inferred on a best-effort basis,
-    and black-box traces arrive with materially less semantic content than
-    SDK-instrumented ones. Analysis coverage is therefore wider where
-    instrumentation is richer. What does **not** vary is the ingestion contract.
+!!! warning "Fidelity tracks the attributes a span carries"
+    A span with a recognised name but without a required attribute loses what depended
+    on it, and nothing is guessed in its place: an `.agent` span without `ioa_observe.entity.input` and
+    `ioa_observe.entity.output` has no input or output states, and a `.tool` span
+    without `ioa_observe.entity.name` produces no tool call. See the
+    [normalization reference](normalization/normalization.md) for each handler's
+    requirements.
 
 ## Ingestion
 

@@ -44,7 +44,10 @@ cd integrations/cognition-fabric
 cp .env.template .env
 ```
 
-Edit `.env` to point to a ClickHouse instance. Compose builds the Cognition Fabric API and event
+Edit `.env` to point to a reachable ClickHouse instance. On Docker Desktop, use
+`CLICKHOUSE_HOST=host.docker.internal` for ClickHouse running on the host or published
+on a host port. `localhost` points to the Compose container itself.
+Compose builds the Cognition Fabric API and event
 exporter locally, starts RabbitMQ and Neo4j, and pulls the `norm` worker image from GHCR.
 Set `POSTGRES_URL` in `.env` for the Cognition Store (or use the
 [local Postgres overlay](#local-postgres-for-cognition-store)).

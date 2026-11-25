@@ -27,6 +27,7 @@ QUERIES = {
     "session_h2": lambda: qb.session_metrics_query("s1", hops=2),
     "span_h0": lambda: qb.span_metrics_query("sp1", hops=0),
     "span_session_h2": lambda: qb.span_metrics_query("sp1", session_id="s1", hops=2),
+    "session_spans": lambda: qb.session_spans_metrics_query("s1"),
     "metrics": lambda: qb.metrics_query("app", ["Cost"], start_time="0", end_time="10"),
     "metrics_agent": lambda: qb.metrics_query("app", ["Cost"], agent_id="planner"),
     "over_time": lambda: qb.metrics_over_time_query(
@@ -68,6 +69,16 @@ def test_span_query_targets_execution_elements():
     assert "span.sessionId = $session_id" in query
     _, params = qb.span_metrics_query("sp1")
     assert params == {"span_id": "sp1"}
+
+
+def test_session_spans_query_batches_every_span_of_the_session():
+    query, params = qb.session_spans_metrics_query("s1")
+    assert params == {"session_id": "s1"}
+    assert "LLMCall|ToolCall|AgentCall" in query
+    assert "sessionId: $session_id" in query
+    assert "span.spanId AS spanId" in query
+    assert "collect(DISTINCT" in query
+    assert "$span_id" not in query
 
 
 def test_metrics_query_rows_keep_their_keys_and_time_filter():

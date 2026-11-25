@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timezone
 from numbers import Real
 from typing import Any
@@ -222,6 +223,50 @@ class MetricsClient:
             span_id=span_id,
             metrics=_metric_results_to_items(results, metric_names),
         )
+
+    def get_session_spans_metrics(
+        self,
+        session_id: str,
+        *,
+        metric_names: list[str] | None = None,
+    ) -> list[SpanMetricsResponse]:
+        """Return the metrics of every span of a session in one query.
+
+        Only spans carrying at least one metric are returned.  No sub-graph is
+        included (use :meth:`get_span_metrics` for that).
+        """
+        query, params = metrics_queries.session_spans_metrics_query(session_id)
+        try:
+            rows = self.db.execute(query, params)
+        except Exception as exc:
+            raise DatabaseError(
+                f"Failed to get span metrics for session '{session_id}': {exc}"
+            ) from exc
+
+        responses = []
+        for row in rows or []:
+            span_id = row.get("spanId")
+            if not span_id:
+                continue
+            results = [
+                MetricResult(
+                    metric_id=m["name"],
+                    resource_id=span_id,
+                    provider=m.get("provider") or "scope",
+                    value=m.get("result"),
+                    reasoning=m.get("reasoning"),
+                )
+                for m in row.get("metrics") or []
+                if m and m.get("name")
+            ]
+            items = _metric_results_to_items(results, metric_names)
+            if items:
+                responses.append(
+                    SpanMetricsResponse(
+                        session_id=session_id, span_id=span_id, metrics=items
+                    )
+                )
+        return responses
 
     # ── write metrics ─────────────────────────────────────────────────────
 
@@ -480,20 +525,60 @@ class MetricsClient:
         self,
         application_id: str,
     ) -> ApplicationMetricsSummary:
-        """Return summary metrics grouped into reliability, quality, and performance."""
+        """Return summary metrics grouped into reliability, quality, and performance.
+
+        The three underlying queries are independent, so they run concurrently
+        on Neo4j (a session per call on a thread-safe driver). Other connectors
+        keep the sequential path since their clients may not be thread-safe.
+        """
+        quality_metrics = [
+            "IntentRecognitionAccuracy",
+            "Groundedness",
+            "ToolUtilizationAccuracy",
+            "AnswerRelevancy",
+            "ResponseCompleteness",
+        ]
+        performance_metrics = [
+            "WorkflowEfficiency",
+            "CyclesCount",
+            "LLMErrorRate",
+            "ToolErrorRate",
+        ]
+        queries = {
+            "reliability": metrics_queries.reliability_metrics(
+                application_id=application_id,
+            ),
+            "quality": metrics_queries.get_application_metrics_timeline(
+                application_id=application_id,
+                metrics=quality_metrics,
+            ),
+            "performance": metrics_queries.get_application_metrics_timeline(
+                application_id=application_id,
+                metrics=performance_metrics,
+            ),
+        }
+
+        def run(kind: str) -> list:
+            query, params = queries[kind]
+            try:
+                return self.db.execute(query, params)
+            except Exception as exc:
+                raise DatabaseError(
+                    f"Failed to get application {kind} metrics for "
+                    f"'{application_id}': {exc}"
+                ) from exc
+
+        from scope.connectors.neo4j import Neo4JConnector
+
+        if isinstance(self.db, Neo4JConnector):
+            with ThreadPoolExecutor(max_workers=len(queries)) as pool:
+                futures = {kind: pool.submit(run, kind) for kind in queries}
+                results = {kind: f.result() for kind, f in futures.items()}
+        else:
+            results = {kind: run(kind) for kind in queries}
 
         reliability = []
-        query, params = metrics_queries.reliability_metrics(
-            application_id=application_id,
-        )
-        try:
-            rows = self.db.execute(query, params)
-        except Exception as exc:
-            raise DatabaseError(
-                f"Failed to get application reliability metrics for '{application_id}': {exc}"
-            ) from exc
-
-        for row in rows:
+        for row in results["reliability"]:
             metric_name = row["metricName"]
             if metric_name is None:
                 # The reliability aggregation can emit rows with a null
@@ -505,54 +590,18 @@ class MetricsClient:
                 continue
             reliability.append(MetricItem(name=metric_name, value=row["metricResult"]))
 
-        quality = []
-        query, params = metrics_queries.get_application_metrics_timeline(
-            application_id=application_id,
-            metrics=[
-                "IntentRecognitionAccuracy",
-                "Groundedness",
-                "ToolUtilizationAccuracy",
-                "AnswerRelevancy",
-                "ResponseCompleteness",
-            ],
-        )
-        try:
-            rows = self.db.execute(query, params)
-        except Exception as exc:
-            raise DatabaseError(
-                f"Failed to get application quality metrics for '{application_id}': {exc}"
-            ) from exc
-
-        for row in rows:
-            quality.append(
-                ApplicationMetricsTimeline(
-                    metric_name=row["metricName"], values=row["dataPoints"]
-                )
+        quality = [
+            ApplicationMetricsTimeline(
+                metric_name=row["metricName"], values=row["dataPoints"]
             )
-
-        performance = []
-        query, params = metrics_queries.get_application_metrics_timeline(
-            application_id=application_id,
-            metrics=[
-                "WorkflowEfficiency",
-                "CyclesCount",
-                "LLMErrorRate",
-                "ToolErrorRate",
-            ],
-        )
-        try:
-            rows = self.db.execute(query, params)
-        except Exception as exc:
-            raise DatabaseError(
-                f"Failed to get application performance metrics for '{application_id}': {exc}"
-            ) from exc
-
-        for row in rows:
-            performance.append(
-                ApplicationMetricsTimeline(
-                    metric_name=row["metricName"], values=row["dataPoints"]
-                )
+            for row in results["quality"]
+        ]
+        performance = [
+            ApplicationMetricsTimeline(
+                metric_name=row["metricName"], values=row["dataPoints"]
             )
+            for row in results["performance"]
+        ]
 
         return ApplicationMetricsSummary(
             quality=quality,

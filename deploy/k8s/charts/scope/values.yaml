@@ -416,8 +416,8 @@ ui:
     impactAssessment: "false"
     wasteEstimation: "false"
     neurosymbolicEval: "false"
-    cognitiveObservability: "false"
-    cognitionProtocols: "false"
+    cognitiveObservability: "true"
+    cognitionProtocols: "true"
   livenessProbe:
     httpGet:
       path: /

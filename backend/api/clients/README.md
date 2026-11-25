@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Python (`python/`)
 
-The client package is **generated** from `../specs/oxp_openapi.yaml` with
+The client package is **generated** from `../specs/scope_openapi.yaml` with
 [openapi-python-client](https://github.com/openapi-generators/openapi-python-client) and is not
 committed. Only the hand-written parts are in git: `python/openapi-python-client.yaml` (generator
 config), `python/scope_client/cli/` (the CLI, shipped inside the package) and `python/tests/`.
@@ -43,7 +43,7 @@ To build and install locally instead, run these commands from
 ```bash
 uv run --locked --package ioc-scope-api --only-group client-gen \
   openapi-python-client generate \
-  --path specs/oxp_openapi.yaml \
+  --path specs/scope_openapi.yaml \
   --config clients/python/openapi-python-client.yaml \
   --meta setup --output-path clients/python --overwrite
 uv build --wheel clients/python
@@ -96,15 +96,15 @@ gateway requires bearer authentication. Each generated endpoint also provides
 With the package installed in the active Python environment:
 
 ```bash
-export OXP_BASE_URL=http://localhost:8000  # use :8081 with Docker Compose
-# If your gateway requires authentication, set OXP_TOKEN in your environment.
+export SCOPE_BASE_URL=http://localhost:8000  # use :8081 with Docker Compose
+# If your gateway requires authentication, set SCOPE_TOKEN in your environment.
 python -m scope_client.cli health
 python -m scope_client.cli applications --limit 10
 python -m scope_client.cli sessions --limit 10
 python -m scope_client.cli --help
 ```
 
-Cognition-store commands (the `/api/v1/cognition-store` routes, generated from `oxp_openapi.yaml` like the rest of the client):
+Cognition-store commands (the `/api/v1/cognition-store` routes, generated from `scope_openapi.yaml` like the rest of the client):
 
 ```bash
 python -m scope_client.cli cognition-info
@@ -116,7 +116,7 @@ python -m scope_client.cli unsubscribe <subscription-uuid>
 ```
 
 The CLI defaults to `http://localhost:8006`; the Taskfile smoke tests default to
-`http://localhost:8081` for Docker Compose. Set `OXP_BASE_URL` explicitly for your
+`http://localhost:8081` for Docker Compose. Set `SCOPE_BASE_URL` explicitly for your
 deployment. Keep TLS certificate verification enabled; use `--ca-bundle` when
 your gateway requires a custom CA.
 

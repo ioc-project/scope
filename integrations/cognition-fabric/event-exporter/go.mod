@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 // SPDX-License-Identifier: Apache-2.0
 
-module oxp-event-exporter
+module ioc-event-exporter
 
 go 1.27.1
 

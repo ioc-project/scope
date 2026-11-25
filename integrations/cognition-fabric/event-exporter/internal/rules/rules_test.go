@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"oxp-event-exporter/internal/config"
+	"ioc-event-exporter/internal/config"
 )
 
 func TestRuleMatches(t *testing.T) {

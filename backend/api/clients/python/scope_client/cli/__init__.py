@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-"""Command line interface for making simple requests to the OXP API.
+"""Command line interface for making simple requests to the SCOPE API.
 
 Usage: ``python -m scope_client.cli [options] <command> [command options]``.
 
@@ -34,9 +34,9 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="scope_client.cli", description="Make simple requests to the Cognition Fabric API."
     )
     parser.add_argument(
-        "--base-url", default=os.environ.get("OXP_BASE_URL", DEFAULT_BASE_URL), help="env: OXP_BASE_URL"
+        "--base-url", default=os.environ.get("SCOPE_BASE_URL", DEFAULT_BASE_URL), help="env: SCOPE_BASE_URL"
     )
-    parser.add_argument("--token", default=os.environ.get("OXP_TOKEN"), help="Bearer token; env: OXP_TOKEN")
+    parser.add_argument("--token", default=os.environ.get("SCOPE_TOKEN"), help="Bearer token; env: SCOPE_TOKEN")
     parser.add_argument("--timeout", type=float, default=30.0, help="Request timeout in seconds")
     parser.add_argument("--insecure", action="store_true", help="Disable TLS certificate verification")
     parser.add_argument("--ca-bundle", help="Path to a CA bundle for TLS verification")

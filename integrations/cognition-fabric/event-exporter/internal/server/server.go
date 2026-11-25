@@ -23,9 +23,9 @@ import (
 
 	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 
-	"oxp-event-exporter/internal/otlp"
-	"oxp-event-exporter/internal/rules"
-	"oxp-event-exporter/internal/storage"
+	"ioc-event-exporter/internal/otlp"
+	"ioc-event-exporter/internal/rules"
+	"ioc-event-exporter/internal/storage"
 )
 
 // callbackTimeout bounds how long Export waits for a rule's callback_url to

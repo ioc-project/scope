@@ -29,9 +29,9 @@ import (
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
 	resourcepb "go.opentelemetry.io/proto/otlp/resource/v1"
 
-	"oxp-event-exporter/internal/config"
-	"oxp-event-exporter/internal/rules"
-	"oxp-event-exporter/internal/storage"
+	"ioc-event-exporter/internal/config"
+	"ioc-event-exporter/internal/rules"
+	"ioc-event-exporter/internal/storage"
 )
 
 type eventStoreFunc func(context.Context, []storage.Event) error

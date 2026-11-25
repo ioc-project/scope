@@ -4,16 +4,16 @@
 version: "3"
 
 # Defaults match the Cognition Fabric API in the integration's docker-compose.yml
-# (host port 8081, no auth). Override with env vars or `task OXP_BASE_URL=...`.
-# A bearer token is read from OXP_TOKEN by the CLI. Global CLI options (--expect-*, --retries)
+# (host port 8081, no auth). Override with env vars or `task SCOPE_BASE_URL=...`.
+# A bearer token is read from SCOPE_TOKEN by the CLI. Global CLI options (--expect-*, --retries)
 # must come before the subcommand.
 vars:
-  OXP_BASE_URL: '{{.OXP_BASE_URL | default "http://localhost:8081"}}'
+  SCOPE_BASE_URL: '{{.SCOPE_BASE_URL | default "http://localhost:8081"}}'
   WAIT_RETRIES: '{{.WAIT_RETRIES | default "30"}}'
   WAIT_DELAY: '{{.WAIT_DELAY | default "2"}}'
   COMPOSE_FILE: ../../../integrations/cognition-fabric/docker-compose.yml
-  SPEC: ../../specs/oxp_openapi.yaml
-  CLI: uv run --with httpx --with attrs python -m scope_client.cli --base-url {{.OXP_BASE_URL}}
+  SPEC: ../../specs/scope_openapi.yaml
+  CLI: uv run --with httpx --with attrs python -m scope_client.cli --base-url {{.SCOPE_BASE_URL}}
 
 tasks:
   default:
@@ -98,7 +98,7 @@ tasks:
     dir: python
     vars:
       CE_ID: 00000000-0000-0000-0000-000000000001
-      NS: oxp-client-smoke
+      NS: scope-client-smoke
     cmds:
       - "{{.CLI}} --expect-json-key item_count cognition-info"
       - "{{.CLI}} --expect-json-key key store-put --ce-id {{.CE_ID}} --namespace {{.NS}} --key smoke --type smoke --value '{\"ok\": true}'"

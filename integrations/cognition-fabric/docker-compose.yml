@@ -27,7 +27,7 @@ x-worker-env: &worker-env
   CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin}
 
 # Prebuilt worker images published by oxp-lib CI to GHCR.
-# Override the registry or tag if needed, e.g. OXP_IMG_TAG=1.2.3.
+# Override the registry or tag if needed, e.g. SCOPE_IMG_TAG=1.2.3.
 x-worker-base: &worker-base
   platform: linux/amd64
   env_file:
@@ -129,7 +129,7 @@ services:
 
   norm:
     <<: *worker-base
-    image: ${CLARIS_REGISTRY:-ghcr.io/cisco-eti/oxp/container-images}/oxp-worker-norm:${OXP_IMG_TAG:-latest}
+    image: ${CLARIS_REGISTRY:-ghcr.io/cisco-eti/oxp/container-images}/oxp-worker-norm:${SCOPE_IMG_TAG:-latest}
     command: ["--max-sessions", "-1"]
     environment:
       <<: *worker-env

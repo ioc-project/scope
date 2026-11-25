@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"time"
 
-	"oxp-event-exporter/internal/otlp"
+	"ioc-event-exporter/internal/otlp"
 )
 
 const (

@@ -55,9 +55,15 @@ def test_token_sets_auth_header(transport):
 
 
 def test_env_base_url(monkeypatch, transport):
-    monkeypatch.setenv("OXP_BASE_URL", "http://from-env")
+    monkeypatch.setenv("SCOPE_BASE_URL", "http://from-env")
     cli.main(["features-info"])
     assert transport[0].url.host == "from-env"
+
+
+def test_env_token(monkeypatch, transport):
+    monkeypatch.setenv("SCOPE_TOKEN", "from-env")
+    assert cli.main(["--base-url", "http://x", "health"]) == 0
+    assert transport[0].headers["authorization"] == "Bearer from-env"
 
 
 def test_non_2xx_exits_1(transport):

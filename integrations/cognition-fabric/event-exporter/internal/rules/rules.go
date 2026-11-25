@@ -15,7 +15,7 @@ import (
 	"github.com/expr-lang/expr/parser"
 	"github.com/expr-lang/expr/vm"
 
-	"oxp-event-exporter/internal/config"
+	"ioc-event-exporter/internal/config"
 )
 
 // kind classifies a rule so Matches can take a cheap direct path for the

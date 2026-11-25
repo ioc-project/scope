@@ -19,7 +19,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"oxp-event-exporter/internal/otlp"
+	"ioc-event-exporter/internal/otlp"
 )
 
 func TestNewEvent(t *testing.T) {

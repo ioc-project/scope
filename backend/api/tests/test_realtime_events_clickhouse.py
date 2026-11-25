@@ -3,7 +3,7 @@
 
 """Opt-in SQL integration tests against an existing local ClickHouse container.
 
-Set OXP_REALTIME_CLICKHOUSE_CONTAINER to its container ID/name. These tests create
+Set SCOPE_REALTIME_CLICKHOUSE_CONTAINER to its container ID/name. These tests create
 and drop only a uniquely named test database, never the configured application DB.
 """
 
@@ -24,10 +24,10 @@ from scope.core.exceptions import NotFoundError, ValidationError
 from scope.models.realtime_events import EventScope, RealtimeEventQuery
 from scope.query_builders import realtime_events as queries
 
-CONTAINER = os.getenv("OXP_REALTIME_CLICKHOUSE_CONTAINER")
+CONTAINER = os.getenv("SCOPE_REALTIME_CLICKHOUSE_CONTAINER")
 pytestmark = pytest.mark.skipif(
     not CONTAINER,
-    reason="Set OXP_REALTIME_CLICKHOUSE_CONTAINER for SQL integration tests",
+    reason="Set SCOPE_REALTIME_CLICKHOUSE_CONTAINER for SQL integration tests",
 )
 SCOPE = {"tenant_id": "tenant-1", "mas_id": "mas-1"}
 
@@ -74,7 +74,7 @@ class ContainerConnector(Connector):
 @pytest.fixture(scope="module")
 def seeded_client():
     db = ContainerConnector()
-    database = "oxp_realtime_test_" + uuid4().hex
+    database = "scope_realtime_test_" + uuid4().hex
     patch = pytest.MonkeyPatch()
     db.execute_command(f"CREATE DATABASE {database}")
     try:

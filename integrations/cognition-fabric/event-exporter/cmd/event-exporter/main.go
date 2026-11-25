@@ -19,10 +19,10 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 
-	"oxp-event-exporter/internal/config"
-	"oxp-event-exporter/internal/rules"
-	"oxp-event-exporter/internal/server"
-	"oxp-event-exporter/internal/storage"
+	"ioc-event-exporter/internal/config"
+	"ioc-event-exporter/internal/rules"
+	"ioc-event-exporter/internal/server"
+	"ioc-event-exporter/internal/storage"
 )
 
 const (

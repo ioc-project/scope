@@ -66,7 +66,7 @@ docker compose up --build
 Override the registry or tag for the prebuilt `norm` worker as needed:
 
 ```bash
-OXP_IMG_TAG=1.2.3 docker compose up               # pin a specific version
+SCOPE_IMG_TAG=1.2.3 docker compose up               # pin a specific version
 CLARIS_REGISTRY=my.registry/path docker compose up # use a mirror
 ```
 

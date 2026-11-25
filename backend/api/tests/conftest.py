@@ -21,7 +21,7 @@ def _postgres_test_url() -> str | None:
     """Return a SQLAlchemy Postgres URL using an installed DB driver."""
     postgres_host = os.getenv("POSTGRES_HOST", "localhost")
     postgres_port = os.getenv("POSTGRES_PORT", "5432")
-    postgres_db = os.getenv("POSTGRES_DB", "oxp")
+    postgres_db = os.getenv("POSTGRES_DB", "scope")
     postgres_user = os.getenv("POSTGRES_USER")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
 

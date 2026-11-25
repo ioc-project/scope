@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-oxppostgresuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for the local Cognition Store}
-      POSTGRES_DB: ${POSTGRES_DB:-oxp}
+      POSTGRES_DB: ${POSTGRES_DB:-scope}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +21,7 @@ services:
       POSTGRES_HOST: postgres-server
       POSTGRES_PORT: "5432"
       POSTGRES_USER: ${POSTGRES_USER:-oxppostgresuser}
-      POSTGRES_DB: ${POSTGRES_DB:-oxp}
+      POSTGRES_DB: ${POSTGRES_DB:-scope}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for the local Cognition Store}
     depends_on:
       postgres-server:

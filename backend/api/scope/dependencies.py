@@ -148,7 +148,7 @@ def get_postgres_db() -> Generator[SQLAlchemyConnector, None, None]:
             port = os.getenv("POSTGRES_PORT", "5432")
             username = os.getenv("POSTGRES_USER", "oxppostgresuser")
             password = os.getenv("POSTGRES_PASSWORD", "")
-            database = os.getenv("POSTGRES_DB", "oxp")
+            database = os.getenv("POSTGRES_DB", "scope")
             url = (
                 f"postgresql://{quote_plus(username)}:{quote_plus(password)}"
                 f"@{host}:{port}/{database}"

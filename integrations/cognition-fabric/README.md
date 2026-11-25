@@ -48,7 +48,8 @@ Edit `.env` to point to a reachable ClickHouse instance. On Docker Desktop, use
 `CLICKHOUSE_HOST=host.docker.internal` for ClickHouse running on the host or published
 on a host port. `localhost` points to the Compose container itself.
 Compose builds the Cognition Fabric API and event
-exporter locally, starts RabbitMQ and Neo4j, and pulls the `norm` worker image from GHCR.
+exporter locally, starts RabbitMQ and Neo4j, and pulls
+`ghcr.io/ioc-project/container-images/scope-norm-worker` from GHCR.
 Set `POSTGRES_URL` in `.env` for the Cognition Store (or use the
 [local Postgres overlay](#local-postgres-for-cognition-store)).
 Authenticate to GHCR if needed:
@@ -91,6 +92,10 @@ and start Compose with the overlay:
 ```bash
 docker compose -f docker-compose.yml -f cognition-store.yml up --build
 ```
+
+The default database is `scope`. If an existing volume was initialized with
+`oxp`, set `POSTGRES_DB=oxp` in `.env` to keep using it. Changing the default
+does not rename an existing database.
 
 ## Container image releases
 

@@ -77,6 +77,13 @@ unused legacy scaffolding — not part of the built package).
 
 ## Public API
 
+`normalize_harness(capture_id, traces=..., logs=..., include_content=False)`
+is a separate replay API for ClickHouse exports. It returns `nodes`, `edges`,
+and a content-free `coverage` report, without invoking the IOA Observe
+heuristics. The existing `normalize(spans)` API is unchanged. For export
+instructions, the mapping matrix, and evidence gaps, see
+[manual harness replay](../workers/norm-worker/README.md#manual-harness-replay).
+
 | Function / class | Purpose |
 |---|---|
 | `load_otel_export(path)` | ClickHouse JSONL → raw span dicts |

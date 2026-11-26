@@ -44,6 +44,7 @@ dev = [
 
 [project.scripts]
 norm-worker-cli = "norm_worker.cli:main"
+norm-worker-replay = "norm_worker.replay:main"
 
 [project.urls]
 Homepage = "https://github.com/agntcy/telemetry-hub"

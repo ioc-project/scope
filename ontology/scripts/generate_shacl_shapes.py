@@ -47,6 +47,7 @@ ONTOLOGY_FILES = [
     "semantic-ontology.ttl",
     "analysis-ontology.ttl",
     "insight-ontology.ttl",
+    "neurosymbolic-ontology.ttl",
 ]
 
 PREFIXES = {

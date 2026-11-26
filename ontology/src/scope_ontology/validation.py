@@ -20,10 +20,12 @@ ONTOLOGY_FILES = [
     _SRC / "metrics-ontology.ttl",
     _SRC / "analysis-ontology.ttl",
     _SRC / "insight-ontology.ttl",
+    _SRC / "neurosymbolic-ontology.ttl",
 ]
 PRIOR_VERSION_OPTIONAL = {
     _SRC / "analysis-ontology.ttl",
     _SRC / "insight-ontology.ttl",
+    _SRC / "neurosymbolic-ontology.ttl",
 }
 SHAPES_FILE = _SRC / "mas-shapes.ttl"
 CUSTOM_SHAPES_FILE = _SRC / "mas-shapes-custom.ttl"
@@ -248,6 +250,20 @@ def check_schema_naming_conventions(paths: list[Path] | None = None) -> list[str
     return errors
 
 
+# Opposite-direction property pairs that are not inverses of each other, so they carry no owl:inverseOf: the
+# Claim -> Fact links say how a Claim relates to a Fact (supportedBy, groundedOn) and the LLMCall -> Claim link
+# (inputClaim) and Claim -> LLMCall link (generatedBy) are the call's input and output, while Fact -> Claim
+# (inContext) only says a Fact was available to the call that generated the Claim.
+NOT_INVERSE_PAIRS = {
+    frozenset(pair)
+    for pair in (
+        ("generatedBy", "inputClaim"),
+        ("supportedBy", "inContext"),
+        ("groundedOn", "inContext"),
+    )
+}
+
+
 def check_object_property_directionality(paths: list[Path] | None = None) -> list[str]:
     """Detect duplicate bidirectional properties without explicit inverse declaration."""
     errors: list[str] = []
@@ -274,7 +290,7 @@ def check_object_property_directionality(paths: list[Path] | None = None) -> lis
 
     for i, (p1, d1, r1, f1, inv1) in enumerate(directional):
         for p2, d2, r2, f2, inv2 in directional[i + 1 :]:
-            if p1 == p2:
+            if p1 == p2 or frozenset((p1, p2)) in NOT_INVERSE_PAIRS:
                 continue
             # Ignore self-loop class pairs (A->A) which are not directional inverses.
             if d1 == r1 and d2 == r2:

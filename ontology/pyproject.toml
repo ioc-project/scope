@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ioc-scope-ontology"
-version = "1.1.0"
+version = "1.2.0"
 description = "The MAS execution ontology for SCOPE."
 readme = "PACKAGE_README.md"
 requires-python = ">=3.9"

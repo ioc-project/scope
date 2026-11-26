@@ -45,7 +45,7 @@
     vann:preferredNamespacePrefix "mas" ;
     vann:preferredNamespaceUri "https://ioc-project.github.io/scope-ontology/mas#" ;
     owl:priorVersion <https://ioc-project.github.io/scope-ontology/analysis/1.0.0-rc0> ;
-    owl:versionInfo "1.1.0" ;
+    owl:versionInfo "1.2.0" ;
     owl:imports <https://ioc-project.github.io/scope-ontology/mas> ;
     rdfs:comment "Analysis ontology — group-scoped consistency/anomaly/normal-behaviour reports. All classes are computed post-hoc artefacts attached to execution KG nodes. v1.0.0: initial draft."@en .
 
@@ -416,6 +416,24 @@ mas:confidence rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     rdfs:domain mas:CognitiveFailureReport ;
     rdfs:range xsd:string ;
     rdfs:comment "How sure the detector is that the challenge happened: 'low' | 'medium' | 'high'." .
+
+mas:level rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:level ;
+    sh:targetClass mas:CognitiveFailureReport ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:CognitiveFailureReport ;
+    rdfs:range xsd:string ;
+    rdfs:comment "What the report is: 'detection' when the failure's consequence was seen in the trace, 'risk' when only its precondition is open (a warning). Set by the rule-based detectors; absent on LLM-judged reports." .
+
+mas:rule rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:rule ;
+    sh:targetClass mas:CognitiveFailureReport ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:CognitiveFailureReport ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Identifier of the detector rule that produced the report, e.g. 'CE-1 missing evidence'. Absent on LLM-judged reports." .
 
 mas:atCall rdf:type owl:ObjectProperty, sh:PropertyShape ;
     sh:path mas:atCall ;

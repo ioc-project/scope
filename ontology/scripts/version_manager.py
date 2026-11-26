@@ -10,7 +10,7 @@ Each ontology component has its own version tracked in:
   - VERSION manifest file            (one component=version per line)
   - pyproject.toml                   (tracks 'mas' component version)
 
-Components: mas, semantic, metrics, analysis, insight
+Components: mas, semantic, metrics, analysis, insight, neurosymbolic
 
 For RC versions: Adds commit SHA as local version identifier (PEP 440)
 For final releases: Clean version without metadata
@@ -21,7 +21,7 @@ Usage:
   python scripts/version_manager.py bump <type> [component]   # Bump version(s)
   python scripts/version_manager.py set <version> [component] # Set version(s)
 
-  component: mas | semantic | metrics | analysis | insight | all  (default: mas for get/get-full, all for bump/set)
+  component: mas | semantic | metrics | analysis | insight | neurosymbolic | all  (default: mas for get/get-full, all for bump/set)
   type:      rc | patch | minor | major
 
 Examples:
@@ -52,6 +52,7 @@ COMPONENTS: dict[str, Path] = {
     "metrics": ROOT / "src/scope_ontology/metrics-ontology.ttl",
     "analysis": ROOT / "src/scope_ontology/analysis-ontology.ttl",
     "insight": ROOT / "src/scope_ontology/insight-ontology.ttl",
+    "neurosymbolic": ROOT / "src/scope_ontology/neurosymbolic-ontology.ttl",
 }
 
 VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-(rc\d+))?$")

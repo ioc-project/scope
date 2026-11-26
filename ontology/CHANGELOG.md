@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [1.2.0] - 2026-11-26
+
+### Added
+
+- `neurosymbolic-ontology.ttl`: the symbolic state of a trajectory (what agents assert, believe, intend and
+  derive), as `mas:SymbolicStateElement`s: `Fact`, `Claim`, `Goal`, `Task`, `Constraint`, `AgentCapability` and
+  `SystemPrompt`, with the relations between them and to the execution nodes (`generatedBy`, `groundedIn`,
+  `ownedBy`, `inputClaim`, `supportedBy`, `conflictsWith`, `sameAs`...). New component `neurosymbolic`, versioned
+  in lockstep with the others. Moved from the `ioc-core-oxp-ces` repository, with the namespace of this ontology.
+  Includes `ioc-core-oxp-ces` #75: `supportedBy` also links a `Fact` to a `Fact` or a `Claim` (the arguments of a tool call
+  traced to what they came from).
+- `validation.py`: three opposite-direction pairs of the new ontology (`generatedBy`/`inputClaim`,
+  `supportedBy`/`inContext`, `groundedOn`/`inContext`) are not inverses; they are exempt from the
+  "bidirectional duplicate" check.
+- `analysis-ontology.ttl`: `CognitiveFailureReport` gets optional `level` (`detection`: the failure's consequence
+  was seen; `risk`: only its precondition is open) and `rule` (the detector rule that fired). Set by the rule-based
+  detectors, which write one report per finding; absent on LLM-judged reports.
+
 ## [1.1.0] - 2026-10-24
 
 ### Changed

@@ -489,16 +489,30 @@ mas:SourceShape rdf:type sh:NodeShape ;
 #    execution nodes in mas-ontology.ttl.
 #################################################################
 
-# -- Claim -> Fact
+# -- Claim -> Fact, Fact -> Fact, Fact -> Claim
 
-mas:supportedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
-    sh:path mas:supportedBy ;
+mas:supportedBy rdf:type owl:ObjectProperty ;
+    rdfs:domain [ owl:unionOf ( mas:Claim mas:Fact ) ] ;
+    rdfs:range [ owl:unionOf ( mas:Fact mas:Claim ) ] ;
+    rdfs:comment "The element(s) that back this element (source -> backing element). Three uses, told apart by the class of the source and of the target (see mas:ClaimSupportedByShape and mas:FactSupportedByShape). (1) Claim -> Fact: the Fact(s) that confirm the Claim. Used for factual claims (mas:claimKind 'factual'), whose content a source could confirm or refute. Written by the linking step, not by the claim's author. Optional: a factual claim with no supporting Fact is an unsupported claim. Mutually exclusive with mas:groundedOn on the same Claim (see mas:ClaimFactLinkShape). (2) Fact -> Fact: the result of a ToolCall (the source Fact, mas:groundedIn that ToolCall) is supported by the Fact(s) that are the results of earlier ToolCalls of the same agent call and hold the values of its arguments: the agent read the value in the earlier result and passed it to the later call (list_services returns 'profile-cache', then get_metrics(service='profile-cache')). Deterministic, from text matching and timestamps: the earliest result that holds the value is kept, and the results of tool calls that echo the same value are not sources. It is a heuristic, so a derived or reformatted value is missed and a common value can match by chance. (3) Fact -> Claim: the result of a ToolCall is supported by the Claim(s) the agent had made before the call (its own claims, and those of the brief it received) that the values of its arguments come from. Judged by an LLM, from the texts. Optional in all three uses. In (2) and (3) the link says where the call got its input, not that the Fact it produced was confirmed. TODO: the extraction records, on the Fact -> Fact and Fact -> Claim edges, which arguments each link explains (and, for Claim sources, whether the value is stated or derived). These describe the edge itself, not either end, so they cannot be plain properties of mas:Fact; they are not written until a reified node is added or they are dropped."@en .
+
+mas:ClaimSupportedByShape rdf:type sh:NodeShape ;
     sh:targetClass mas:Claim ;
-    sh:class mas:Fact ;
-    sh:severity sh:Violation ;
-    rdfs:domain mas:Claim ;
-    rdfs:range mas:Fact ;
-    rdfs:comment "The Fact(s) that confirm this Claim. Used for factual claims (mas:claimKind 'factual'), whose content a source could confirm or refute. Written by the linking step, not by the claim's author. Optional: a factual claim with no supporting Fact is an unsupported claim. Mutually exclusive with mas:groundedOn on the same Claim (see mas:ClaimFactLinkShape)."@en .
+    sh:property [
+        sh:path mas:supportedBy ;
+        sh:class mas:Fact ;
+        sh:severity sh:Violation ;
+        sh:message "mas:supportedBy of a Claim must link to a Fact."@en
+    ] .
+
+mas:FactSupportedByShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Fact ;
+    sh:property [
+        sh:path mas:supportedBy ;
+        sh:or ( [ sh:class mas:Fact ] [ sh:class mas:Claim ] ) ;
+        sh:severity sh:Violation ;
+        sh:message "mas:supportedBy of a Fact must link to a Fact or a Claim."@en
+    ] .
 
 mas:groundedOn rdf:type owl:ObjectProperty, sh:PropertyShape ;
     sh:path mas:groundedOn ;

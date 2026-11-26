@@ -1,6 +1,7 @@
 import pytest
 
 from symbolic_extractor.extractors import Claim, Fact
+from symbolic_extractor.llm import TextReply
 from symbolic_extractor.relations.fact_claim_links import (
     BATCH_TEXT_SYSTEM_PROMPT,
     SUPPORTED_BY,
@@ -16,7 +17,6 @@ from symbolic_extractor.relations.fact_claim_links import (
 )
 from symbolic_extractor.relations.semantic_relations import SemanticRelationExtractor
 from symbolic_extractor.store import SymbolicSessionStore
-from symbolic_extractor.llm import TextReply
 from symbolic_extractor.usage import LLMUsage
 
 

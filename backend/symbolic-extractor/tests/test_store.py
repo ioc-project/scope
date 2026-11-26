@@ -3,9 +3,9 @@ import pytest
 from symbolic_extractor import SymbolicExtractor, SymbolicSessionStore
 from symbolic_extractor.extractors import ClaimExtractionPrompt, ElementExtractor
 from symbolic_extractor.extractors.claims import Claim
+from symbolic_extractor.llm import LLMReply
 from symbolic_extractor.models import SessionData
 from symbolic_extractor.usage import LLMUsage
-from symbolic_extractor.llm import LLMReply
 
 
 def _claim(claim_id, node_id, text="c"):

@@ -14,12 +14,12 @@ from symbolic_extractor.extractors.system_prompts import (
     agent_system_prompt,
     split_system_prompt,
 )
-from symbolic_extractor.extractors.tasks import TaskExtractionPrompt
 from symbolic_extractor.extractors.system_tasks import SystemTaskExtractor, agent_system_tasks
+from symbolic_extractor.extractors.tasks import TaskExtractionPrompt
 from symbolic_extractor.models import (
-    AgentSystemPrompt,
     AgentCapability,
     AgentCapabilityItem,
+    AgentSystemPrompt,
     Claim,
     ClaimItem,
     Constraint,

@@ -17,15 +17,28 @@ from symbolic_extractor.relations.fact_claim_links import (
     FactClaimLink,
     FactClaimLinker,
 )
-from symbolic_extractor.relations.goal_claim_relations import FULFILS, GoalClaimRelationExtractor, GoalEvaluation
+from symbolic_extractor.relations.goal_claim_relations import (
+    FULFILS,
+    GoalClaimRelationExtractor,
+    GoalEvaluation,
+)
 from symbolic_extractor.relations.semantic_relations import SemanticRelationExtractor
 from symbolic_extractor.relations.task_capability_relations import (
     SUPPORTS,
     CapabilityEvaluation,
     CapabilityTaskRelationExtractor,
 )
-from symbolic_extractor.relations.task_claim_relations import FULFILS_TASK, TaskClaimRelationExtractor, TaskEvaluation
-from symbolic_extractor.relations.task_relations import ACHIEVES, IMPLEMENTS, TaskRelation, TaskRelationExtractor
+from symbolic_extractor.relations.task_claim_relations import (
+    FULFILS_TASK,
+    TaskClaimRelationExtractor,
+    TaskEvaluation,
+)
+from symbolic_extractor.relations.task_relations import (
+    ACHIEVES,
+    IMPLEMENTS,
+    TaskRelation,
+    TaskRelationExtractor,
+)
 
 __all__ = [
     "ACHIEVES",

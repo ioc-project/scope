@@ -11,7 +11,13 @@ from symbolic_extractor.extractors import (
 )
 from symbolic_extractor.extractors.system_tasks import render_system_task_prompt
 from symbolic_extractor.llm import LLMReply
-from symbolic_extractor.models import AgentSystemPrompt, ExtractionRequest, KGNode, SessionData, SessionTrajectory
+from symbolic_extractor.models import (
+    AgentSystemPrompt,
+    ExtractionRequest,
+    KGNode,
+    SessionData,
+    SessionTrajectory,
+)
 from symbolic_extractor.store import HAS_SYSTEM_TASK, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

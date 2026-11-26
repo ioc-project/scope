@@ -6,8 +6,8 @@ import pytest
 
 from symbolic_extractor import SymbolicExtractor
 from symbolic_extractor.extractors import (
-    AgentSystemPromptExtractor,
     AgentCapability,
+    AgentSystemPromptExtractor,
     SystemCapabilityExtractor,
     SystemConstraintExtractor,
     SystemTaskExtractor,
@@ -15,7 +15,13 @@ from symbolic_extractor.extractors import (
 )
 from symbolic_extractor.extractors.capabilities import SYSTEM_PROMPT, render_capability_prompt
 from symbolic_extractor.llm import LLMReply
-from symbolic_extractor.models import AgentSystemPrompt, ExtractionRequest, KGNode, SessionData, SessionTrajectory
+from symbolic_extractor.models import (
+    AgentSystemPrompt,
+    ExtractionRequest,
+    KGNode,
+    SessionData,
+    SessionTrajectory,
+)
 from symbolic_extractor.store import HAS_CAPABILITY, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

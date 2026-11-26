@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Versioning starts at `1.0.0` with this open-source release.
 
+## [Unreleased]
+
+### Fixed
+
+- `neurosymbolic-ontology.ttl`: `successCriteria` (`Goal`) and `acceptanceCriteria` (`Task`) are marked
+  `mas:multiValued`, as their definitions say ("repeat the property to state several criteria"). The generated
+  models type them `list[str]`, not `str`, so the extraction's lists validate.
+
 ## [1.2.0] - 2026-11-26
 
 ### Added

@@ -6,7 +6,6 @@ from symbolic_extractor import SymbolicExtractor
 from symbolic_extractor.llm import LLMReply
 from symbolic_extractor.models import AnnotatedNode, Claim, DelegationClaim, Fact, SessionTrajectory
 from symbolic_extractor.relations import ArgumentOriginExtractor
-from symbolic_extractor.relations.fact_claim_links import SUPPORTED_BY
 from symbolic_extractor.relations.argument_origin_relations import (
     MAX_CANDIDATES,
     MAX_VALUE_CHARS,
@@ -15,6 +14,7 @@ from symbolic_extractor.relations.argument_origin_relations import (
     parse_origins,
     render_prompt,
 )
+from symbolic_extractor.relations.fact_claim_links import SUPPORTED_BY
 from symbolic_extractor.store import ANNOUNCES, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

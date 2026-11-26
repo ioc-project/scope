@@ -9,12 +9,11 @@ authors = [
     { name = "IoC project", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
-description = "Extracts symbolic state elements (Fact, Claim, Goal, Task, Constraint, AgentCapability, SystemPrompt) from a SCOPE session knowledge graph."
+description = "Extracts symbolic state elements (Fact, Claim, Goal, Task, Constraint, AgentCapability, SystemPrompt) from the data of a session (spans and trajectory) of a multi-agent system. No knowledge-graph access: see the symbolic-extractor-worker."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  # SCOPE API library: used to read from and write to the KG.
-  "ioc-scope-api",
+  # The generated node and edge models of the neurosymbolic ontology (pydantic only, no KG access).
   "ioc-scope-ontology[models]>=1.2.0",
   "pydantic>=2.0.0",
   "python-dotenv>=1.0.0",
@@ -30,10 +29,6 @@ dev = [
   "pytest>=7.0",
   "ruff>=0.12.10",
 ]
-
-[project.scripts]
-symbolic-extractor = "symbolic_extractor.__main__:main"
-symbolic-extractor-embeddings = "symbolic_extractor.embeddings:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/symbolic_extractor"]

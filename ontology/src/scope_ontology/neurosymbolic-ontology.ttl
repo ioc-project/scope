@@ -225,6 +225,7 @@ mas:successCriteria rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:severity sh:Violation ;
+    mas:multiValued true ;
     rdfs:domain mas:Goal ;
     rdfs:range xsd:string ;
     rdfs:comment "What must hold for the goal to count as met. Required: without criteria the outcome cannot be checked yes/no (the distinguishing test of a Goal). Repeat the property to state several criteria separately."@en .
@@ -337,6 +338,7 @@ mas:acceptanceCriteria rdf:type owl:DatatypeProperty, sh:PropertyShape ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:severity sh:Info ;
+    mas:multiValued true ;
     rdfs:domain mas:Task ;
     rdfs:range xsd:string ;
     rdfs:comment "The local success definition of the task: what the deliverable must satisfy for the task to count as done. May be empty. Repeat the property to state several criteria separately. Compare mas:successCriteria on a Goal, which judges the combined outcome."@en .

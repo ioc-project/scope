@@ -13,27 +13,20 @@ Two layers:
 
 Which fields are embedded for each element kind is in ``ELEMENT_FIELDS``; supporting a new
 kind (goals, tasks, ...) is one entry there.
-
-Run on an existing extraction output (no LLM extraction, only the embedding calls)::
-
-    python -m symbolic_extractor.embeddings output/<session_id>.json [-o embeddings.json]
 """
 
 from __future__ import annotations
 
-import argparse
 import logging
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Protocol
 
 from dotenv import find_dotenv, load_dotenv
 from pydantic import BaseModel, Field
 
 from symbolic_extractor.models import AnnotatedNode, ExtractionResult
-from symbolic_extractor.output import embeddings_file, read_result_file, write_json
 
 logger = logging.getLogger(__name__)
 
@@ -191,33 +184,3 @@ def embed_result(result: ExtractionResult, embedder: TextEmbedder) -> EmbeddingS
         dimensions=dimensions,
         elements=embedded,
     )
-
-
-def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(
-        prog="symbolic-extractor-embeddings",
-        description="Embed the symbolic state elements of an extraction output file",
-    )
-    parser.add_argument("output", type=Path, help="Extraction output JSON (output/<session_id>.json)")
-    parser.add_argument(
-        "-o",
-        "--out",
-        type=Path,
-        help="Embeddings JSON (default: embeddings_<session_id>.json next to the output file)",
-    )
-    args = parser.parse_args(argv)
-
-    logging.basicConfig(level=logging.INFO)
-    result = read_result_file(args.output)
-    embedding_set = embed_result(result, TextEmbedder.from_env())
-    path = write_json(
-        embedding_set, args.out or embeddings_file(args.output.parent, result.session_id)
-    )
-    print(
-        f"Wrote {path} ({len(embedding_set.elements)} elements, model {embedding_set.model}, "
-        f"{embedding_set.dimensions} dimensions)"
-    )
-
-
-if __name__ == "__main__":
-    main()

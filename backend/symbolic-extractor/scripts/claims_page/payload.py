@@ -48,7 +48,7 @@ def build_payload(output: dict[str, Any], trajectory: dict[str, Any] | None) -> 
                 ],
             }
         )
-    facts = _facts(graph, steps, t0)
+    facts = _facts(graph, steps, t0, _argument_origins(output))
 
     agents: list[str] = []
     for call in calls:
@@ -80,7 +80,9 @@ def _claim(graph: SessionGraph, claim_id: str, c: dict[str, Any]) -> dict[str, A
         "snippet": c.get("verbatim_source"),
         "routing": bool(ROUTING_RE.match(c.get("verbatim_source") or "")),
         "same": graph.out("same_claim", claim_id),
-        "supported_by": graph.out("supported_by", claim_id),
+        "supported_by": [i for i in graph.out("supported_by", claim_id) if graph.kind_of(i) == "facts"],
+        # the tool calls (their facts) whose arguments were taken from this claim: ``supported_by`` fact -> claim
+        "argument_source_of": [i for i in graph.into("supported_by", claim_id) if graph.kind_of(i) == "facts"],
         **_claim_relations(graph, claim_id),
         "answers": graph.out("answers", claim_id),
         "fulfils": graph.out("fulfils", claim_id),
@@ -107,10 +109,35 @@ def _claim_relations(graph: SessionGraph, claim_id: str) -> dict[str, list[str]]
     }
 
 
-def _facts(graph: SessionGraph, steps: dict[str, Any], t0: float) -> dict[str, Any]:
+def _argument_origins(output: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """fact id -> where each argument of its tool call comes from, from ``evaluations["argument_origins"]``
+    (the verdicts of ``ArgumentOriginExtractor``). It is read from the evaluations and not only from the
+    ``supported_by`` edges (fact -> claim) because they hold what the edges cannot: the basis and the reasoning of each
+    argument, and the arguments traced to no claim (no edge). A fact with no verdict (no argument, no claim
+    before the call, a session extracted before the extractor existed) is not in the result."""
+    found: dict[str, list[dict[str, Any]]] = {}
+    for evaluation in (output.get("evaluations") or {}).get("argument_origins", []):
+        found[evaluation["fact_id"]] = [
+            {
+                "argument": o.get("argument"),
+                "value": o.get("value"),
+                "basis": o.get("basis") or "none",
+                "claims": o.get("claim_ids") or [],
+                "reasoning": o.get("reasoning") or "",
+            }
+            for o in evaluation.get("origins", [])
+        ]
+    return found
+
+
+def _facts(
+    graph: SessionGraph, steps: dict[str, Any], t0: float, origins: dict[str, list[dict[str, Any]]] | None = None
+) -> dict[str, Any]:
     """The facts of the ToolCall nodes, with the claims they are in the context of (``in_context``), the
-    claims they support (``supported_by`` read backwards), the arguments of the call and the claims that
-    announce the call (``announces`` read backwards: why the agent called the tool)."""
+    claims they support (``supported_by`` read backwards), the arguments of the call, the claims that
+    announce the call (``announces`` read backwards: why the agent called the tool) and where each argument
+    comes from (``argument_origins``, None when it was not judged)."""
+    origins = origins or {}
     facts: dict[str, Any] = {}
     for node in graph.nodes_of_type("ToolCall"):
         raw = node["node"]
@@ -124,11 +151,22 @@ def _facts(graph: SessionGraph, steps: dict[str, Any], t0: float) -> dict[str, A
                 "tool": fact.get("tool_name") or raw.get("toolName") or raw.get("name"),
                 "arguments": fact.get("tool_arguments") or {},
                 "announced_by": graph.into("announces", raw.get("id")),
+                "argument_origins": origins.get(fact["id"]),
                 "tool_call": raw.get("id"),
                 "agent": step.get("agent_id") or raw.get("agentName") or "unknown",
                 "t": None if raw.get("startTime") is None else round(raw["startTime"] - t0, 2),
                 "in_context": graph.out("in_context", fact["id"]),
-                "supports": graph.into("supported_by", fact["id"]),
+                # the claims it backs: ``supported_by`` claim -> fact read backwards (claims only: the fact ->
+                # fact edges are in the two lists below)
+                "supports": [i for i in graph.into("supported_by", fact["id"]) if graph.kind_of(i) == "claims"],
+                # earlier results the arguments of this call were taken from (``supported_by`` fact -> fact), each
+                # with the arguments it provided; and the later calls whose arguments were taken from this result
+                "argument_facts": [
+                    {"fact": i, "arguments": graph.attributes("supported_by", fact["id"], i).get("arguments") or {}}
+                    for i in graph.out("supported_by", fact["id"])
+                    if graph.kind_of(i) == "facts"
+                ],
+                "argument_of_facts": [i for i in graph.into("supported_by", fact["id"]) if graph.kind_of(i) == "facts"],
             }
     return facts
 

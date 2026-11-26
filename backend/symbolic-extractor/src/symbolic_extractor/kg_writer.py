@@ -93,7 +93,9 @@ ONTOLOGY_EDGES: dict[str, tuple[str, set[str], set[str]]] = {
     "grounded_in": ("groundedIn", _FACT, {"ToolCall"}),
     "owned_by": ("ownedBy", _TASK, {"AgentCall"}),
     "announces": ("announces", _CLAIM, {"ToolCall"}),
-    "supported_by": ("supportedBy", _CLAIM, _FACT),
+    # Claim -> Fact, Fact -> Fact, Fact -> Claim. The label check is per end, so a Claim -> Claim would pass
+    # here too; the extraction never makes one (the ontology shapes forbid it).
+    "supported_by": ("supportedBy", _CLAIM | _FACT, _FACT | _CLAIM),
     "derived_from": ("derivedFrom", _CLAIM, _CLAIM),
     "conflicts_with": ("conflictsWith", _CLAIM, _CLAIM),
     "same_as": ("sameAs", _CLAIM | _TASK, _CLAIM | _TASK),

@@ -236,3 +236,44 @@ def test_pipeline_sets_input_facts_on_llm_calls():
     assert by_id["t1"].input_facts is None  # only LLM calls have it
     assert pipeline.store.related("input_fact", "l2") == [fact_id]
     assert result.symbolic_state.input_facts == {"l1": [], "l2": [fact_id]}
+
+
+def test_without_fact_match_every_finished_fact_of_the_agent_call_is_an_input_fact():
+    steps = [
+        _llm("early", "a1", 1.0, _input("q")),  # tool not finished yet
+        _tool("t1", "a1", 2.0),
+        _llm("absent", "a1", 3.0, _input("something else")),  # output not in the input
+        _llm("other", "a2", 3.0, _input("something else")),  # another agent call
+    ]
+    store = _facts(f1=("t1", "Fare: $75"))
+    assert track_input_facts(steps, store, match_facts=False) == {
+        "early": [], "absent": ["f1"], "other": []
+    }
+    assert track_input_facts(steps, store) == {"early": [], "absent": [], "other": []}
+    assert track_symbolic_state(steps, store, match_facts=False).input_facts["absent"] == ["f1"]
+
+
+def test_pipeline_match_input_facts_flag():
+    from symbolic_extractor.models import SessionTrajectory
+
+    data = SessionData(
+        session_id="s1",
+        tool_spans=[{"id": "t1", "startTime": 2.0, "outputContent": json.dumps("Fare: $75")}],
+        llm_spans=[{"id": "l2", "startTime": 3.0, "completion": "y", "prompt": _input("q")}],
+    )
+    trajectory = SessionTrajectory(
+        session_id="s1",
+        steps=[
+            {"call_id": "a1", "kind": "agent", "agent_id": "a", "parent_id": "", "start_time": 0.5},
+            _tool("t1", "a1", 2.0),
+            _llm("l2", "a1", 3.0, _input("q")),
+        ],
+    )
+    default = SymbolicExtractor(extractors=[ToolResultFactExtractor()]).process(data, trajectory=trajectory)
+    assert {n.node_id: n for n in default.nodes}["l2"].input_facts == []
+
+    pipeline = SymbolicExtractor(extractors=[ToolResultFactExtractor()], match_input_facts=False)
+    result = pipeline.process(data, trajectory=trajectory)
+    l2 = {n.node_id: n for n in result.nodes}["l2"]
+    assert len(l2.input_facts) == 1
+    assert pipeline.store.related("input_fact", "l2") == l2.input_facts

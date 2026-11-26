@@ -27,6 +27,8 @@ from symbolic_extractor.extractors import (
 from symbolic_extractor.kg_reader import KGSessionReader
 from symbolic_extractor.llm import OpenAIChatClient
 from symbolic_extractor.relations import (
+    ArgumentFactLinker,
+    ArgumentOriginExtractor,
     CapabilityTaskRelationExtractor,
     ClaimRelationExtractor,
     FactClaimLinker,
@@ -43,6 +45,7 @@ def build_pipeline(
     embedder: TextEmbedder | None = None,
     same_claim_threshold: float = DEFAULT_SAME_CLAIM_THRESHOLD,
     similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+    match_input_facts: bool = True,
 ) -> SymbolicExtractor:
     """A ``SymbolicExtractor`` with every extractor and relation extractor. Without an ``embedder``,
     ``same_claims`` is not computed."""
@@ -79,6 +82,7 @@ def build_pipeline(
         embedder=embedder,
         same_claim_threshold=same_claim_threshold,
         similarity_threshold=similarity_threshold,
+        match_input_facts=match_input_facts,
         # Always on, in both the per-session and the live mode: supported_by (claim -> fact),
         # conflicts_with / same_as / derived_from (claim -> input claims), implements (task ->
         # task of an earlier agent call) and achieves (task -> goal). GoalClaimRelationExtractor
@@ -94,5 +98,11 @@ def build_pipeline(
             # supports (capability -> task): which capabilities of its agent support each task and system task,
             # judged once per task as soon as the capabilities of its agent are known.
             CapabilityTaskRelationExtractor(llm),
+            # supported_by (fact -> claim): which claims its agent had made so far the arguments of each tool
+            # call come from, judged once per tool call that has arguments.
+            ArgumentOriginExtractor(llm),
+            # supported_by (fact -> fact): which earlier tool results of its agent call each tool result was
+            # obtained with (a string argument found in them); text matching and timestamps, no LLM.
+            ArgumentFactLinker(),
         ],
     )

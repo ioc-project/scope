@@ -405,7 +405,7 @@ function render() {
         const why = reasonTexts(f);
         if (why.length) chip.appendChild(el("div", "why", "why: " + (why[0].length > 110 ? why[0].slice(0, 110) + "…" : why[0]) + (why.length > 1 ? ` (+${why.length - 1})` : "")));
         chip.appendChild(el("div", null, f.text.length > 90 ? f.text.slice(0, 90).replace(/\s+/g, " ") + "…" : f.text.replace(/\s+/g, " ")));
-        chip.title = [args ? "arguments: " + args : null, why.length ? "announced by: " + why.join(" | ") : null, f.text.slice(0, 800)].filter(Boolean).join("\n");
+        chip.title = [args ? "arguments: " + args : null, (originLines(f) || []).length ? "argument origins: " + originLines(f).join(" | ") : null, why.length ? "announced by: " + why.join(" | ") : null, f.text.slice(0, 800)].filter(Boolean).join("\n");
         chip.onclick = ev => { ev.stopPropagation(); selected = null; selectedGoal = null; selectedTask = null; selectedFact = selectedFact === fid ? null : fid; draw(); };
         wrap.appendChild(chip); (factEl[fid] = factEl[fid] || []).push(chip);
       });
@@ -817,6 +817,7 @@ function side() {
     s.appendChild(ul);
     factList(s, "Facts in context (in the input of this call)", c.input_facts);
     factList(s, "Supported by (fact)", k.supported_by);
+    factList(s, "Source of the arguments of the tool calls (supported_by: judged against the claims the agent had made before the call)", k.argument_source_of);
   }
   const claimList = (label, ids) => {
     if (!ids || !ids.length) return;
@@ -871,6 +872,15 @@ function argText(f) {
 // the text of the claims that announce the tool call (why the agent called it)
 function reasonTexts(f) {
   return (f.announced_by || []).filter(id => claimById[id]).map(id => claimById[id].text.replace(/\s+/g, " "));
+}
+// where each argument of the tool call comes from (judged by an LLM against the claims the agent had made so far):
+// one line per argument, "name: basis (from #n agent)" or "name: none"; null when the call was not judged
+function originLines(f) {
+  if (!f.argument_origins) return null;
+  return f.argument_origins.map(o => {
+    const from = (o.claims || []).filter(id => callOfClaim[id]).map(id => "#" + callOfClaim[id].n);
+    return o.argument + ": " + (o.basis === "none" ? "not traced to a claim" : o.basis + (from.length ? " from " + from.join(", ") : ""));
+  });
 }
 
 // clickable list of facts in a side panel
@@ -1029,6 +1039,40 @@ function factSide(s) {
   const kv = (label, value) => { s.appendChild(el("div", "k", label)); s.appendChild(el("div", null, value)); };
   kv("Tool", f.tool || "-"); kv("Agent", f.agent); kv("Source type", f.source_type || "-");
   if (argText(f)) { s.appendChild(el("div", "k", "Arguments")); s.appendChild(el("pre", "factpre", JSON.stringify(f.arguments, null, 2))); }
+  if (f.argument_origins && f.argument_origins.length) {
+    s.appendChild(el("div", "k", "Where the arguments come from (supported_by: judged against the claims the agent had made before the call)"));
+    const ol = el("ul");
+    f.argument_origins.forEach(o => {
+      const traced = o.basis !== "none" && (o.claims || []).some(id => claimById[id]);
+      const li = el("li", null, `${o.argument}: ${traced ? o.basis : "not traced to a claim"}${o.reasoning ? " - " + o.reasoning : ""}`);
+      ol.appendChild(li);
+      if (traced) {
+        const sub = el("ul");
+        o.claims.filter(id => claimById[id]).forEach(id => {
+          const c = claimById[id], cc = callOfClaim[id];
+          const item = el("li", null, `#${cc.n} ${cc.agent}: ${c.text}`);
+          item.style.color = FACT_COLOR; item.onclick = () => { selectedFact = null; selected = id; draw(); };
+          sub.appendChild(item);
+        });
+        ol.appendChild(sub);
+      }
+    });
+    s.appendChild(ol);
+  }
+  const fromFacts = (f.argument_facts || []).filter(x => FACTS[x.fact]);
+  if (fromFacts.length) {
+    s.appendChild(el("div", "k", "Arguments taken from earlier tool results (supported_by, fact to fact: the value of the argument is in that result)"));
+    const fl = el("ul");
+    fromFacts.forEach(x => {
+      const src = FACTS[x.fact];
+      const names = Object.keys(x.arguments || {}).map(n => n + "=" + String(typeof x.arguments[n] === "string" ? x.arguments[n] : JSON.stringify(x.arguments[n])).slice(0, 60)).join(", ");
+      const li = el("li", null, `${names || "?"} \u2190 ${src.tool || "tool"} (${src.agent}): ${src.text.replace(/\s+/g, " ").slice(0, 80)}${src.text.length > 80 ? "\u2026" : ""}`);
+      li.style.color = FACT_COLOR; li.onclick = () => { selectedFact = x.fact; draw(); };
+      fl.appendChild(li);
+    });
+    s.appendChild(fl);
+  }
+  factList(s, "Source of the arguments of later tool calls (supported_by, fact to fact)", f.argument_of_facts);
   kv("Produced by tool call", `${f.tool_call}${f.t == null ? "" : " (+" + f.t + "s)"}`);
   s.appendChild(el("div", "k", "Present in the input of"));
   const ul = el("ul");

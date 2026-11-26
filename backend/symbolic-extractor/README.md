@@ -41,6 +41,7 @@ Pipeline: read the session (and its trajectory) from the KG, extract the claims 
 | `--live` | Process the session node by node with `live_process` (see [Live mode](#live-mode-symbolicextractorlive_process)); `same_claims` are computed one node at a time | off |
 | `--html` | After the extraction, run `scripts/claims_graph.py` on the result JSON; the page is written next to it as `<session_id>_claims.html` | off |
 | `--no-same-claims` | Skip the embeddings and `same_claims` | off |
+| `--no-fact-match` | Do not check that a fact occurs in the input of an LLM call: every fact of the tool calls of its agent call that finished before the call started is an `input_fact`. Use it when the stored inputs are cut (see [Cut LLM inputs](#cut-llm-inputs-and---no-fact-match)) | off |
 | `--same-claim-threshold P` | A claim lists an input claim in `same_claims` when their same-claim probability is above `P` | `0.7` |
 | `--similarity-threshold S` | Embedding similarity at which that probability is 0.5. Lower it to accept looser paraphrases | `0.85` |
 
@@ -51,6 +52,8 @@ Typical sequence:
 uv run symbolic-extractor <sid> --fetch-only
 # 2. extract offline from the saved files, as many times as needed
 uv run symbolic-extractor <sid> --from-file --similarity-threshold 0.80
+# same, for a session whose LLM inputs are cut (SRE): input_facts without the text check, live replay, HTML page
+uv run symbolic-extractor <sid> --from-file --live --html --no-fact-match
 ```
 
 Without a trajectory file, claims are still extracted but `input_claims` and `same_claims` are not computed. Claim extraction runs the LLM again on every run, so the claims (and their ids) vary a little between runs.
@@ -231,7 +234,7 @@ uv run pytest -p no:cacheprovider --live tests/test_functional_traces.py --sessi
 
 ## System prompts
 
-The system prompt of an agent says what the agent is for, which the user request and the assignment often do not. It is stored raw, once per agent, so that other extractors (tasks, goals) can use it later. Output key `system_prompts`; element `AgentSystemPrompt` (`agent_id`, `system_prompt`, `truncated`, `read_from`). Not embedded, no ontology class yet (`mas:SystemPrompt` does not exist).
+The system prompt of an agent says what the agent is for, which the user request and the assignment often do not. It is stored raw, once per agent, so that other extractors (tasks, goals) can use it later. Output key `system_prompts`; element `AgentSystemPrompt` (`agent_id`, `system_prompt`, `truncated`, `read_from`). Not embedded, ontology class `mas:SystemPrompt` (`systemPromptText`, `systemPromptOf` -> `mas:Agent`; `truncated` and `read_from` stay in the JSON only).
 
 ### Extraction
 
@@ -253,7 +256,7 @@ A system prompt also holds the duties of the agent ("investigate the incident, d
 - **Fields:** `task_text`, `acceptance_criteria` (only those the prompt states), `agent_id`, `system_prompt_id`, `read_from` (the LLM call), `truncated` (the prompt was cut by the KG, so duties after the cut are missing) and `id` (deterministic).
 - **What counts:** the role statement (the kind of work the agent does) and the duties, merged per procedure. Persona, tool lists, style and working rules are not tasks (rules that constrain a deliverable become its criteria). The LLM still sometimes turns a working rule into a task (the `sre` agent gets one for "state uncertainty explicitly"), and the result varies a little between runs.
 - **Link to the agent calls:** `has_system_task` (AgentCall -> SystemTask) in the store, made deterministically from the trajectory for every agent call of the agent, the ones before the prompt was read included (no request). Each `AgentCall` node of the output has `system_tasks`, the ids of those tasks (`[]` for an agent without any; the key is null when there is no trajectory or no `SystemTaskExtractor`). In `--live` mode the node is returned when it is processed: an agent call that comes before the first LLM call of its agent (where the prompt is read) is returned with `[]`, and updated in place when the prompt is read, one node later (see `updated_nodes` in [Edges and late relations](#edges-and-late-relations)).
-- **Not embedded**, no ontology class yet. CLI line: `System tasks: N standing tasks of M agents, linked to K agent calls`.
+- **Not embedded**, ontology: a `mas:Task` with `source = 'system'`, `definedIn` -> `mas:SystemPrompt`, no `ownedBy`. CLI line: `System tasks: N standing tasks of M agents, linked to K agent calls`.
 - **Checked on the saved sessions:** trip planner: one task per agent (the moderator also gets two criteria: route to each agent at least once, put the answer in `final_answer`); SRE: one per specialist (from the cut prompts), five for `sre`. Cost: one small request per agent (about $0.0005 for the trip planner).
 
 ## Constraints
@@ -278,7 +281,7 @@ A capability is something an agent is able to do, read from its system prompt: "
 - **Where:** `SystemCapabilityExtractor` (one LLM request, own prompt) follows the same pattern as the system constraints: it runs once per agent, on the LLM call where `AgentSystemPromptExtractor` read the prompt (it must come after it in the list), and its elements are stored on that LLM node (`symbolic_state_elements.capabilities`). It is a separate request from the system tasks and the constraints.
 - **What counts:** the kinds of work the agent can do, with the means the prompt names (tools, data it reads), one capability per distinct kind of work. Duties ("you must..."), rules, persona and style, the generic abilities of any LLM ("write text", "reason") and statements of what the agent cannot do are not extracted.
 - **Link:** `has_capability` (AgentCall -> Capability) in the store, deterministic, for every agent call of the agent, the ones before the prompt was read included (needs the trajectory, no request). Each `AgentCall` node of the output has `capabilities` (ids; null without a trajectory or a capability extractor). In `--live` mode the first call of an agent is returned with `[]` and updated in place when the prompt is read, as for the system tasks.
-- **Not embedded.** Ontology: `mas:Capability` (`capabilityText`, `definedIn` -> `mas:SystemPrompt`, whose `systemPromptOf` is the `mas:Agent`; `source = 'system'`). The relation to the tasks is `supports`, see below. CLI line: `Capabilities: N capabilities of M agents, linked to K agent calls`.
+- **Not embedded.** Ontology: `mas:AgentCapability` (`agentCapabilityText`, `definedIn` -> `mas:SystemPrompt`, whose `systemPromptOf` is the `mas:Agent`; `source = 'system'`). The relation to the tasks is `supports`, see below. CLI line: `Capabilities: N capabilities of M agents, linked to K agent calls`.
 - **Checked on the trip planner:** `itinerary_agent`: routes and travel times; `schedule_agent`: train and airplane schedules, and attractions per city; `concierge_agent`: train fares; `moderator`: coordinating the specialists. Cost: one small request per agent. A capability is the model's reading of the prompt, an approximation of what the agent can really do (its tools are not read from the trace).
 
 ### `supports` (Capability -> Task)
@@ -456,6 +459,31 @@ A fact is a proposition grounded in something outside agent generation (`mas:Fac
 - LLM calls without a known agent call get no entry. `input_facts` is `None` without a trajectory and `[]` when the call has no facts.
 
 In the store this is the relation `input_fact` (LLM call to fact).
+
+#### Cut LLM inputs and `--no-fact-match`
+
+The match needs the full input of the call. When the input stored in the KG is truncated, the tool results are not in it and no candidate matches: `input_facts` is `[]` for every call, and so are the `input_fact` and `in_context` edges, with no error. On the SRE session `42f3430a` all 42 candidate facts (18 LLM calls) were rejected for this reason, not because of the text format:
+
+- `prompt` / `inputContent` of 18 of the 19 LLM calls is exactly 4000 characters (the other, 3025, is the first call, which has no candidate) and ends in the middle of a string, not with the closing `]` of the JSON array. It holds only the `system` message (the end of the system prompt).
+- The real inputs are larger: `promptTokenCount` goes from 2203 to 8606 and grows from call to call as tool results are added. The tool results were in the real input; the trace kept only its first 4000 characters.
+- No fact has its start or its end in the stored text, in plain or JSON-escaped form, so a difference of format (whitespace, escaping) is ruled out. The code already normalises whitespace and decodes the messages one by one.
+
+`--no-fact-match` (`match_input_facts=False`) skips the check: every candidate (a fact of the tool calls of the same agent call that finished before the LLM call started) is an input fact. This is an approximation: "was available to the call", not "is in its input". A tool result the agent never received, because the framework dropped it from the context, would be listed anyway. Without a way to see the full input there is nothing better; the cap has to be lifted where the spans are exported or normalised (outside this package). To check a session, compare the length of its `prompt` fields with `promptTokenCount`: a constant length (here 4000) and no closing `]` mean the inputs are cut.
+
+**`supported_by` (fact -> fact): which earlier tool result did an argument come from?** An agent often calls a tool with a value it just read in the result of another one (`list_services` returns `profile-cache`, then `get_metrics(service="profile-cache")`). The fact that is the result of the second call is `supported_by` the fact(s) of the earlier results that hold its input values. The reasoning of the LLM is not recorded, so this is a deterministic heuristic on text and timestamps (`ArgumentFactLinker` in `relations/argument_fact_links.py`, a relation extractor like the others: no LLM, listed in `relation_extractors` (the CLI does), run on the fact of each `ToolCall` node when it is processed, in `process` and in `live_process`; `ArgumentFactLinker().extract(store, facts, trajectory)` also works on its own). For each string argument of a tool call (at least 3 characters: numbers and flags would match anything):
+
+1. *Visible results:* the tool call was requested by the last LLM call of its agent call that ended before it started; only the results of tool calls of the same agent call that had finished before that LLM call **started** are candidates (tool calls running in parallel with it, or later, were not visible).
+2. *Match:* a candidate matches when the value occurs in its text (`verbatim_source` of the fact). Without an LLM call before the tool call, the results finished before the tool call started are used.
+3. *Echo filter:* a candidate whose own tool call was made with the same value is dropped: tools echo their inputs (`get_metrics(window="15m")` returns `"window": "15m"`), so it did not introduce the value.
+4. *Earliest source:* of the candidates left, the earliest is kept, the one that introduced the value.
+
+The edge goes from the fact of the tool call (its result, `grounded_in` the ToolCall) to the source fact, with the attribute `arguments` (argument name -> value found there); one edge per source fact, even for several arguments. The relation name is shared with the claim -> fact `supported_by` of `FactClaimLinker`; the two are told apart by the kind of their ends (and by the `arguments` attribute). The ontology property `mas:supportedBy` covers it (Claim -> Fact, Fact -> Fact, Fact -> Claim), so the KG writer writes the edge; the `arguments` attribute is not written (the ontology has no place for an edge attribute yet).
+
+On the SRE session `42f3430a` the telemetry agent gets the expected chain: `list_services` is the source of `service="profile-service"` for the facts of the five calls that follow it and of `service="profile-cache"` for the last `get_metrics` (the same value is also in the dependencies of `get_service_health`, which is not chosen: earliest wins). The `window="15m"` values have no source (echoes). The `activate_skill` results are facts like the others, so the instructions of a skill can be the source of a value (`level="ERROR"`, `window="15m"` in the backend and db agents).
+
+Limits: a value that is derived (not copied) from a result, an abbreviated or reformatted one, and a value the agent knew from its prompt or the question are not found; a common value can match a result by chance, and with several results holding it the earliest is a guess. `supported_by` (fact -> claim, `ArgumentOriginExtractor` in `relations/argument_origin_relations.py`) is the LLM counterpart for the claims of the agent: the fact of a tool call is supported by the claims its arguments come from.
+
+> **To do:** compare this heuristic against an LLM extraction of the same link (an LLM judging, for each argument, which earlier fact it comes from, like `ArgumentOriginExtractor` does for claims). The relation has the same name as the deterministic one, so a second extractor would have to be told apart by an attribute (e.g. `method`) or run on a separate session, so that both can be compared: where they agree, what the heuristic misses (derived values) and what it adds (chance matches).
 
 **Fact-claim link: is a claim backed by a fact?** `FactClaimLinker` in `src/symbolic_extractor/relations/fact_claim_links.py`. For one (fact, claim) pair, one LLM request answers yes/no: is the claim derived from the fact, i.e. stated by it or following from it with trivial reasoning. Everything else (the fact says nothing about it, contradicts it, or only relates to it) is "no".
 
@@ -636,7 +664,7 @@ Done: goals, tasks, system prompts and standing tasks, constraints (user and sys
 
 - Deal with tools that returns only number/short-sentence that without a context are difficult to understand
 - Use the system prompt (and the standing tasks and constraints read from it) when extracting the goal and the tasks, not only the user request (see the Goals and Tasks TODOs), and to extract additional Facts
-- Capabilities (ontology: `mas:Capability`, `mas:supports`, done). Open points: the per-call link `has_capability` (AgentCall -> Capability) is not an ontology property (it is derived through the Agent), `mas:supports` is not checked to stay within one agent, capabilities overlap the system tasks (both come from the same prompt), negative statements ("cannot do X") are not extracted, tools could be read from the trace instead of the prompt, the relation has not been tried on a session where an agent is given a task outside its capabilities
+- Capabilities (ontology: `mas:AgentCapability`, `mas:supports`, done). Open points: the per-call link `has_capability` (AgentCall -> AgentCapability) is not an ontology property (it is derived through the Agent), `mas:supports` is not checked to stay within one agent, capabilities overlap the system tasks (both come from the same prompt), negative statements ("cannot do X") are not extracted, tools could be read from the trace instead of the prompt, the relation has not been tried on a session where an agent is given a task outside its capabilities
 - Constraints: link a task only when a goal constraint is specific to it; relate constraints to claims (is a constraint respected?); decide what to do with the generic safety rules that system prompts repeat (they come out as many `hard` constraints on every agent)
 
 

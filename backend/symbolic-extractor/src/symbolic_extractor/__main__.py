@@ -165,6 +165,12 @@ def main(argv: list[str] | None = None) -> None:
         help="Embedding similarity at which two claims have probability 0.5 of being the "
         f"same; lower it to accept looser paraphrases (default {DEFAULT_SIMILARITY_THRESHOLD})",
     )
+    parser.add_argument(
+        "--no-fact-match",
+        action="store_true",
+        help="Do not check that a fact occurs in the input of an LLM call: every fact of the tool calls "
+        "of its agent call that finished before it started is an input_fact",
+    )
     args = parser.parse_args(argv)
     if args.fetch_only and args.from_file:
         parser.error("--fetch-only and --from-file cannot be combined")
@@ -212,6 +218,7 @@ def main(argv: list[str] | None = None) -> None:
         embedder=embedder,
         same_claim_threshold=args.same_claim_threshold,
         similarity_threshold=args.similarity_threshold,
+        match_input_facts=not args.no_fact_match,
     )
     if args.live:
         result = run_live(pipeline, data, request, trajectory)
@@ -275,6 +282,13 @@ def main(argv: list[str] | None = None) -> None:
                 f"{label} are linked to a capability of their agent "
                 f"({sum(len(t['supported_by_capabilities']) for t in linked_tasks)} links)"
             )
+    argument_origins = result.evaluations.get("argument_origins", [])
+    if argument_origins:
+        origins = [o for e in argument_origins for o in e["origins"]]
+        print(
+            f"Argument origins: {sum(1 for o in origins if o['claim_ids'])} of {len(origins)} arguments of "
+            f"{len(argument_origins)} tool calls are traced to claims of their agent call"
+        )
     delegation_claims = [c for n in result.nodes for c in n.symbolic_state_elements.get("delegation_claims", [])]
     print(
         f"Delegation claims: {len(delegation_claims)} from {len({c['delegated_to'] for c in delegation_claims})} "

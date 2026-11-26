@@ -34,6 +34,8 @@ from symbolic_extractor.models import (
     SessionData,
     SessionTrajectory,
 )
+from symbolic_extractor.relations.argument_fact_links import ArgumentFactLinker
+from symbolic_extractor.relations.argument_origin_relations import ArgumentOriginEvaluation, ArgumentOriginExtractor
 from symbolic_extractor.relations.claim_claim_relations import SAME_AS, ClaimRelation, ClaimRelationExtractor
 from symbolic_extractor.relations.fact_claim_links import SUPPORTED_BY, FactClaimLinker
 from symbolic_extractor.relations.goal_claim_relations import FULFILS, GoalClaimRelationExtractor, GoalEvaluation
@@ -104,6 +106,7 @@ class SymbolicExtractor:
         same_claim_threshold: float = DEFAULT_SAME_CLAIM_THRESHOLD,
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         relation_extractors: Sequence[SemanticRelationExtractor] = (),
+        match_input_facts: bool = True,
     ) -> None:
         """``reader`` is only needed by ``run`` (and by ``live_process`` to fetch the
         trajectory when it is not given); ``process`` works on data from any source.
@@ -124,8 +127,13 @@ class SymbolicExtractor:
         ``_evaluate_goals``. A ``TaskClaimRelationExtractor`` runs per node, like the others, on the
         claims of an LLM call and the tasks of its agent call (``produced_by``), see
         ``_judge_node_tasks``; it needs the AgentCall node to be processed before its LLM calls.
+
+        ``match_input_facts`` (default True): an LLM call's input facts are those, among the facts of
+        the tool calls of its agent call finished before it started, whose text occurs in its input.
+        With False that textual check is skipped and all of those facts are input facts.
         """
         self._reader = reader
+        self._match_input_facts = match_input_facts
         self._extractors = list(extractors)
         self._relation_extractors = list(relation_extractors)
         self._embedder = embedder
@@ -153,6 +161,9 @@ class SymbolicExtractor:
         self.capability_evaluations: list[CapabilityEvaluation] = []
         # ids of the tasks and system tasks already submitted to the CapabilityTaskRelationExtractor
         self._capability_judged: set[str] = set()
+        #: Verdicts of the ``ArgumentOriginExtractor``: which claims of its agent call the arguments of each
+        #: tool call come from (one per tool call, judged once).
+        self.argument_evaluations: list[ArgumentOriginEvaluation] = []
         # live mode: node id -> the node returned for it, so a late relation can be put on it (see ``_refresh``)
         self._returned: dict[str, AnnotatedNode] = {}
 
@@ -203,6 +214,7 @@ class SymbolicExtractor:
             self.goal_evaluations, self._evaluated = [], {}
             self.task_evaluations = []
             self.capability_evaluations, self._capability_judged = [], set()
+            self.argument_evaluations = []
             self._returned = {}
         if self.embeddings is not None and self.embeddings.session_id != session_id:
             self.embeddings = None
@@ -211,6 +223,7 @@ class SymbolicExtractor:
         goals_before = len(self.goal_evaluations)
         tasks_before = len(self.task_evaluations)
         capabilities_before = len(self.capability_evaluations)
+        arguments_before = len(self.argument_evaluations)
         if trajectory is None and self._reader is not None and self._reader.can_read_trajectory:
             trajectory = self._reader.read_trajectory(session_id)
         self.trajectory = trajectory
@@ -288,7 +301,7 @@ class SymbolicExtractor:
         # Whether those claims satisfy the goal: only once they are all extracted.
         self._evaluate_goals(result, store)
         result.edges = store.edges_since(edges_before)
-        result.evaluations = self._evaluations(goals_before, tasks_before, capabilities_before)
+        result.evaluations = self._evaluations(goals_before, tasks_before, capabilities_before, arguments_before)
         # What was judged in this step: a verdict leaves a marker on the element (``fulfils``, ``supported_by_capabilities``,
         # the status of the goal) even when it has no edge (a task no capability supports), so it does not
         # depend on the new edges.
@@ -318,6 +331,7 @@ class SymbolicExtractor:
         self.goal_evaluations, self._evaluated = [], {}
         self.task_evaluations = []
         self.capability_evaluations, self._capability_judged = [], set()
+        self.argument_evaluations = []
         # Note sorting by time simply mimics what we would have in a live processing
         annotated = [self._extract_node(node, store, trajectory) for node in data.nodes()]  # sorted by startTime
         total, by_element = self._sum_usage(annotated)
@@ -378,13 +392,16 @@ class SymbolicExtractor:
         result.evaluations = self._evaluations()
         return result
 
-    def _evaluations(self, goals: int = 0, tasks: int = 0, capabilities: int = 0) -> dict[str, list[dict[str, Any]]]:
-        """The judgements (with their reasoning) made after the given number of goal, task and capability
-        evaluations, as plain dicts for the output file."""
+    def _evaluations(
+        self, goals: int = 0, tasks: int = 0, capabilities: int = 0, arguments: int = 0
+    ) -> dict[str, list[dict[str, Any]]]:
+        """The judgements (with their reasoning) made after the given number of goal, task, capability and
+        tool-argument evaluations, as plain dicts for the output file."""
         return {
             "goals": [e.model_dump(mode="json") for e in self.goal_evaluations[goals:]],
             "tasks": [e.model_dump(mode="json") for e in self.task_evaluations[tasks:]],
             "capabilities": [e.model_dump(mode="json") for e in self.capability_evaluations[capabilities:]],
+            "argument_origins": [e.model_dump(mode="json") for e in self.argument_evaluations[arguments:]],
         }
 
     def _refresh(
@@ -1219,6 +1236,8 @@ class SymbolicExtractor:
         """``_extract_relations`` for one node; returns the usage of the LLM requests made.
         ``has_trajectory`` is whether the agent calls could be ordered (task relations need it)."""
         usage = self._relate_delegation_claims(node, store)
+        usage = usage + self._judge_tool_arguments(node, store)
+        self._link_tool_arguments(node, store)
         claims = store.claims_for_node(node.node_id) if node.node_id else []
         tasks = store.for_node(node.node_id, "tasks") if node.node_id else []
         if not claims and not tasks:
@@ -1240,6 +1259,10 @@ class SymbolicExtractor:
                 continue  # judged once, on the final answer: see ``_evaluate_goals``
             if isinstance(extractor, CapabilityTaskRelationExtractor):
                 continue  # judged once per task, when its agent's capabilities are known: see ``_evaluate_capabilities``
+            if isinstance(extractor, ArgumentOriginExtractor):
+                continue  # judged once per tool call, against the claims of its agent call: see ``_judge_tool_arguments``
+            if isinstance(extractor, ArgumentFactLinker):
+                continue  # run once per tool call, on its fact: see ``_link_tool_arguments``
             if isinstance(extractor, TaskClaimRelationExtractor):
                 usage = usage + self._judge_node_tasks(extractor, node, claims, store)
                 continue
@@ -1283,6 +1306,62 @@ class SymbolicExtractor:
             for task in node.symbolic_state_elements.get("tasks", []):
                 task["implements"] = store.related(IMPLEMENTS, task["id"])
                 task["achieves"] = store.related(ACHIEVES, task["id"])
+        return usage
+
+    def _link_tool_arguments(self, node: AnnotatedNode, store: SymbolicSessionStore) -> None:
+        """Where do the arguments of the tool call ``node`` come from among the results of the earlier tool
+        calls? With the ``ArgumentFactLinker`` (if any), on the fact of the tool call: ``supported_by``
+        (fact -> earlier facts, attribute ``arguments``), by text matching and timestamps, no LLM. The earlier facts are in the store when
+        the ToolCall node is processed (nodes come in start order). Nothing is done for a node that is not a
+        tool call, or without a trajectory. A failing extractor is logged and skipped."""
+        trajectory = self.trajectory
+        extractors = [e for e in self._relation_extractors if isinstance(e, ArgumentFactLinker)]
+        if not extractors or trajectory is None or node.node_type != "ToolCall" or not node.node_id:
+            return
+        elements = [s.element for s in store.for_node(node.node_id, "facts")]
+        for extractor in extractors:
+            try:
+                extractor.extract(store, elements, trajectory)
+            except Exception:
+                logger.warning("%s failed on tool call %s", type(extractor).__name__, node.node_id, exc_info=True)
+
+    def _judge_tool_arguments(self, node: AnnotatedNode, store: SymbolicSessionStore) -> LLMUsage:
+        """Where do the arguments of the tool call ``node`` come from? With the ``ArgumentOriginExtractor``
+        (if any): the fact of the tool call (``grounded_in`` the node) is compared with the claims its agent
+        call had made before the call (the claims of its earlier LLM calls, the one that requested it
+        included, and the claims of the brief it received), and the claims its arguments come from are
+        linked (``supported_by``, fact of the tool call -> claim). Those claims are in the store when the ToolCall node
+        is processed (nodes come in start order), so it is judged once, here.
+
+        Nothing is asked for a node that is not a tool call with an output and arguments, when the agent
+        call has no claim before the call, and without a trajectory (the agent call is unknown). The
+        verdicts are added to ``self.argument_evaluations``. A failing request (an LLM error, an unusable
+        reply) is logged and skipped. Returns the usage of the requests made.
+        """
+        usage = LLMUsage()
+        trajectory = self.trajectory
+        extractors = [e for e in self._relation_extractors if isinstance(e, ArgumentOriginExtractor)]
+        if not extractors or trajectory is None or node.node_type != "ToolCall" or not node.node_id:
+            return usage
+        for extractor in extractors:
+            for stored in store.for_node(node.node_id, "facts"):
+                if not extractor.has_candidates(store, trajectory, stored.element):
+                    continue
+                try:
+                    evaluations = extractor.extract(store, [stored.element], trajectory)
+                except Exception:
+                    logger.warning("%s failed on tool call %s", type(extractor).__name__, node.node_id, exc_info=True)
+                    usage = usage + extractor.last_usage
+                    continue
+                usage = usage + extractor.last_usage
+                self.argument_evaluations.extend(evaluations)
+                for evaluation in evaluations:
+                    logger.info(
+                        "supported_by: %d of the %d arguments of %s traced to claims",
+                        len(evaluation.traced),
+                        len(evaluation.origins),
+                        evaluation.tool_name,
+                    )
         return usage
 
     def _judge_node_tasks(
@@ -1364,8 +1443,8 @@ class SymbolicExtractor:
                 out.append(r.claim_id)
         return out
 
-    @staticmethod
     def _track_input_claims(
+        self,
         inputs: Mapping[str, str],
         annotated: list[AnnotatedNode],
         store: SymbolicSessionStore,
@@ -1385,7 +1464,9 @@ class SymbolicExtractor:
         if trajectory is None:
             logger.info("No trajectory: input_claims not computed")
             return None
-        trace = track_symbolic_state(trajectory.steps, store, inputs, trajectory.handoffs)
+        trace = track_symbolic_state(
+            trajectory.steps, store, inputs, trajectory.handoffs, self._match_input_facts
+        )
         for node in annotated:
             if node.node_type == "LLMCall" and node.node_id in trace.input_claims:
                 node.input_claims = trace.input_claims[node.node_id]

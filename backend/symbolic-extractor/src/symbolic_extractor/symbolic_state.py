@@ -271,6 +271,7 @@ def track_input_facts(
     trajectory_steps: list[dict[str, Any]],
     store: SymbolicSessionStore,
     inputs: Mapping[str, str] | None = None,
+    match_facts: bool = True,
 ) -> dict[str, list[str]]:
     """``input_facts`` of every LLM call of the trajectory: LLMCall id -> fact ids.
 
@@ -280,6 +281,9 @@ def track_input_facts(
     visible). Of those, the ones whose ``verbatim_source`` occurs in the conversation part of
     the call's input (tool responses included, system prompt ignored) are the input facts,
     in the order of their tool calls. Nothing is inherited across agent calls or agents.
+
+    With ``match_facts=False`` the textual check is skipped: every candidate is an input fact
+    (the facts of the tool calls of the same agent call that finished before the LLM call).
 
     ``inputs`` maps an LLMCall id to its input text; the trajectory's ``input_text`` is used
     for calls that are not in it. LLM calls without a known agent call are left out.
@@ -314,6 +318,9 @@ def track_input_facts(
             if end <= start
             for fact in store.for_node(tool_id, "facts")
         ]
+        if not match_facts:
+            result[call["call_id"]] = candidates
+            continue
         texts = input_texts(inputs.get(call["call_id"]) or call.get("input_text"))
         result[call["call_id"]] = [
             fid for fid in candidates if fid in snippets and any(snippets[fid] in t for t in texts)
@@ -326,8 +333,11 @@ def track_symbolic_state(
     store: SymbolicSessionStore,
     inputs: Mapping[str, str] | None = None,
     handoffs: list[dict[str, Any]] | None = None,
+    match_facts: bool = True,
 ) -> SymbolicStateTrace:
     """Compute ``input_claims`` for every LLM call of the trajectory.
+
+    ``match_facts`` is passed to ``track_input_facts`` (False: no textual check of the facts).
 
     ``inputs`` maps an LLMCall id to its input text; the trajectory's ``input_text`` is used
     for calls that are not in it. ``handoffs`` are the KG handoffs of the trajectory (see
@@ -356,7 +366,7 @@ def track_symbolic_state(
         logger.info("%d claims have no verbatim_source and cannot be followed across calls", skipped)
 
     trace = SymbolicStateTrace(transitions=transitions)
-    trace.input_facts = track_input_facts(trajectory_steps, store, inputs)
+    trace.input_facts = track_input_facts(trajectory_steps, store, inputs, match_facts)
     final_state: dict[str, dict[str, None]] = {}  # AgentCall id -> ordered set of claim ids
 
     for agent in sorted(agents, key=lambda s: s.get("start_time") or 0.0):

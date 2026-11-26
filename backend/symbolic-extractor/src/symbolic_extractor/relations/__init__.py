@@ -1,3 +1,9 @@
+from symbolic_extractor.relations.argument_fact_links import ArgumentFactLink, ArgumentFactLinker
+from symbolic_extractor.relations.argument_origin_relations import (
+    ArgumentOrigin,
+    ArgumentOriginEvaluation,
+    ArgumentOriginExtractor,
+)
 from symbolic_extractor.relations.claim_claim_relations import (
     CONFLICTS_WITH,
     DERIVED_FROM,
@@ -23,6 +29,8 @@ from symbolic_extractor.relations.task_relations import ACHIEVES, IMPLEMENTS, Ta
 
 __all__ = [
     "ACHIEVES",
+    "ArgumentFactLink",
+    "ArgumentFactLinker",
     "CONFLICTS_WITH",
     "DERIVED_FROM",
     "FULFILS",
@@ -30,6 +38,9 @@ __all__ = [
     "SUPPORTED_BY",
     "SUPPORTS",
     "IMPLEMENTS",
+    "ArgumentOrigin",
+    "ArgumentOriginEvaluation",
+    "ArgumentOriginExtractor",
     "SAME_AS",
     "BatchFactClaimLinker",
     "CapabilityEvaluation",

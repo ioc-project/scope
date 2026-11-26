@@ -76,22 +76,22 @@ Cards, one per element: what is stored, how the id is made, which fields point a
 - **KG pointer:** `generated_by` = id of the `LLMCall` (`mas:generatedBy`).
 - **Checks:** `verbatim_source` must occur in the output, otherwise the claim is dropped. A call with an empty output is not sent to the LLM, nor is one that only requests tool calls and has no text.
 - **Tool calls:** when the output requests tool calls (OTel `tool_call` parts), the prompt lists them (provider id, name, arguments) next to the text. A committing claim that announces them ("Now I will calculate the total travel time") carries `tool_call_ids`, kept only if they occur in that output. Empty for any other claim.
-- **Gets afterwards:** `input_claim`, `in_context`, `same_claim`, `same_as`, `conflicts_with`, `derived_from`, `supported_by`, `produced_by`, `announces`, `fulfils_task`, `answers`, `fulfils`, `reply_claim`.
+- **Gets afterwards:** `input_claim`, `in_context`, `same_claim`, `same_as`, `conflicts_with`, `derived_from`, `supported_by` (as source towards a fact, and as target of the argument links of a fact), `produced_by`, `announces`, `fulfils_task`, `answers`, `fulfils`, `reply_claim`.
 
 ### `Fact` (`facts`)
 - **From:** a `ToolCall`, its output as a whole (no LLM, no splitting: `fact_text` = `verbatim_source` = the output).
 - **Id:** `uuid5(OID, "<tool_call_id>|fact|<text>")`.
 - **Fields:** `fact_text`, `fact_source_type` (`tool_result`), `verbatim_source`, plus `tool_name` and `tool_arguments` (the keyword arguments the tool was called with; not in the ontology). The output stays the exact text agents quote; the two fields say what it is the output of.
-- **Gets afterwards:** `announced_by` (ids of the claims that announce the call, from `announces`). The fact-to-claim judgement shows the model the tool, the arguments and the text of the announcing claim before the output (`describe_fact`), so a bare `5` reads as the result of `calculate({"expression": "3 + 2"})`.
 - **KG pointer:** `grounded_in` = id of the `ToolCall` (`mas:groundedIn`).
-- **Gets afterwards:** `input_fact`, `in_context`, `supported_by` (as target).
+- **Gets afterwards:** `announced_by` (ids of the claims that announce the call, from `announces`). The fact-to-claim judgement shows the model the tool, the arguments and the text of the announcing claim before the output (`describe_fact`), so a bare `5` reads as the result of `calculate({"expression": "3 + 2"})`.
+- **Relations afterwards:** `input_fact`, `in_context`, `supported_by` (as target of a claim, and as source of the two argument links: towards the claims and towards the earlier facts its tool call arguments come from).
 
 ### `AgentSystemPrompt` (`system_prompts`)
 - **From:** the input of an `LLMCall`; the agent comes from the trajectory (`trajectory.agent_name(call)`). The first call of each agent with a readable system prompt gives it; later calls of that agent add nothing, and a call without a readable prompt leaves the agent open for its next call.
 - **Id:** `uuid5(OID, "<llm_call_id>|system_prompt|<agent>|<text>")`.
 - **Fields:** the prompt text, `agent_id`, `read_from` (the `LLMCall`), `truncated` (the SRE inputs are cut at 4000 characters).
 - **Readable formats:** OTel JSON and OpenAI-style message lists. References like `llm-input:<agent>:<uuid>` hold no text: `split_system_prompt` returns None for them.
-- **Role:** only a source for the next three elements. No edge, no ontology class.
+- **Role:** a source for the next three elements. No edge in the store; in the KG it is the `mas:SystemPrompt` node (`systemPromptOf` -> `Agent`) that those elements point to with `definedIn` (section 10).
 
 ### `SystemTask` (`system_tasks`), `AgentCapability` (`capabilities`), `Constraint` origin `system` (`constraints`)
 - **From:** the system prompt of an agent, read by an LLM request, run **on the same `LLMCall`** where the prompt element was just created (that is why they come right after `AgentSystemPromptExtractor`). One request each, once per agent and session.
@@ -171,18 +171,22 @@ Every relation is stored as an `Edge(edge_type, source_id, target_id, attributes
 | `input_claim` | `AgentCall` (node) -> `Claim` | claim of the delegation brief (at most 40, `source_claims`) | det | `_link_source_claims` | delegation claims |
 | `input_claim` | `LLMCall` (node) -> `DelegationClaim` | the brief reaches each LLM call of that agent call that produced claims | det | `_link_brief_to_llm_calls` | same |
 | `input_claim` | receiver `LLMCall` (node) -> `Claim` | a reply (see `reply_claim`) reaches the call that received it | det | `_link_replies` | reply claims |
-| `input_fact` | `LLMCall` (node) -> `Fact` | the tool result is in the input of the call (facts do not cross agent calls) | det | `_track_input_claims` | facts of earlier nodes |
+| `input_fact` | `LLMCall` (node) -> `Fact` | the tool result is in the input of the call: of the tool calls of the same agent call that had finished when the LLM call started (facts do not cross agent calls), those whose `verbatim_source` occurs in the conversation part of the input. With `--no-fact-match` (`match_input_facts=False`) the text check is skipped: all of them are input facts (the inputs of the SRE session are cut, so the check finds none there) | det | `_track_input_claims` (`track_input_facts`) | facts of earlier nodes |
 | `in_context` | `Fact` -> `Claim` | the claim was generated by a call that had the fact in its input | det | `_track_input_claims` | `input_fact` |
 | `same_claim` | `Claim` -> input `Claim` | same statement, by embedding similarity (threshold 0.7) | emb | `comparison.annotate_same_claims` (`_link_same_claims_live`) | embedder (off with `--no-same-claims`) |
 
 ### 5.2 Between claims and facts
 
-| Edge | From -> to | Meaning | How | Produced by |
-|---|---|---|---|---|
-| `supported_by` | `Claim` -> `Fact` | the fact backs the claim; one yes/no request per (fact, claim) pair among the facts `in_context` | LLM | `FactClaimLinker` |
-| `same_as` | `Claim` <-> `Claim` | same claim (both directions are stored) | LLM | `ClaimRelationExtractor` |
-| `conflicts_with` | `Claim` <-> `Claim` | contradicting claims (symmetric) | LLM | `ClaimRelationExtractor` |
-| `derived_from` | `Claim` -> `Claim` | the new claim is built on an earlier one | LLM | `ClaimRelationExtractor` (also on delegation claims, `_relate_delegation_claims`) |
+| Edge | From -> to | Meaning | How | Produced by | Needs |
+|---|---|---|---|---|---|
+| `supported_by` | `Claim` -> `Fact` | the fact backs the claim; one yes/no request per (fact, claim) pair among the facts `in_context` | LLM | `FactClaimLinker` | `in_context` |
+| `supported_by` (`arguments`) | `Fact` -> `Claim` | the fact (result) of a tool call is supported by the claims its agent had made before the call (claims of its earlier LLM calls, the requesting one included, and of the brief it received) that its arguments come from; one request per tool call with arguments; edge attribute `arguments` (name -> `stated` / `derived`); verdicts (basis, reasoning, arguments traced to no claim) in `argument_origins` | LLM | `ArgumentOriginExtractor` (`relations/argument_origin_relations.py`) | trajectory, claims, `announces` (marks the claims announcing the call); judged when the ToolCall node is processed |
+| `supported_by` (`arguments`) | `Fact` -> `Fact` | the fact (result) of a tool call is supported by the facts (results) of earlier tool calls of the same agent call that hold its string arguments, as seen by the requesting LLM call; echoes of the same value are dropped and the earliest source is kept; edge attribute `arguments` (name -> value). To be compared with an LLM extraction | det | `ArgumentFactLinker` (`relations/argument_fact_links.py`) | trajectory (timestamps, requesting LLM call), facts; judged when the ToolCall node is processed |
+| `same_as` | `Claim` <-> `Claim` | same claim (both directions are stored) | LLM | `ClaimRelationExtractor` | input claims |
+| `conflicts_with` | `Claim` <-> `Claim` | contradicting claims (symmetric) | LLM | `ClaimRelationExtractor` | input claims |
+| `derived_from` | `Claim` -> `Claim` | the new claim is built on an earlier one | LLM | `ClaimRelationExtractor` (also on delegation claims, `_relate_delegation_claims`) | input claims |
+
+The `supported_by` relation has three kinds of edge, told apart by the kind of their two ends (and by the `arguments` attribute of the last two). All three are in the ontology: `mas:supportedBy` has the union Claim / Fact as domain and Fact / Claim as range, with one shape per source class (`mas:ClaimSupportedByShape`: a Claim points to a Fact; `mas:FactSupportedByShape`: a Fact points to a Fact or a Claim), and the KG writer writes them. The `arguments` attribute is not written (an edge attribute has no place in the ontology yet). The first kind does not fully match: the ontology allows `mas:supportedBy` from a claim only when it is factual (the others should use `mas:groundedOn`, which the code never writes), and `FactClaimLinker` links a claim of any kind.
 
 `ClaimRelationExtractor` makes one request per LLM call; it is skipped when the call has no input claim and a single claim.
 
@@ -243,6 +247,9 @@ flowchart LR
     CL -->|fulfils_task| TK
     CL -->|answers / fulfils| G
     CL -->|supported_by| FA
+    FA -->|"supported_by (arguments)"| FA
+    FA -->|"supported_by (arguments)"| CL
+    CL -->|announces| TC
     CL -->|derived_from| IC
     CL -.->|"same_as / conflicts_with / same_claim"| IC
     FA -->|in_context| CL
@@ -251,14 +258,34 @@ flowchart LR
     AC -->|has_system_task| ST
     AC -->|has_capability| CP
     AC -->|reply_claim| CL
-    AC -->|"input_claim (brief)"| DC
+    AC -->|"input_claim (brief)"| IC
     AC -->|"call_preceded_by / call_returned_from"| AC
     LC -->|input_claim| IC
+    LC -->|"input_claim (brief)"| DC
     LC -->|input_fact| FA
     TC -. grounded_in .-> FA
     LC -. generated_by .-> CL
     AC -. owned_by .-> TK
+
+    classDef exec fill:#E9EDF3,stroke:#5B6B82,color:#1F2A44;
+    classDef goal fill:#6A44A8,stroke:#6A44A8,color:#fff;
+    classDef task fill:#2E6FBA,stroke:#2E6FBA,color:#fff;
+    classDef claim fill:#D9731A,stroke:#D9731A,color:#fff;
+    classDef fact fill:#0F8B8D,stroke:#0F8B8D,color:#fff;
+    classDef cons fill:#C23B5A,stroke:#C23B5A,color:#fff;
+    classDef cap fill:#3C8D5A,stroke:#3C8D5A,color:#fff;
+    classDef noonto stroke-dasharray:5 3,stroke-width:2px;
+    class AC,LC,TC exec;
+    class G goal;
+    class TK,PT,ST task;
+    class CL,IC,DC claim;
+    class FA fact;
+    class UC,SC cons;
+    class CP cap;
+    class DC,ST noonto;
 ```
+
+Colours: grey rounded nodes are the nodes of the KG (`AgentCall`, `LLMCall`, `ToolCall`); the coloured nodes are the symbolic elements (purple goal, blue tasks and system tasks, orange claims, teal facts, red constraints, green capabilities). A dashed border marks an element with no ontology class of its own (`SystemTask` is a `mas:Task` with `mas:source = 'system'`, `DelegationClaim` a `mas:Claim`).
 
 Dotted lines to the KG nodes are the pointer fields of the elements (not edges in the store).
 
@@ -280,19 +307,20 @@ Same steps in `process` and `live_process` (`extractor.py`):
 | 4 | Same task | `_link_same_task` | `same_as` (Task) |
 | 5 | Preceding tasks | `_link_preceding_tasks` | `preceded_by` |
 | 6 | Claim to task | `_link_produced_by` | `produced_by` |
+| 6b | Claim to tool call | `_link_announces` | `announces` |
 | 7 | Agent duties | `_link_system_tasks` | `has_system_task` |
 | 8 | Agent capabilities | `_link_capabilities` | `has_capability` |
 | 9 | Constraints | `_link_constraints` | `bounded_by` |
 | 10 | Brief claims | `_link_source_claims` | `input_claim` (brief) |
 | 11 | Replies | `_link_replies` | `reply_claim` (+ `input_claim`) |
-| 12 | LLM relations | `_extract_relations` | `supported_by`, `same_as`, `conflicts_with`, `derived_from`, `implements`, `achieves`, `fulfils_task` |
+| 12 | Relations | `_extract_relations` (per node: `_extract_node_relations`) | delegation claims: `same_as`, `conflicts_with`, `derived_from`; `ToolCall` node: `supported_by` (fact -> claim, LLM) and `supported_by` (fact -> fact, det); then `supported_by` (claim -> fact), `same_as`, `conflicts_with`, `derived_from`, `implements`, `achieves`, `fulfils_task` |
 | 13 | Capability judgement | `_evaluate_capabilities` | `supports` |
 | 14 | Final answer | `_link_answers` | `answers` |
 | 15 | Goal judgement | `_evaluate_goals` | `fulfils`, goal status |
 | 16 | Result | `result.edges = edges_since(...)` (live) / `store.edges()` (process) | |
 | 17 | Refresh annotations | `_refresh` (live: nodes touched by this step; `process`: `annotate()` once at the end) | the copies of section 8 |
 
-The relation extractors of step 12 run in the order `FactClaimLinker`, `ClaimRelationExtractor`, `TaskRelationExtractor`, `GoalClaimRelationExtractor`, `TaskClaimRelationExtractor`, `CapabilityTaskRelationExtractor`; an extractor that fails is logged and skipped.
+In step 12 the order is: `_relate_delegation_claims` (the `ClaimRelationExtractor` on the brief), `_judge_tool_arguments` (`ArgumentOriginExtractor`, LLM, only for a `ToolCall` node with an output and arguments), `_link_tool_arguments` (`ArgumentFactLinker`, no LLM), then the loop over the extractors of the node: `FactClaimLinker`, `ClaimRelationExtractor`, `TaskRelationExtractor`, `TaskClaimRelationExtractor`. The other relation extractors are run elsewhere: `CapabilityTaskRelationExtractor` in step 13 and `GoalClaimRelationExtractor` in step 15. `ArgumentOriginExtractor` and `ArgumentFactLinker` are opt-in: they only run when they are in `relation_extractors` (the CLI has them). An extractor that fails is logged and skipped.
 
 ### 6.3 When each element and each link first appears
 
@@ -308,6 +336,8 @@ The relation extractors of step 12 run in the order `FactClaimLinker`, `ClaimRel
 | `has_system_task`, `has_capability`, `bounded_by` (system) | the same node; they also reach the agent calls that came before | they link to all calls of the agent |
 | `supports` | the node where the capabilities of the agent become known (first task of the agent: one node later) | needs both the capability and the task |
 | `produced_by`, `fulfils_task` | the `LLMCall` of the claim | the `AgentCall` that owns the task is processed before its LLM calls; the judgement needs the claims |
+| `announces` | the node where both ends are there | needs the claim and the `ToolCall` step in the trajectory; late if the tool call runs after the claim's call was returned |
+| `supported_by` (arguments, fact -> claim / fact) | the `ToolCall` node | the claims of the agent call before the tool call, and the results of the earlier tool calls, are already in the store (nodes come in start order) |
 | `input_claim`, `input_fact`, `in_context` | the node that receives them | the claim or fact must be older |
 | `reply_claim` | when the reply is known | needs the reply of the agent call |
 | `answers`, `fulfils` | the claims of the **final** LLM call | the final agent call is known from the KG; `fulfils` waits for all answer claims |
@@ -331,6 +361,8 @@ The links are also written onto the nodes (and the elements) that `annotate()` p
 | Copy | On | Mirrors |
 |---|---|---|
 | `produced_by` | `Claim` | `produced_by` |
+| `announces` | `Claim` (ids of the `ToolCall` nodes) | `announces` |
+| `announced_by` | `Fact` (ids of the claims announcing its tool call) | `announces`, read backwards |
 | `system_tasks`, `capabilities` | `AgentCall` | `has_system_task`, `has_capability` |
 | `bounded_by` | `Task`, `SystemTask`, `Goal` | `bounded_by` |
 | `source_claims` | `AgentCall` | `input_claim` (brief) |
@@ -340,6 +372,8 @@ The links are also written onto the nodes (and the elements) that `annotate()` p
 | `supported_by_capabilities` | `Task`, `SystemTask` | `supports` |
 | `status` | `Goal` | set by `GoalClaimRelationExtractor` |
 | `same_as`, `conflicts_with`, `derived_from`, `supported_by`, `implements`, `achieves`, `preceded_by`, `same_claims` | elements | the edge of the same name (not refreshed live) |
+
+No copy on the nodes for the two `supported_by (arguments)` edges: the verdicts of `ArgumentOriginExtractor` are in `evaluations["argument_origins"]` of the result (basis and reasoning of each argument, and the arguments traced to no claim, which have no edge), and the claims page reads them from there. `supported_by` on a claim is the claim -> fact edge only.
 
 ## 9. Navigating from an element to the KG
 
@@ -351,6 +385,9 @@ The links are also written onto the nodes (and the elements) that `annotate()` p
 | Which task was the agent working on? | `Claim -produced_by-> Task` (`task.owned_by` = the `AgentCall`) |
 | Did the claim deliver the task? | `Claim -fulfils_task-> Task` |
 | Which tool output backs the claim? | `Claim -supported_by-> Fact`, `fact.grounded_in` -> `ToolCall` node |
+| Which claims did a tool call take its arguments from? | `Fact -supported_by-> Claim` (attribute `arguments`; the fact is the one whose `grounded_in` is the tool call) |
+| Which earlier tool results did a tool call take its arguments from? | `Fact -supported_by-> Fact` (attribute `arguments`), same agent call |
+| Which claim announced this tool call? | `Claim -announces-> ToolCall` (`fact.announced_by`) |
 | What did the call receive? | `LLMCall -input_claim-> Claim`, `-input_fact-> Fact` |
 | Which agent call asked for this work? | `AgentCall -call_preceded_by-> AgentCall`; the brief: `DelegationClaim` with `caller_call` / `generated_by` |
 | What was the agent supposed to do and allowed to do? | `AgentCall -has_system_task-> SystemTask`, `-has_capability-> Capability`, `Task -bounded_by-> Constraint` |
@@ -367,14 +404,15 @@ Ontology: `ontology/src/scope_ontology/neurosymbolic-ontology.ttl` (`mas:` names
 |---|---|---|
 | `Claim`, `Fact`, `Goal`, `Task`, `Constraint`, `AgentCapability` | `mas:Claim`, `mas:Fact`, `mas:Goal`, `mas:Task`, `mas:Constraint`, `mas:AgentCapability` | `mas:Capability` is the structural parent of LLM, Tool and Processing, so the symbolic one is `AgentCapability` (text: `mas:agentCapabilityText`; the agent is reached through its `SystemPrompt`) |
 | `generated_by`, `grounded_in`, `owned_by` | `mas:generatedBy`, `mas:groundedIn`, `mas:ownedBy` | pointer fields |
-| `supported_by`, `derived_from`, `conflicts_with`, `same_as`, `achieves`, `implements`, `preceded_by`, `bounded_by`, `supports`, `produced_by`, `answers`, `fulfils` | `mas:supportedBy`, `mas:derivedFrom`, `mas:conflictsWith`, `mas:sameAs`, `mas:achieves`, `mas:implements`, `mas:precededBy`, `mas:boundedBy`, `mas:supports`, `mas:producedBy`, `mas:answers`, `mas:fulfils` | |
+| `supported_by`, `derived_from`, `conflicts_with`, `same_as`, `achieves`, `implements`, `preceded_by`, `bounded_by`, `supports`, `produced_by`, `answers`, `fulfils` | `mas:supportedBy`, `mas:derivedFrom`, `mas:conflictsWith`, `mas:sameAs`, `mas:achieves`, `mas:implements`, `mas:precededBy`, `mas:boundedBy`, `mas:supports`, `mas:producedBy`, `mas:answers`, `mas:fulfils` | `supported_by` is Claim -> Fact, Fact -> Fact (an argument of a tool call found in an earlier result) and Fact -> Claim (an argument traced to a claim): the three are written, but not the `arguments` attribute of the last two (no place for an edge attribute). The ontology also restricts `mas:supportedBy` from a claim to claims with `claimKind = 'factual'` (`mas:ClaimFactLinkShape`; the other claims use `mas:groundedOn`), while `FactClaimLinker` does not look at the kind. `same_as` is Claim <-> Claim or Task <-> Task; `fulfils` goes to a Goal or a Task; `implements` is Task -> Task only (the writer would also accept a Goal as target, the extractor never makes one) |
+| `announces` | `mas:announces` | Claim -> ToolCall, committing claims only (`mas:AnnouncesCommittingShape`): `tool_call_ids` are only kept for a committing claim, so the code respects it; a tool call requested with no text is not announced |
 | `input_claim`, `input_fact`, `in_context` | `mas:inputClaim`, `mas:inputFact`, `mas:inContext` | the ontology source is an `LLMCall`; the store also uses an `AgentCall` as source (delegation brief) |
 | `AgentSystemPrompt` | `mas:SystemPrompt` (`systemPromptText`; `mas:systemPromptOf` -> `Agent`; `truncated` stays in the JSON only) | its `agent_id` is the name of the `Agent` node |
 | `SystemTask` | `mas:Task` with `mas:source = 'system'` | standing task, no `ownedBy` |
 | `system_prompt_id` of tasks, capabilities, system constraints | `mas:definedIn` -> `mas:SystemPrompt` | these also carry `mas:source = 'system'` (user constraints: `'user'`) |
 | `DelegationClaim` | `mas:Claim` | extra fields (`caller_agent`, ...) are not written |
 | `has_system_task`, `has_capability`, `reply_claim`, `call_preceded_by`, `call_returned_from`, `same_claim` | **none** | |
-| not produced | `mas:groundedOn`, `mas:decomposedInto` | the code does not create them |
+| not produced | `mas:groundedOn`, `mas:decomposedInto`, `mas:delegatesTo`, `mas:createdBy` | the code does not create them (the delegator of a task, `mas:createdBy`, is not extracted either) |
 
 The synthetic **Conversation** node has no counterpart in the KG schema and is not written (`goalOf` point at a `MASCall`).
 
@@ -403,9 +441,11 @@ Four sessions have edges today (`4493f565`, `7454b5fa`, `d88018ed`, `eeec0920`);
 
 ## 12. Known gaps
 
-- **No write-back.** The elements and links are in JSON and in the store only; no node or relationship is created in the KG.
-- **Ontology is incomplete** for `SystemTask`, `AgentSystemPrompt`, `DelegationClaim` and for six edge types (section 10).
-- **Edges carry no attributes** (reason, score). The reasoning of the judgements stays in `task_evaluations`, `capability_evaluations` and `goal_evaluations` of the pipeline, not in the output file.
+- **Write-back is limited to the ontology.** Only what `neurosymbolic-ontology.ttl` describes is written (section 13); the synthetic `Conversation`, the relations without an ontology property and the two `supported_by (arguments)` edges are counted in `skipped` and stay in the JSON and the store.
+- **Ontology is incomplete** for `DelegationClaim` (written as a `Claim`, its extra fields are lost), for six edge types without a property (section 10) and for the attributes of an edge (`arguments` on the fact -> fact and fact -> claim `supported_by`). `SystemTask` and `AgentSystemPrompt` are covered (`mas:Task` with `source = 'system'`, `mas:SystemPrompt`).
+- **`supported_by` vs the ontology shape:** `mas:ClaimFactLinkShape` allows `mas:supportedBy` only on `factual` claims; `FactClaimLinker` judges every claim, so a written evaluative or committing claim with a `supportedBy` edge would fail the SHACL check. Either the linker should only judge factual claims (and use `groundedOn` for the others) or the shape should be relaxed.
+- **Edges carry attributes only for the tool call arguments** (`arguments` on the two `supported_by` edges). The reasoning of the other judgements stays in `task_evaluations`, `capability_evaluations`, `goal_evaluations` (and `argument_origins` for the arguments) of the pipeline, not in the output file edges.
+- **Tool call arguments:** `ArgumentFactLinker` is a heuristic (a derived or reformatted value is missed, a common value can match by chance, a skill result can be the source); `ArgumentOriginExtractor` is a judgement of an LLM. Neither has been compared with the other yet.
 - **System prompts** can be truncated (SRE inputs are cut at 4000 characters, `truncated: true`) or unreadable (references such as `llm-input:<agent>:<uuid>`, webex): then no per-agent element exists for that agent.
 - **One Conversation per session.** A multi-turn session still gets one goal set from the whole query.
 - **Late relations** in live mode need `updated_nodes` (section 7); the late `reply` case was not tested.
@@ -420,54 +460,12 @@ Four sessions have edges today (`4493f565`, `7454b5fa`, `d88018ed`, `eeec0920`);
 | Elements and edges | `models.py`, `store.py` (`SymbolicSessionStore`, `Edge`, `link`, `edges_since`) |
 | Per-node pipeline, annotations, live | `extractor.py` (`process`, `live_process`, `annotate`, `_refresh`, the `_link_*` methods) |
 | Extractors | `extractors/` (`claims`, `facts`, `system_prompts`, `system_tasks`, `constraints`, `capabilities`, `goals`, `tasks`, `delegation_claims`) |
-| LLM relations | `relations/` (`fact_claim_links`, `claim_claim_relations`, `task_relations`, `goal_claim_relations`, `task_claim_relations`, `task_capability_relations`) |
+| LLM relations | `relations/` (`fact_claim_links`, `claim_claim_relations`, `task_relations`, `goal_claim_relations`, `task_claim_relations`, `task_capability_relations`, `argument_origin_relations`) |
+| Deterministic relation extractor | `relations/argument_fact_links.py` (`ArgumentFactLinker`) |
+| Tool calls: matching with the claims that announce them | `tool_calls.py` (`match_tool_calls`) |
 | Context tracking | `symbolic_state.py` (`track_symbolic_state`) |
 | Same claims by embedding | `comparison.py` (`annotate_same_claims`) |
 | Pipeline order | `__main__.py` |
-
-
-
-```mermaid
-flowchart TB
-    S((Session)) --- C["Conversation<br/>(synthetic)"]
-    S --> A["AgentCall"]
-    A --> L["LLMCall"]
-    A --> T["ToolCall"]
-
-    C -. "anchor" .-> G["Goal"]
-    C -. "read_from" .-> UC["Constraint (user)"]
-    A -. "owned_by" .-> TK["Task"]
-    A -. "delegated_to" .-> DC["DelegationClaim"]
-    L -. "generated_by" .-> CL["Claim"]
-    T -. "grounded_in" .-> FA["Fact"]
-    L -. "read_from<br/>(first LLMCall of the agent)" .-> AG
-
-    subgraph AG["Per agent, from its system prompt"]
-        direction LR
-        ST["SystemTask"]
-        CP["Capability"]
-        SC["Constraint (system)"]
-    end
-    A -->|"has_system_task<br/>has_capability"| AG
-
-    classDef exec fill:#E9EDF3,stroke:#5B6B82,color:#1F2A44;
-    classDef goal fill:#6A44A8,stroke:#6A44A8,color:#fff;
-    classDef task fill:#2E6FBA,stroke:#2E6FBA,color:#fff;
-    classDef claim fill:#D9731A,stroke:#D9731A,color:#fff;
-    classDef fact fill:#0F8B8D,stroke:#0F8B8D,color:#fff;
-    classDef cons fill:#C23B5A,stroke:#C23B5A,color:#fff;
-    classDef cap fill:#3C8D5A,stroke:#3C8D5A,color:#fff;
-    classDef noonto stroke-dasharray:5 3,stroke-width:2px;
-    class S,A,C,L,T exec;
-    class G goal;
-    class TK,ST task;
-    class CL,DC claim;
-    class FA fact;
-    class UC,SC cons;
-    class CP cap;
-    class C,DC,ST noonto;
-    style AG fill:#FFFFFF,stroke:#A9B2C0
-```
 
 ## 13. Writing to the KG
 
@@ -477,7 +475,7 @@ It writes **only what `neurosymbolic-ontology.ttl` describes**, under its names:
 
 - **Nodes:** `Claim`, `Fact`, `Goal`, `Task`, `Constraint`, `AgentCapability`, `SystemPrompt`, MERGEd on `id`, with the ontology's data properties (`claimText`, `systemPromptText`, `agentCapabilityText`, ...) plus `sessionId` (to clean a session). Delegation claims are written as ordinary `Claim` nodes.
 - **System prompts:** each `SystemPrompt` is linked to its `Agent` (`systemPromptOf`, the existing Agent node matched by name). The standing tasks (written as `Task`, with no `ownedBy`), the capabilities and the system constraints read from it are linked to it with `definedIn` and carry `source = 'system'` (user constraints carry `source = 'user'`). `MATCH (n {source: 'system'})` finds everything that comes from a system prompt.
-- **Edges:** the relations of `ONTOLOGY_EDGES` (`generatedBy`, `groundedIn`, `ownedBy`, `announces`, `supportedBy`, `derivedFrom`, `conflictsWith`, `sameAs`, `producedBy`, `answers`, `fulfils`, `achieves`, `implements`, `precededBy`, `boundedBy`, `supports`, `definedIn`, `systemPromptOf`, `inputClaim`, `inputFact`, `inContext`), each checked against the labels of its two ends.
+- **Edges:** the relations of `ONTOLOGY_EDGES` (`generatedBy`, `groundedIn`, `ownedBy`, `announces`, `supportedBy`, `derivedFrom`, `conflictsWith`, `sameAs`, `producedBy`, `answers`, `fulfils`, `achieves`, `implements`, `precededBy`, `boundedBy`, `supports`, `definedIn`, `systemPromptOf`, `inputClaim`, `inputFact`, `inContext`), each checked against the labels of its two ends. `supportedBy` is Claim -> Fact, Fact -> Fact or Fact -> Claim, so the `supported_by` edges of the tool call arguments are written too (without their `arguments` attribute).
 - **Left out on purpose:** the synthetic `Conversation` node, the relations `has_system_task`, `has_capability`, `reply_claim`, `call_preceded_by`, `call_returned_from`, `same_claim`, `goalOf` (their target is a `MASCall` the extraction does not carry), and the tool name and arguments of facts. They are counted in the report (`skipped`).
 - **Original nodes** (`Agent`, `AgentCall`, `LLMCall`, `ToolCall`) are only matched, never changed. Missing ones and the edges not written are reported.
 - **Re-runs:** ids are deterministic, so the same result writes the same nodes. A new extraction can word claims differently (new ids): `--replace-kg` deletes the session's symbolic state first.

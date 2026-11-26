@@ -53,8 +53,10 @@ class SessionGraph:
                     self._kinds[kind].append(element)
         self._out: dict[tuple[str, str], list[str]] = defaultdict(list)
         self._in: dict[tuple[str, str], list[str]] = defaultdict(list)
+        self._attributes: dict[tuple[str, str, str], dict[str, Any]] = {}
         for edge in self.edges:
             kind, source, target = edge["edge_type"], edge["source_id"], edge["target_id"]
+            self._attributes[(kind, source, target)] = edge.get("attributes") or {}
             if target not in self._out[(kind, source)]:
                 self._out[(kind, source)].append(target)
             if source not in self._in[(kind, target)]:
@@ -75,6 +77,15 @@ class SessionGraph:
 
     def into(self, edge_type: str, target_id: str) -> list[str]:
         return list(self._in.get((edge_type, target_id), []))
+
+    def attributes(self, edge_type: str, source_id: str, target_id: str) -> dict[str, Any]:
+        """The attributes of one edge (empty when it has none or does not exist)."""
+        return dict(self._attributes.get((edge_type, source_id, target_id), {}))
+
+    def kind_of(self, element_id: str) -> str | None:
+        """The kind ("claims", "facts", ...) of an element id, None when it is not an element."""
+        element = self._elements.get(element_id)
+        return element.kind if element else None
 
     def has_edges(self, edge_type: str) -> bool:
         return any(e["edge_type"] == edge_type for e in self.edges)

@@ -42,6 +42,7 @@ members = [
     "semantic-analysis-worker",
     "stateful-eval-worker",
     "stateful-evals",
+    "symbolic-extractor",
 ]
 overrides = [{ name = "ioc-scope-mce-core", editable = "mce/mce-core" }]
 
@@ -4691,6 +4692,40 @@ dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "ruff", specifier = "<=0.15.22" },
 ]
+
+[[package]]
+name = "symbolic-extractor"
+version = "1.2.0"
+source = { editable = "symbolic-extractor" }
+dependencies = [
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+embeddings = [
+    { name = "dem", extra = ["embedding"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dem", extras = ["embedding"], marker = "extra == 'embeddings'", editable = "dem" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "openai", specifier = ">=1.0.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.10" },
+]
+provides-extras = ["embeddings", "dev"]
 
 [[package]]
 name = "sympy"

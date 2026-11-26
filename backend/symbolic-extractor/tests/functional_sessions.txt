@@ -1,0 +1,25 @@
+# Sessions of the functional test (tests/test_functional_traces.py): one id per line, '#' starts a
+# comment. Each one is fetched from the KG and extracted with the real LLM (cost!), so the default
+# set is the smallest sessions of each MAS. Override with: pytest --live --sessions id1,id2
+#
+# NOA Trip Planner
+4493f565-d069-47ec-9a6c-5df6dc8f31b7
+eeec0920-92ed-4ced-90d9-33734edfea9d
+# sre-triage-oxp-pes
+d88018ed-b00b-40e7-817d-a0425f448e42
+a13be3b2-02da-40f1-939e-0bf012bea8e2
+# Webex
+fb87a94a-c18d-4890-9b0d-c0fba7830fef
+
+#
+# More sessions (bigger, more LLM calls):
+# 14e0d53f-96a8-42a6-8412-5820ad1aff5c   NOA Trip Planner, 7 agent calls
+# 2c3aca82-6611-4231-b624-734b82ab744b   NOA Trip Planner, 7 agent calls
+# 41114179-2600-4073-a51d-0150651f2ae8   NOA Trip Planner, 11 agent calls
+# 7219dee7-870e-4be5-9286-56e345718ae8   NOA Trip Planner, 19 agent calls
+# 0708625f-7df1-4e70-991c-8a6d03bd15b7   sre-triage-oxp-pes, 7 agent calls
+# 42f3430a-a905-40ec-a0fb-c5c781294d1b   sre-triage-oxp-pes, 8 agent calls
+# 28513200-5a38-4720-a13f-578ce11e33bf   sre-triage-oxp-pes, 17 agent calls
+# c1262ef5-fcba-4b1f-b1b1-b28a78b33bb9   sre-triage-oxp-pes, 17 agent calls
+# ad99f88a-6bf1-4a3e-990f-2689dd2ba2cf   sre-triage-oxp-pes, 19 agent calls
+# 8da74634-396c-498b-801d-fb31e13f05d1   sre-triage-oxp-pes, 30 agent calls

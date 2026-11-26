@@ -46,6 +46,7 @@ members = [
     "workers/ingestion-worker",
     "workers/semantic-analysis-worker",
     "workers/eval-worker",
+    "symbolic-extractor",
     "worker-base",
     "stateful-evals",
 ]
@@ -80,6 +81,7 @@ analysis-worker = { workspace = true }
 stateful-eval-worker = { workspace = true }
 cognition-protocols-worker = { workspace = true }
 stateful-evals = { workspace = true }
+symbolic-extractor = { workspace = true }
 intelligence-worker = { workspace = true }
 ingestion-worker = { workspace = true }
 semantic-analysis-worker = { workspace = true }

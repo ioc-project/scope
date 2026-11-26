@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Claims flow __SESSION__</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.35 system-ui,sans-serif;display:flex;flex-direction:column;height:100vh;color:#1f2933}
+header{padding:8px 12px;border-bottom:1px solid #d9dee3;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+header h1{font-size:14px;margin:0}
+header label{cursor:pointer;user-select:none}
+.legend{display:flex;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px}
+.chip i{width:11px;height:11px;border-radius:3px;display:inline-block}
+main{flex:1;display:flex;min-height:0}
+#scroll{flex:1;overflow:auto;position:relative;background:#fafbfc}
+#grid{position:relative;display:grid;column-gap:70px;row-gap:0;padding:0 40px 40px 0;width:max-content;min-width:100%}
+#edges{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:3}
+.stripe{grid-column:1/-1;z-index:0;border-bottom:1px solid #e3e7eb}
+.lane{position:sticky;left:0;z-index:5;padding:10px 8px;font-weight:600;border-right:1px solid #d9dee3;display:flex;align-items:flex-start;gap:6px;min-width:130px}
+.call{z-index:1;margin:14px 0;border:1px solid #cfd6dd;border-radius:8px;background:#fff;width:270px;align-self:start}
+.call.empty{background:#f4f5f7;border-style:dashed}
+.call-h{padding:5px 8px;font-size:11px;color:#52606d;display:flex;justify-content:space-between;border-bottom:1px solid #eef0f3;gap:6px}
+.call-h b{color:#1f2933}
+.card{margin:6px;padding:6px 8px;border:1px solid #e0e5ea;border-left-width:5px;border-radius:5px;cursor:pointer;background:#fff}
+.card:hover{box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.card.sel{outline:2px solid #111;box-shadow:0 1px 8px rgba(0,0,0,.3)}
+.card.dim{opacity:.35}
+.card.ctx{outline:2px dashed #0f766e;outline-offset:1px;background:#f0fdfa}
+.card.der{outline:2px solid #0f766e;outline-offset:1px;background:#ccfbf1}
+.card .derived{font-size:10px;color:#0f766e;margin-top:3px;font-weight:600}
+.card .rel{font-size:10px;margin-top:3px;font-weight:600}
+.card.rp{box-shadow:0 0 0 2px rgba(17,24,39,.55)}
+.card .meta{font-size:10px;color:#6b7785;margin-top:2px}
+.facts{margin:2px 6px 8px;display:flex;flex-direction:column;gap:4px;border-top:1px dotted #99d5cf;padding-top:5px}
+.facts .flabel{font-size:10px;color:#0f766e;text-transform:uppercase;letter-spacing:.04em}
+.fact{padding:4px 7px;border:1px dashed #0f766e;border-left:5px solid #0f766e;border-radius:5px;background:#f0fdfa;cursor:pointer;font-size:11px;word-break:break-word}
+.fact:hover{box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.fact.sel{outline:2px solid #0f766e;box-shadow:0 1px 8px rgba(0,0,0,.3)}
+.fact.der{outline:2px solid #0f766e;outline-offset:1px;background:#99f6e4}
+.fact.dim{opacity:.4}
+.fact.ctx{outline:2px dashed #0f766e;outline-offset:1px;background:#ccfbf1}
+.fact .meta{font-size:10px;color:#0f766e;margin-bottom:1px}
+.fact .args{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#115e59;margin-bottom:1px}
+.fact .why{font-size:10px;font-style:italic;color:#134e4a;margin-bottom:1px}
+.card .meta{font-size:10px;color:#6b7785;margin-top:2px}
+.none{padding:6px 10px;font-size:11px;color:#9aa5b1}
+.goalbox{border-color:#c4b5fd;background:#faf5ff}
+.goal{margin:6px;padding:6px 8px;border:1px solid #ddd6fe;border-left:5px solid #7c3aed;border-radius:5px;cursor:pointer;background:#fff}
+.goal:hover{box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.goal.sel{outline:2px solid #7c3aed;box-shadow:0 1px 8px rgba(0,0,0,.3)}
+.goal .meta{font-size:10px;color:#6d28d9;margin-top:3px;font-weight:600}
+.cons{margin:0 6px 8px 14px;display:flex;flex-direction:column;gap:4px}
+.cons .flabel{font-size:10px;color:#be123c;text-transform:uppercase;letter-spacing:.04em}
+.constraint{padding:4px 7px;border:1px solid #fda4af;border-left:5px solid #be123c;border-radius:5px;background:#fff1f2;cursor:pointer;font-size:11px;word-break:break-word}
+.constraint:hover{box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.constraint .meta{font-size:10px;color:#be123c;margin-bottom:1px;font-weight:600}
+.constraint.soft{border-style:dashed;border-left-style:solid}
+.badge{display:inline-block;padding:0 6px;border-radius:9px;font-size:10px;font-weight:700;color:#fff;background:#6b7785;margin-right:4px;vertical-align:1px}
+.badge.achieved{background:#15803d}
+.badge.abandoned{background:#b91c1c}
+.badge.set{background:#6b7785}
+.card.sat{background:#f0fdf4}
+.card .sat-line{font-size:10px;margin-top:3px;font-weight:700;color:#15803d}
+.tasks{margin:6px;display:flex;flex-direction:column;gap:4px;border-bottom:1px dotted #fdba74;padding-bottom:6px}
+.tasks .flabel{font-size:10px;color:#c2410c;text-transform:uppercase;letter-spacing:.04em}
+.task{padding:4px 7px;border:1px solid #fed7aa;border-left:5px solid #ea580c;border-radius:5px;background:#fff7ed;cursor:pointer;font-size:11px;word-break:break-word}
+.task:hover{box-shadow:0 1px 5px rgba(0,0,0,.18)}
+.task.sel{outline:2px solid #ea580c;box-shadow:0 1px 8px rgba(0,0,0,.3)}
+.task .meta{font-size:10px;color:#c2410c;margin-top:2px;font-weight:600}
+.card.dcard{border-style:dashed;border-left-style:solid;background:#fffbeb}
+.brief{margin:6px;display:flex;flex-direction:column;gap:0;border-bottom:1px dotted #d6b656;padding-bottom:2px}
+.brief .flabel{font-size:10px;color:#92400e;text-transform:uppercase;letter-spacing:.04em}
+.brief .card{margin:4px 0}
+#tabs{display:none;gap:2px;padding:6px 12px 0;border-bottom:1px solid #d9dee3;background:#f4f5f7}
+#tabs.on{display:flex}
+.tab{border:1px solid #d9dee3;border-bottom:none;border-radius:6px 6px 0 0;background:#e9edf1;padding:5px 14px;font:inherit;cursor:pointer;color:#52606d}
+.tab.on{background:#fff;color:#1f2933;font-weight:600}
+#sys{display:none;flex:1;overflow:auto;padding:14px 18px;background:#fafbfc}
+#sys .note{color:#52606d;margin:0 0 12px}
+.sysagent{max-width:900px;margin:0 0 14px;padding:8px 12px;border:1px solid #d9dee3;border-left:5px solid #475569;border-radius:6px;background:#fff}
+.sysagent h3{margin:0 0 2px;font-size:14px}
+.sysagent .meta{font-size:11px;color:#6b7785;margin-bottom:6px}
+.stask{padding:5px 8px;margin:4px 0;border:1px solid #d9dee3;border-left:4px solid #475569;border-radius:5px;background:#f8fafc;word-break:break-word}
+.stask.is-task{border-color:#fdba74;border-left-color:#ea580c;background:#fff7ed}
+.stask.is-constraint{border-color:#fda4af;border-left-color:#be123c;background:#fff1f2}
+.stask.is-constraint.soft{border-style:dashed;border-left-style:solid}
+.stask .tag{display:inline-block;margin-right:6px;padding:0 6px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;vertical-align:1px}
+.stask.is-task .tag{background:#ea580c}
+.stask.is-constraint .tag{background:#be123c}
+.stask.is-capability{border-color:#7dd3fc;border-left-color:#0369a1;background:#f0f9ff}
+.stask.is-capability .tag{background:#0369a1}
+.stask .supp{margin-top:3px;font-size:11px;color:#0369a1}
+.stask .supp.none{color:#9a3412}
+.stask ul{margin:3px 0 0;padding-left:18px;font-size:11px;color:#52606d}
+.sysagent details{margin-top:6px}
+.sysagent summary{cursor:pointer;font-size:11px;color:#52606d}
+.sysagent pre{white-space:pre-wrap;background:#f4f5f7;padding:6px;border-radius:5px;font-size:12px;max-height:360px;overflow:auto}
+#side{width:340px;border-left:1px solid #d9dee3;overflow:auto;padding:12px;background:#fff}
+#side h2{font-size:13px;margin:0 0 6px}
+#side pre{white-space:pre-wrap;background:#f4f5f7;padding:6px;border-radius:5px;font-size:12px;margin:4px 0 10px}
+#side .k{color:#6b7785;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+#side ul{margin:4px 0 0;padding-left:18px}
+#side li{cursor:pointer}
+#side pre.factpre{max-height:260px;overflow:auto}
+</style></head><body>
+<nav id="tabs"><button class="tab on" id="tabFlow">Claims flow</button><button class="tab" id="tabSys">System tasks</button></nav>
+<section id="sys"></section>
+<header>
+  <h1>Claims flow &middot; session __SESSION__</h1>
+  <label><input type="checkbox" id="optAll"> all links (not only where claims enter an agent call)</label>
+  <label><input type="checkbox" id="optRouting"> show routing claims</label>
+  <label><input type="checkbox" id="optEmpty"> show calls without claims</label>
+  <label title="claims that restate an input claim (same_claims)"><input type="checkbox" id="optSame" checked> same-claim links</label>
+  <label title="claims that cannot both hold (conflicts_with, judged by ClaimRelationExtractor)"><input type="checkbox" id="optConflict" checked> conflicts</label>
+  <label title="claims that state the same thing, as judged by the LLM (same_as)"><input type="checkbox" id="optSameAs" checked> same as</label>
+  <label title="input claims a claim is derived from (derived_from)"><input type="checkbox" id="optDerivedFrom" checked> derived from</label>
+  <label title="facts that support a claim (supported_by, judged by FactClaimLinker)"><input type="checkbox" id="optSupported" checked> supported-by facts</label>
+  <label title="tool results present in the input of each LLM call (input_facts)"><input type="checkbox" id="optFacts" checked> input facts</label>
+  <label title="tasks identical to an earlier task of another agent call (same_as)"><input type="checkbox" id="optSameTask" checked> same tasks</label>
+  <label title="task -> the task of an earlier agent call that it carries out (implements)"><input type="checkbox" id="optImplements" checked> implements</label>
+  <label title="task -> the goal it achieves (achieves)"><input type="checkbox" id="optAchieves" checked> achieves</label>
+  <label title="claim of the final answer -> the goal it answers (answers)"><input type="checkbox" id="optAnswers" checked> answers</label>
+  <label title="claim -> the task of the agent call that produced it (produced_by), shown on the claim card"><input type="checkbox" id="optProduced" checked> produced by</label>
+  <label title="claim -> the task it fulfils (fulfils, judged by TaskClaimRelationExtractor)"><input type="checkbox" id="optFulfilsTask" checked> fulfils task</label>
+  <label title="raw order: the tasks of the preceding agent call -> the task (preceded_by), judged or not"><input type="checkbox" id="optPreceded" checked> preceded by</label>
+  <span id="stats"></span>
+  <span class="legend" id="legend"></span>
+</header>
+<main><div id="scroll"><div id="grid"></div></div>
+<aside id="side"><h2>Click a claim</h2><div class="none">Arrows go from a claim to the LLM calls that received it in their input.</div></aside></main>
+<script>
+const DATA = __DATA__;
+const $ = id => document.getElementById(id);
+const PALETTE = ["#2563eb","#d97706","#059669","#db2777","#7c3aed","#0891b2","#b45309","#4d7c0f","#be123c","#475569"];
+const color = Object.fromEntries(DATA.agents.map((a, i) => [a, PALETTE[i % PALETTE.length]]));
+const calls = DATA.calls.map((c, i) => ({...c, n: i + 1}));
+const GOALS = DATA.goals || [];
+const GOAL_COLOR = "#7c3aed";
+const TASKS = DATA.tasks || [];
+const TASK_COLOR = "#ea580c";
+// constraints (user: bound goals, system: bound the tasks of the agent); no arrows, listed on the goal / task panel
+const CONSTRAINTS = DATA.constraints || {};
+const CONSTRAINT_COLOR = "#be123c";
+const constraintsOf = x => (x.bounded_by || []).filter(id => CONSTRAINTS[id]);
+const constraintList = (parent, ids) => {
+  const ul = el("ul");
+  ids.forEach(id => {
+    const c = CONSTRAINTS[id];
+    const li = el("li", null, `[${c.strength}] ${c.text}`);
+    li.style.color = CONSTRAINT_COLOR; li.style.cursor = "default";
+    ul.appendChild(li);
+  });
+  parent.appendChild(ul);
+};
+const taskById = Object.fromEntries(TASKS.map(t => [t.id, t]));
+// tasks identical to t: the earlier ones (same_as) and the later ones that list t
+const sameTasks = {};
+TASKS.forEach(t => (t.same_as || []).forEach(id => {
+  if (!taskById[id]) return;
+  (sameTasks[t.id] = sameTasks[t.id] || []).push(id);
+  (sameTasks[id] = sameTasks[id] || []).push(t.id);
+}));
+// implements: implementsOf[t] = the tasks t implements, implementedBy[x] = the tasks that implement x
+// achieves: achievesOf[t] = the goals t achieves, achievedBy[g] = the tasks that achieve g
+const goalById = Object.fromEntries(GOALS.map(g => [g.id, g]));
+const implementsOf = {}, implementedBy = {}, achievesOf = {}, achievedBy = {};
+TASKS.forEach(t => (t.implements || []).forEach(id => {
+  if (!taskById[id]) return;
+  (implementsOf[t.id] = implementsOf[t.id] || []).push(id);
+  (implementedBy[id] = implementedBy[id] || []).push(t.id);
+}));
+TASKS.forEach(t => (t.achieves || []).forEach(id => {
+  if (!goalById[id]) return;
+  (achievesOf[t.id] = achievesOf[t.id] || []).push(id);
+  (achievedBy[id] = achievedBy[id] || []).push(t.id);
+}));
+// preceded_by (raw order): precededBy[t] = the tasks of the preceding agent call, followedBy[x] = the tasks of the next ones
+const PRECEDED_COLOR = "#64748b";
+const precededBy = {}, followedBy = {};
+TASKS.forEach(t => (t.preceded_by || []).forEach(id => {
+  if (!taskById[id]) return;
+  (precededBy[t.id] = precededBy[t.id] || []).push(id);
+  (followedBy[id] = followedBy[id] || []).push(t.id);
+}));
+const GO = GOALS.length ? 1 : 0;  // one extra column before the calls, in the lane of the first agent
+const claimById = {}, callOfClaim = {}, consumers = {};
+calls.forEach(c => c.claims.forEach(k => { claimById[k.id] = k; callOfClaim[k.id] = c; }));
+// delegation claims (the claims of the brief an agent call received): listed on the first LLM call of that agent call,
+// and registered with the other claims so the claim-claim relations reach them
+let briefsHidden = 0;
+(DATA.briefs || []).forEach(b => {
+  const home = calls.find(c => c.agent_call === b.agent_call);
+  if (!home) { briefsHidden += b.claims.length; return; }
+  home.dclaims = b.claims;
+  b.claims.forEach(k => { k.source_claims = b.source_claims; k.brief = b.input; claimById[k.id] = k; callOfClaim[k.id] = home; });
+});
+calls.forEach(c => c.inputs.forEach(id => (consumers[id] = consumers[id] || []).push(c)));
+// answers (claim of the final answer -> goal): answersOf[k] = the goals k answers, answeredBy[g] = the claims that answer g
+const ANSWERS_COLOR = "#c026d3";
+const answersOf = {}, answeredBy = {};
+// fulfils (the claim satisfies the goal, an attribute of the claim, no arrow): satisfiedBy[g] = the claims that satisfy g,
+// judgedGoals = the goals whose final answer was judged
+const satisfiedBy = {}, judgedGoals = new Set();
+calls.forEach(c => c.claims.forEach(k => {
+  (k.fulfils || []).forEach(id => { if (goalById[id]) (satisfiedBy[id] = satisfiedBy[id] || []).push(k.id); });
+  if (k.judged) (k.answers || []).forEach(id => judgedGoals.add(id));
+}));
+calls.forEach(c => c.claims.forEach(k => (k.answers || []).forEach(id => {
+  if (!goalById[id]) return;
+  (answersOf[k.id] = answersOf[k.id] || []).push(id);
+  (answeredBy[id] = answeredBy[id] || []).push(k.id);
+})));
+// produced_by (claim -> task, an attribute of the claim): producedBy[k] = the tasks k was produced by, producedOf[t] = the claims
+// produced by t. fulfils (claim -> task, an arrow): fulfilsTaskOf[k] = the tasks k fulfils, fulfilledBy[t] = the claims that fulfil t.
+// judgedTasks = the tasks whose produced claims were judged
+const FULFILS_TASK_COLOR = "#ca8a04";
+const producedBy = {}, producedOf = {}, fulfilsTaskOf = {}, fulfilledBy = {}, judgedTasks = new Set();
+calls.forEach(c => c.claims.forEach(k => {
+  (k.produced_by || []).forEach(id => {
+    if (!taskById[id]) return;
+    (producedBy[k.id] = producedBy[k.id] || []).push(id);
+    (producedOf[id] = producedOf[id] || []).push(k.id);
+    if (k.task_judged) judgedTasks.add(id);
+  });
+  (k.fulfils_task || []).forEach(id => {
+    if (!taskById[id]) return;
+    (fulfilsTaskOf[k.id] = fulfilsTaskOf[k.id] || []).push(id);
+    (fulfilledBy[id] = fulfilledBy[id] || []).push(k.id);
+  });
+}));
+const shortText = (t, n) => t.length > n ? t.slice(0, n) + "…" : t;
+// same-claim relation: sameOf[x] = earlier claims x restates; sameBy[y] = later claims restating y
+const SAME_COLOR = "#e11d48";
+const sameOf = {}, sameBy = {};
+calls.forEach(c => c.claims.forEach(k => (k.same || []).forEach(id => {
+  if (!claimById[id]) return;
+  (sameOf[k.id] = sameOf[k.id] || []).push(id);
+  (sameBy[id] = sameBy[id] || []).push(k.id);
+})));
+// claim-claim relations of ClaimRelationExtractor. Each edge goes from the earlier (input) claim
+// to the new one; conflict and same_as are symmetric, derived_from is directed (the arrowhead is
+// drawn on the earlier claim, the one the new claim is derived from).
+const REL = {
+  conflict: {color: "#dc2626", dash: "", opt: "optConflict", label: "conflict"},
+  same_as: {color: "#7c3aed", dash: "2 4", opt: "optSameAs", label: "same as"},
+  derived_from: {color: "#16a34a", dash: "", opt: "optDerivedFrom", label: "derived from", directed: true},
+};
+const relEdges = [], seenRel = new Set();
+function addRel(type, from, to) {
+  if (!claimById[from] || !claimById[to]) return;
+  const key = type + "|" + (REL[type].directed ? from + ">" + to : [from, to].sort().join(">"));
+  if (seenRel.has(key)) return;
+  seenRel.add(key); relEdges.push({type, from, to});
+}
+calls.forEach(c => [...(c.dclaims || []), ...c.claims].forEach(k => {
+  (k.conflicts_with || []).forEach(id => addRel("conflict", id, k.id));
+  (k.same_as || []).forEach(id => addRel("same_as", id, k.id));
+  (k.derived_from || []).forEach(id => addRel("derived_from", id, k.id));
+}));
+const relOf = {};
+relEdges.forEach(e => { (relOf[e.from] = relOf[e.from] || []).push(e); (relOf[e.to] = relOf[e.to] || []).push(e); });
+const relOn = e => $(REL[e.type].opt).checked;
+// the other claims joined to claim `id` by an enabled relation, with the role of `id`
+function relationsOf(id) {
+  const out = {conflict: [], same_as: [], derivedFrom: [], sourceOf: []};
+  (relOf[id] || []).filter(relOn).forEach(e => {
+    if (e.type === "derived_from") (e.to === id ? out.derivedFrom : out.sourceOf).push(e.to === id ? e.from : e.to);
+    else out[e.type].push(e.from === id ? e.to : e.from);
+  });
+  return out;
+}
+// previous call of the same agent call (to find what is new in a call's input)
+const lastOfGroup = {};
+calls.forEach(c => { c.prev = lastOfGroup[c.agent_call] || null; lastOfGroup[c.agent_call] = c; });
+
+let selected = null;
+let selectedFact = null;
+let selectedGoal = null;
+let selectedTask = null;
+const FACTS = DATA.facts || {};
+const FACT_COLOR = "#0f766e";
+// fact id -> LLM calls that had it in their input
+const factConsumers = {};
+calls.forEach(c => (c.input_facts || []).forEach(id => (factConsumers[id] = factConsumers[id] || []).push(c)));
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+function entering(c) {
+  if ($("optAll").checked || !c.prev) return c.inputs;
+  const seen = new Set([...c.prev.inputs, ...c.prev.claims.map(k => k.id)]);
+  return c.inputs.filter(id => !seen.has(id));
+}
+function visibleClaims(c) { return c.claims.filter(k => $("optRouting").checked || !k.routing); }
+
+function render() {
+  const grid = $("grid"); grid.innerHTML = "";
+  // the goal is linked to the first call of its agent: shown even when it has no claim, otherwise
+  // the line would end on a later call (the first one that has claims)
+  const goalCall = GOALS.length ? calls.find(c => c.agent === DATA.goal_agent) : null;
+  // the same for the first call of each agent call that has a task: the chip sits there, and a
+  // hidden chip would leave its preceded_by / implements / achieves / same_as arrows without an end
+  const taskCalls = new Set(TASKS.map(t => calls.find(c => c.agent_call === t.agent_call)).filter(Boolean));
+  const shown = calls.filter(c => $("optEmpty").checked || visibleClaims(c).length || (c.dclaims || []).length || c === goalCall || taskCalls.has(c));
+  grid.style.gridTemplateColumns = `140px ${GO ? "270px " : ""}repeat(${shown.length}, 270px)`;
+  DATA.agents.forEach((a, r) => {
+    const stripe = el("div", "stripe"); stripe.style.gridRow = r + 1;
+    if (r % 2) stripe.style.background = "#f3f5f7";
+    grid.appendChild(stripe);
+    const lane = el("div", "lane", a); lane.style.gridRow = r + 1; lane.style.gridColumn = 1;
+    lane.style.color = color[a]; lane.style.background = r % 2 ? "#f3f5f7" : "#fafbfc";
+    grid.appendChild(lane);
+  });
+  const callEl = {}, cardEl = {}, factEl = {}, taskEl = {};
+  // a task is shown in the first visible LLM call of its agent call
+  const taskHome = new Map();
+  TASKS.forEach(t => { const home = shown.find(c => c.agent_call === t.agent_call); if (home) (taskHome.get(home.id) || taskHome.set(home.id, []).get(home.id)).push(t); });
+  render.hiddenTasks = TASKS.filter(t => !shown.some(c => c.agent_call === t.agent_call)).length;
+  shown.forEach((c, i) => {
+    const box = el("div", "call"); box.style.gridRow = DATA.agents.indexOf(c.agent) + 1; box.style.gridColumn = i + 2 + GO;
+    const vis = visibleClaims(c);
+    if (!vis.length && !(c.dclaims || []).length) box.classList.add("empty");
+    const h = el("div", "call-h");
+    const left = el("span"); left.innerHTML = `<b>#${c.n}</b> ${c.t == null ? "" : "+" + c.t + "s"}`;
+    h.appendChild(left);
+    const nf = (c.input_facts || []).filter(id => FACTS[id]).length;
+    h.appendChild(el("span", null, `${c.inputs.length} in` + (nf ? ` · ${nf} fact${nf > 1 ? "s" : ""}` : "") + ` · ${c.claims.length} out`));
+    box.appendChild(h);
+    const homeTasks = taskHome.get(c.id) || [];
+    if (homeTasks.length) {
+      const wrap = el("div", "tasks");
+      wrap.appendChild(el("div", "flabel", homeTasks.length > 1 ? "tasks" : "task"));
+      homeTasks.forEach(t => {
+        const chip = el("div", "task");
+        chip.appendChild(el("div", null, t.text.length > 140 ? t.text.slice(0, 140) + "…" : t.text));
+        chip.appendChild(el("div", "meta", [t.status, t.inferred ? "inferred" : null, t.criteria.length + " criteria", (sameTasks[t.id] || []).length ? "same as " + sameTasks[t.id].length : null, (implementsOf[t.id] || []).length ? "implements " + implementsOf[t.id].length : null, (achievesOf[t.id] || []).length ? "achieves goal" : null, constraintsOf(t).length ? constraintsOf(t).length + " constraint" + (constraintsOf(t).length > 1 ? "s" : "") : null, t.has_order ? "after " + (precededBy[t.id] || []).length : null, (producedOf[t.id] || []).length && judgedTasks.has(t.id) ? (fulfilledBy[t.id] || []).length + " of " + producedOf[t.id].length + " claims fulfil it" : null].filter(Boolean).join(" · ")));
+        chip.title = t.text;
+        chip.onclick = ev => { ev.stopPropagation(); selected = null; selectedFact = null; selectedGoal = null; selectedTask = selectedTask === t.id ? null : t.id; draw(); };
+        wrap.appendChild(chip); taskEl[t.id] = chip;
+      });
+      box.appendChild(wrap);
+    }
+    // a card for a claim of the call, or (delegation) for a claim of the brief the call received
+    const addCard = (k, parent, delegation) => {
+      const card = el("div", delegation ? "card dcard" : "card");
+      card.style.borderLeftColor = delegation ? (color[k.caller_agent] || color[c.agent]) : color[c.agent];
+      card.appendChild(el("div", null, k.text));
+      const supportFacts = (k.supported_by || []).filter(id => FACTS[id]);
+      if ($("optSupported").checked && supportFacts.length) {
+        card.appendChild(el("div", "derived", "supported by: " + supportFacts.map(id => FACTS[id].tool || "tool").join(", ")));
+      }
+      const rels = relationsOf(k.id);
+      // a partner in another call is shown as its call number, one of the same call by its text
+      const tag = ids => ids.map(id => callOfClaim[id].n === c.n ? "“" + claimById[id].text.slice(0, 28) + "…”" : "#" + callOfClaim[id].n).join(", ");
+      [["conflict", "conflicts with "], ["same_as", "same as "], ["derivedFrom", "derived from "], ["sourceOf", "source of "]].forEach(([key, text]) => {
+        if (!rels[key].length) return;
+        const line = el("div", "rel", text + tag(rels[key]));
+        line.style.color = REL[key === "derivedFrom" || key === "sourceOf" ? "derived_from" : key].color;
+        card.appendChild(line);
+      });
+      if ($("optAnswers").checked && (answersOf[k.id] || []).length) {
+        const line = el("div", "rel", "answers the goal (final answer)");
+        line.style.color = ANSWERS_COLOR;
+        card.appendChild(line);
+      }
+      if ((k.fulfils || []).some(id => goalById[id])) {
+        card.classList.add("sat");
+        card.appendChild(el("div", "sat-line", "\u2713 satisfies the goal"));
+      }
+      if ($("optProduced").checked && (producedBy[k.id] || []).length) {
+        const line = el("div", "rel", "produced by task: " + producedBy[k.id].map(id => shortText(taskById[id].text, 60)).join("; "));
+        line.style.color = TASK_COLOR; line.title = producedBy[k.id].map(id => taskById[id].text).join("\n");
+        card.appendChild(line);
+      }
+      if ((fulfilsTaskOf[k.id] || []).length) {
+        const line = el("div", "rel", "\u2713 fulfils the task");
+        line.style.color = FULFILS_TASK_COLOR;
+        card.appendChild(line);
+      }
+      if (k.reply === true || k.reply === false) {
+        const line = el("div", "rel", k.reply ? "\u21a9 in the reply to the caller" : "stays in the agent call");
+        line.style.color = "#777"; line.title = "occurs in the output of the delegated agent call (what its caller gets back) or not";
+        card.appendChild(line);
+      }
+      card.appendChild(el("div", "meta", [delegation ? "brief from " + k.caller_agent : c.agent, k.force, k.kind].filter(Boolean).join(" · ")));
+      card.title = k.snippet || "";
+      card.onclick = ev => { ev.stopPropagation(); selectedFact = null; selectedGoal = null; selectedTask = null; selected = selected === k.id ? null : k.id; draw(); };
+      parent.appendChild(card); cardEl[k.id] = card;
+    };
+    const dclaims = c.dclaims || [];
+    if (dclaims.length) {
+      const wrap = el("div", "brief");
+      wrap.appendChild(el("div", "flabel", "brief from " + (dclaims[0].caller_agent || "the caller")));
+      dclaims.forEach(k => addCard(k, wrap, true));
+      box.appendChild(wrap);
+    }
+    vis.forEach(k => addCard(k, box, false));
+    if (!vis.length && !dclaims.length) box.appendChild(el("div", "none", c.claims.length ? "only routing claims" : "no claims"));
+    const inputFacts = (c.input_facts || []).filter(id => FACTS[id]);
+    if ($("optFacts").checked && inputFacts.length) {
+      const wrap = el("div", "facts");
+      wrap.appendChild(el("div", "flabel", "input facts"));
+      inputFacts.forEach(fid => {
+        const f = FACTS[fid];
+        const chip = el("div", "fact");
+        chip.appendChild(el("div", "meta", ["fact", f.tool, f.agent].filter(Boolean).join(" · ")));
+        const args = argText(f);
+        if (args) chip.appendChild(el("div", "args", args.length > 90 ? args.slice(0, 90) + "…" : args));
+        const why = reasonTexts(f);
+        if (why.length) chip.appendChild(el("div", "why", "why: " + (why[0].length > 110 ? why[0].slice(0, 110) + "…" : why[0]) + (why.length > 1 ? ` (+${why.length - 1})` : "")));
+        chip.appendChild(el("div", null, f.text.length > 90 ? f.text.slice(0, 90).replace(/\s+/g, " ") + "…" : f.text.replace(/\s+/g, " ")));
+        chip.title = [args ? "arguments: " + args : null, why.length ? "announced by: " + why.join(" | ") : null, f.text.slice(0, 800)].filter(Boolean).join("\n");
+        chip.onclick = ev => { ev.stopPropagation(); selected = null; selectedGoal = null; selectedTask = null; selectedFact = selectedFact === fid ? null : fid; draw(); };
+        wrap.appendChild(chip); (factEl[fid] = factEl[fid] || []).push(chip);
+      });
+      box.appendChild(wrap);
+    }
+    grid.appendChild(box); callEl[c.id] = box;
+  });
+  // the goal(s) of the session, in the lane of the first agent, before its first call
+  const goalCards = {};
+  let goalBox = null;
+  if (GOALS.length) {
+    goalBox = el("div", "call goalbox");
+    goalBox.style.gridRow = DATA.agents.indexOf(DATA.goal_agent) + 1; goalBox.style.gridColumn = 2;
+    const gh = el("div", "call-h");
+    gh.innerHTML = "<b>Goal</b>";
+    gh.appendChild(el("span", null, "user request"));
+    goalBox.appendChild(gh);
+    GOALS.forEach(g => {
+      const card = el("div", "goal");
+      card.appendChild(el("div", null, g.text));
+      const meta = el("div", "meta");
+      meta.appendChild(el("span", "badge " + (g.status || "set"), g.status || "-"));
+      meta.appendChild(document.createTextNode([g.inferred ? "inferred" : null, g.criteria.length + " criteria", constraintsOf(g).length ? constraintsOf(g).length + " constraint" + (constraintsOf(g).length > 1 ? "s" : "") : null, (achievedBy[g.id] || []).length ? (achievedBy[g.id].length + " task" + (achievedBy[g.id].length > 1 ? "s" : "") + " achieve it") : null, (answeredBy[g.id] || []).length ? (answeredBy[g.id].length + " final claim" + (answeredBy[g.id].length > 1 ? "s" : "") + " answer it") : null, (satisfiedBy[g.id] || []).length ? (satisfiedBy[g.id].length + " satisfy it") : null].filter(Boolean).join(" · ")));
+      card.appendChild(meta);
+      card.onclick = ev => { ev.stopPropagation(); selected = null; selectedFact = null; selectedTask = null; selectedGoal = selectedGoal === g.id ? null : g.id; draw(); };
+      goalBox.appendChild(card); goalCards[g.id] = card;
+      // the constraints of the user request that bound the goal, as separate elements under it
+      const gcons = constraintsOf(g);
+      if (gcons.length) {
+        const wrap = el("div", "cons");
+        wrap.appendChild(el("div", "flabel", "constraints"));
+        gcons.forEach(id => {
+          const c = CONSTRAINTS[id];
+          const chip = el("div", "constraint " + c.strength);
+          chip.appendChild(el("div", "meta", "constraint \u00b7 " + c.strength));
+          chip.appendChild(el("div", null, c.text));
+          chip.title = c.text;
+          chip.onclick = ev => { ev.stopPropagation(); selected = null; selectedFact = null; selectedTask = null; selectedGoal = selectedGoal === g.id ? null : g.id; draw(); };
+          wrap.appendChild(chip);
+        });
+        goalBox.appendChild(wrap);
+      }
+    });
+    grid.appendChild(goalBox);
+  }
+  render.ctx = {shown, callEl, cardEl, factEl, goalBox, goalCards, taskEl};
+  $("legend").innerHTML = "";
+  DATA.agents.forEach(a => { const s = el("span", "chip"); s.innerHTML = `<i style="background:${color[a]}"></i>`; s.appendChild(document.createTextNode(a)); $("legend").appendChild(s); });
+  if (Object.keys(sameOf).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="${SAME_COLOR}" stroke-width="2" stroke-dasharray="5 3"/></svg>`;
+    s.appendChild(document.createTextNode("same claim")); $("legend").appendChild(s);
+  }
+  Object.entries(REL).forEach(([type, r]) => {
+    if (!relEdges.some(e => e.type === type)) return;
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="${r.color}" stroke-width="2.5"` + (r.dash ? ` stroke-dasharray="${r.dash}" stroke-linecap="round"` : "") + `/></svg>`;
+    s.appendChild(document.createTextNode(r.label)); $("legend").appendChild(s);
+  });
+  if (Object.keys(FACTS).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#f0fdfa;border:1px dashed ${FACT_COLOR}"></i>`;
+    s.appendChild(document.createTextNode("input fact (tool result)")); $("legend").appendChild(s);
+  }
+  if (GOALS.some(g => constraintsOf(g).length)) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#fff1f2;border:1px solid ${CONSTRAINT_COLOR}"></i>`;
+    s.appendChild(document.createTextNode("constraint of the user request")); $("legend").appendChild(s);
+  }
+  if (Object.values(FACTS).some(f => (f.supports || []).length)) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#ccfbf1;border:2px solid ${FACT_COLOR}"></i>`;
+    s.appendChild(document.createTextNode("supported by fact")); $("legend").appendChild(s);
+  }
+  if (calls.some(c => (c.dclaims || []).length)) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#fffbeb;border:1px dashed #92400e"></i>`;
+    s.appendChild(document.createTextNode("delegation claim (brief of the caller)")); $("legend").appendChild(s);
+  }
+  if (GOALS.length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#faf5ff;border:2px solid ${GOAL_COLOR}"></i>`;
+    s.appendChild(document.createTextNode("goal (linked to the first agent)")); $("legend").appendChild(s);
+  }
+  if (TASKS.length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<i style="background:#fff7ed;border:2px solid ${TASK_COLOR}"></i>`;
+    s.appendChild(document.createTextNode("task (first call of its agent call)")); $("legend").appendChild(s);
+  }
+  if (Object.keys(sameTasks).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" stroke="${TASK_COLOR}" stroke-width="2.5" stroke-dasharray="2 4" stroke-linecap="round"/></svg>`;
+    s.appendChild(document.createTextNode("same task")); $("legend").appendChild(s);
+  }
+  if (TASKS.some(t => (t.implements || []).length)) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="${TASK_COLOR}" stroke-width="2.5"/><polygon points="26,4 18,0 18,8" fill="${TASK_COLOR}"/></svg>`;
+    s.appendChild(document.createTextNode("implements (task)")); $("legend").appendChild(s);
+  }
+  if (TASKS.some(t => (t.achieves || []).length)) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="${GOAL_COLOR}" stroke-width="2.5"/><polygon points="26,4 18,0 18,8" fill="${GOAL_COLOR}"/></svg>`;
+    s.appendChild(document.createTextNode("achieves (goal)")); $("legend").appendChild(s);
+  }
+  if (Object.keys(answersOf).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="${ANSWERS_COLOR}" stroke-width="2.5" stroke-dasharray="6 3"/><polygon points="26,4 18,0 18,8" fill="${ANSWERS_COLOR}"/></svg>`;
+    s.appendChild(document.createTextNode("answers (claim of the final answer -> goal)")); $("legend").appendChild(s);
+  }
+  if (Object.keys(fulfilsTaskOf).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="${FULFILS_TASK_COLOR}" stroke-width="2.5"/><polygon points="26,4 18,0 18,8" fill="${FULFILS_TASK_COLOR}"/></svg>`;
+    s.appendChild(document.createTextNode("fulfils (claim -> task)")); $("legend").appendChild(s);
+  }
+  if (Object.keys(precededBy).length) {
+    const s = el("span", "chip");
+    s.innerHTML = `<svg width="26" height="8"><line x1="0" y1="4" x2="20" y2="4" stroke="${PRECEDED_COLOR}" stroke-width="1.5" stroke-dasharray="6 3"/><polygon points="26,4 18,0 18,8" fill="${PRECEDED_COLOR}"/></svg>`;
+    s.appendChild(document.createTextNode("task precedes task (preceded_by)")); $("legend").appendChild(s);
+  }
+  draw();
+}
+
+function draw() {
+  const {shown, callEl, cardEl, factEl, goalBox, goalCards, taskEl} = render.ctx;
+  const grid = $("grid"), gr = grid.getBoundingClientRect();
+  Object.values(cardEl).forEach(c => c.classList.remove("sel", "dim", "ctx", "der", "rp"));
+  // in_context: a selected fact marks the claims generated with it in context; a selected claim
+  // marks the facts that were in the context of its call. supported_by is the stronger subset:
+  // the claims the fact supports, and the facts that support the claim.
+  const ctxClaims = new Set(selectedFact ? (FACTS[selectedFact].in_context || []) : []);
+  const ctxFacts = new Set(selected ? Object.values(FACTS).filter(f => (f.in_context || []).includes(selected)).map(f => f.id) : []);
+  const derClaims = new Set(selectedFact ? (FACTS[selectedFact].supports || []) : []);
+  const derFacts = new Set(selected ? (claimById[selected].supported_by || []) : []);
+  Object.entries(cardEl).forEach(([id, card]) => {
+    card.classList.toggle("ctx", ctxClaims.has(id));
+    card.classList.toggle("der", derClaims.has(id));
+    if (selectedFact) card.classList.toggle("dim", !ctxClaims.has(id));
+  });
+  Object.entries(factEl).forEach(([id, chips]) => chips.forEach(chip => {
+    chip.classList.toggle("sel", id === selectedFact);
+    chip.classList.toggle("dim", !!selectedFact && id !== selectedFact);
+    chip.classList.toggle("ctx", ctxFacts.has(id));
+    chip.classList.toggle("der", derFacts.has(id));
+  }));
+  Object.entries(goalCards).forEach(([id, card]) => card.classList.toggle("sel", id === selectedGoal));
+  Object.entries(taskEl).forEach(([id, chip]) => chip.classList.toggle("sel", id === selectedTask));
+  document.querySelectorAll("#edges").forEach(e => e.remove());
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.id = "edges"; svg.setAttribute("width", grid.scrollWidth); svg.setAttribute("height", grid.scrollHeight);
+  grid.appendChild(svg);
+  const pos = (node, side) => { const r = node.getBoundingClientRect(); return [r[side] - gr.left, r.top + r.height / 2 - gr.top]; };
+  let edges = 0;
+  const add = (src, call, strong) => {
+    const card = cardEl[src], box = callEl[call.id]; if (!card || !box) return;
+    // a brief claim sits in the first call of its agent call: no arrow from a card to its own box
+    if (callOfClaim[src] && callOfClaim[src].id === call.id) return;
+    const [sx, sy] = pos(card, "right"), [tx, ty] = pos(box, "left");
+    const dx = Math.max(30, (tx - sx) / 2);
+    const p = document.createElementNS(svg.namespaceURI, "path");
+    p.setAttribute("d", `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", color[callOfClaim[src].agent]);
+    p.setAttribute("stroke-width", strong ? 2.5 : 1.4); p.setAttribute("opacity", strong ? 0.95 : (selected ? 0.08 : 0.5));
+    svg.appendChild(p);
+    const d = document.createElementNS(svg.namespaceURI, "circle");
+    d.setAttribute("cx", tx); d.setAttribute("cy", ty); d.setAttribute("r", 3.5);
+    d.setAttribute("fill", color[callOfClaim[src].agent]); d.setAttribute("opacity", strong ? 1 : (selected ? 0.1 : 0.6));
+    svg.appendChild(d); edges++;
+  };
+  // A claim enters an agent call at its first LLM call. When that call is hidden (no claims),
+  // the link goes to the next visible call of the same agent call, so it is not lost.
+  const visible = new Set(shown.map(c => c.id)), drawn = new Set();
+  const anchor = c => visible.has(c.id) ? c
+    : $("optAll").checked ? null
+    : shown.find(s => s.agent_call === c.agent_call && s.n > c.n) || null;
+  calls.forEach(c => {
+    const target = anchor(c);
+    if (!target) return;
+    entering(c).forEach(id => {
+      const key = id + "|" + target.id;
+      if (id === selected || drawn.has(key)) return;
+      drawn.add(key); add(id, target, false);
+    });
+  });
+  if (selected) {
+    // follow the selected claim everywhere it is present
+    (consumers[selected] || []).forEach(c => add(selected, c, true));
+    // the claims joined to it by an enabled claim-claim relation stay visible, outlined
+    const partners = new Set(Object.values(relationsOf(selected)).flat());
+    Object.entries(cardEl).forEach(([id, card]) => {
+      card.classList.toggle("dim", id !== selected && !partners.has(id));
+      card.classList.toggle("rp", partners.has(id));
+    });
+    if (cardEl[selected]) { cardEl[selected].classList.remove("dim"); cardEl[selected].classList.add("sel"); }
+  }
+  let same = 0;
+  if ($("optSame").checked) {
+    Object.entries(sameOf).forEach(([dst, srcs]) => srcs.forEach(src => {
+      const a = cardEl[src], b = cardEl[dst]; if (!a || !b) return;
+      const strong = selected === src || selected === dst;
+      const [sx, sy] = pos(a, "right"), [tx, ty] = pos(b, "left");
+      const dx = Math.max(30, Math.abs(tx - sx) / 2);
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", SAME_COLOR);
+      p.setAttribute("stroke-dasharray", "6 4");
+      p.setAttribute("stroke-width", strong ? 3 : 2); p.setAttribute("opacity", strong ? 1 : (selected ? 0.12 : 0.85));
+      svg.appendChild(p);
+      const d = document.createElementNS(svg.namespaceURI, "circle");
+      d.setAttribute("cx", tx); d.setAttribute("cy", ty); d.setAttribute("r", 4);
+      d.setAttribute("fill", SAME_COLOR); d.setAttribute("opacity", strong ? 1 : (selected ? 0.15 : 0.9));
+      svg.appendChild(d); same++;
+    }));
+  }
+  // claim-claim relations (ClaimRelationExtractor): one line per relation between two shown cards
+  const relCount = {};
+  relEdges.filter(relOn).forEach(e => {
+    const a = cardEl[e.from], b = cardEl[e.to], r = REL[e.type]; if (!a || !b) return;
+    const strong = selected === e.from || selected === e.to;
+    // two claims of the same call are in one box: the line leaves and enters on the right side
+    const sameCall = callOfClaim[e.from] === callOfClaim[e.to];
+    const [sx, sy] = pos(a, "right"), [tx, ty] = pos(b, sameCall ? "right" : "left");
+    const dx = sameCall ? 45 : Math.max(30, Math.abs(tx - sx) / 2);
+    const p = document.createElementNS(svg.namespaceURI, "path");
+    p.setAttribute("d", sameCall
+      ? `M${sx},${sy} C${sx + dx},${sy} ${tx + dx},${ty} ${tx},${ty}`
+      : `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", r.color);
+    if (r.dash) { p.setAttribute("stroke-dasharray", r.dash); p.setAttribute("stroke-linecap", "round"); }
+    p.setAttribute("stroke-width", strong ? 3.5 : 2.5); p.setAttribute("opacity", strong ? 1 : (selected ? 0.12 : 0.9));
+    svg.appendChild(p);
+    const end = r.directed
+      ? document.createElementNS(svg.namespaceURI, "polygon")
+      : document.createElementNS(svg.namespaceURI, "circle");
+    // the arrowhead of a directed relation (derived_from) is on the earlier claim, the one it is derived from
+    if (r.directed) end.setAttribute("points", `${sx},${sy} ${sx + 10},${sy - 5} ${sx + 10},${sy + 5}`);
+    else { end.setAttribute("cx", tx); end.setAttribute("cy", ty); end.setAttribute("r", 4); }
+    end.setAttribute("fill", r.color); end.setAttribute("opacity", strong ? 1 : (selected ? 0.15 : 0.95));
+    svg.appendChild(end); relCount[e.type] = (relCount[e.type] || 0) + 1;
+  });
+  const relText = Object.entries(relCount).map(([t, n]) => ` · ${n} ${REL[t].label}`).join("");
+  // identical tasks (same_as): a dotted orange line between the two chips
+  let sameTaskLines = 0;
+  if ($("optSameTask").checked) {
+    TASKS.forEach(t => (t.same_as || []).forEach(id => {
+      const a = taskEl[id], b = taskEl[t.id]; if (!a || !b) return;
+      const strong = selectedTask === t.id || selectedTask === id;
+      const [sx, sy] = pos(a, "right"), [tx, ty] = pos(b, "left");
+      const dx = Math.max(30, Math.abs(tx - sx) / 2);
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", TASK_COLOR);
+      p.setAttribute("stroke-dasharray", "2 4"); p.setAttribute("stroke-linecap", "round");
+      p.setAttribute("stroke-width", strong ? 3.5 : 2.5); p.setAttribute("opacity", strong ? 1 : (selectedTask ? 0.25 : 0.9));
+      svg.appendChild(p); sameTaskLines++;
+    }));
+  }
+  // preceded_by (raw order): a thin grey dashed arrow from each task of the preceding agent call to the task
+  let precededLines = 0;
+  if ($("optPreceded").checked) {
+    TASKS.forEach(t => (precededBy[t.id] || []).forEach(id => {
+      const a = taskEl[id], b = taskEl[t.id]; if (!a || !b) return;
+      const strong = selectedTask === t.id || selectedTask === id;
+      const dir = b.getBoundingClientRect().left > a.getBoundingClientRect().left ? 1 : -1;
+      const [sx, sy] = pos(a, dir > 0 ? "right" : "left"), [tx, ty] = pos(b, dir > 0 ? "left" : "right");
+      const dx = Math.max(30, Math.abs(tx - sx) / 2);
+      const faded = selectedTask && !strong;
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", `M${sx},${sy} C${sx + dir * dx},${sy} ${tx - dir * dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", PRECEDED_COLOR);
+      p.setAttribute("stroke-dasharray", "6 3");
+      p.setAttribute("stroke-width", strong ? 3 : 1.5); p.setAttribute("opacity", faded ? 0.2 : 0.9);
+      svg.appendChild(p);
+      const head = document.createElementNS(svg.namespaceURI, "polygon");
+      head.setAttribute("points", `${tx},${ty} ${tx - dir * 9},${ty - 4.5} ${tx - dir * 9},${ty + 4.5}`);
+      head.setAttribute("fill", PRECEDED_COLOR); head.setAttribute("opacity", faded ? 0.2 : 1);
+      svg.appendChild(head); precededLines++;
+    }));
+  }
+  // implements: an arrow from the task to the task it implements (orange); achieves: an arrow from
+  // the task to the goal card it achieves (violet)
+  let implementsLines = 0, achievesLines = 0;
+  [["optImplements", implementsOf, TASK_COLOR], ["optAchieves", achievesOf, GOAL_COLOR]].forEach(([opt, rel, col]) => {
+    if (!$(opt).checked) return;
+    TASKS.forEach(t => (rel[t.id] || []).forEach(id => {
+      const a = taskEl[t.id], b = taskEl[id] || goalCards[id]; if (!a || !b) return;
+      const strong = selectedTask === t.id || selectedTask === id || selectedGoal === id;
+      const dir = b.getBoundingClientRect().left > a.getBoundingClientRect().left ? 1 : -1;  // side of the target
+      const [sx, sy] = pos(a, dir > 0 ? "right" : "left"), [tx, ty] = pos(b, dir > 0 ? "left" : "right");
+      const dx = Math.max(30, Math.abs(tx - sx) / 2);
+      const faded = (selectedTask || selectedGoal) && !strong;
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", `M${sx},${sy} C${sx + dir * dx},${sy} ${tx - dir * dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", col);
+      p.setAttribute("stroke-width", strong ? 3.5 : 2.5); p.setAttribute("opacity", faded ? 0.25 : 0.95);
+      svg.appendChild(p);
+      const head = document.createElementNS(svg.namespaceURI, "polygon");
+      head.setAttribute("points", `${tx},${ty} ${tx - dir * 10},${ty - 5} ${tx - dir * 10},${ty + 5}`);
+      head.setAttribute("fill", col); head.setAttribute("opacity", faded ? 0.25 : 1);
+      svg.appendChild(head); if (opt === "optAchieves") achievesLines++; else implementsLines++;
+    }));
+  });
+  // answers: a dashed arrow from each claim of the final answer to the goal card it answers
+  let answersLines = 0;
+  if ($("optAnswers").checked) {
+    Object.entries(answersOf).forEach(([claimId, goalIds]) => goalIds.forEach(goalId => {
+      const a = cardEl[claimId], b = goalCards[goalId]; if (!a || !b) return;
+      const strong = selected === claimId || selectedGoal === goalId;
+      const dir = b.getBoundingClientRect().left > a.getBoundingClientRect().left ? 1 : -1;
+      const [sx, sy] = pos(a, dir > 0 ? "right" : "left"), [tx, ty] = pos(b, dir > 0 ? "left" : "right");
+      const dx = Math.max(30, Math.abs(tx - sx) / 2);
+      const faded = (selected || selectedGoal) && !strong;
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", `M${sx},${sy} C${sx + dir * dx},${sy} ${tx - dir * dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", ANSWERS_COLOR);
+      p.setAttribute("stroke-dasharray", "8 4"); p.setAttribute("stroke-width", strong ? 3.5 : 2);
+      p.setAttribute("opacity", faded ? 0.2 : 0.9);
+      svg.appendChild(p);
+      const head = document.createElementNS(svg.namespaceURI, "polygon");
+      head.setAttribute("points", `${tx},${ty} ${tx - dir * 10},${ty - 5} ${tx - dir * 10},${ty + 5}`);
+      head.setAttribute("fill", ANSWERS_COLOR); head.setAttribute("opacity", faded ? 0.2 : 1);
+      svg.appendChild(head); answersLines++;
+    }));
+  }
+  // fulfils (claim -> task): a solid amber arrow from the claim card to the task chip it fulfils
+  let fulfilsTaskLines = 0;
+  if ($("optFulfilsTask").checked) {
+    Object.entries(fulfilsTaskOf).forEach(([claimId, taskIds]) => taskIds.forEach(taskId => {
+      const a = cardEl[claimId], b = taskEl[taskId]; if (!a || !b) return;
+      const strong = selected === claimId || selectedTask === taskId;
+      const faded = (selected || selectedTask) && !strong;
+      // the chip sits at the top of the first call of the agent call: when the claim is in the same
+      // box the line leaves and enters on the right side
+      const sameBox = a.closest(".call") === b.closest(".call");
+      const dir = b.getBoundingClientRect().left > a.getBoundingClientRect().left ? 1 : -1;
+      const [sx, sy] = pos(a, sameBox || dir > 0 ? "right" : "left"), [tx, ty] = pos(b, sameBox ? "right" : dir > 0 ? "left" : "right");
+      const dx = sameBox ? 45 : Math.max(30, Math.abs(tx - sx) / 2);
+      const p = document.createElementNS(svg.namespaceURI, "path");
+      p.setAttribute("d", sameBox
+        ? `M${sx},${sy} C${sx + dx},${sy} ${tx + dx},${ty} ${tx},${ty}`
+        : `M${sx},${sy} C${sx + dir * dx},${sy} ${tx - dir * dx},${ty} ${tx},${ty}`);
+      p.setAttribute("fill", "none"); p.setAttribute("stroke", FULFILS_TASK_COLOR);
+      p.setAttribute("stroke-width", strong ? 3.5 : 2.5); p.setAttribute("opacity", faded ? 0.2 : 0.95);
+      svg.appendChild(p);
+      const head = document.createElementNS(svg.namespaceURI, "polygon");
+      const h = sameBox ? -1 : dir;  // the arrowhead points into the side the line reaches
+      head.setAttribute("points", `${tx},${ty} ${tx - h * 10},${ty - 5} ${tx - h * 10},${ty + 5}`);
+      head.setAttribute("fill", FULFILS_TASK_COLOR); head.setAttribute("opacity", faded ? 0.2 : 1);
+      svg.appendChild(head); fulfilsTaskLines++;
+    }));
+  }
+  // the goal is linked to the first call of the first agent (the lane it sits in)
+  const firstCall = goalBox && shown.find(c => c.agent === DATA.goal_agent);
+  if (firstCall && callEl[firstCall.id]) {
+    const [sx, sy] = pos(goalBox, "right"), [tx, ty] = pos(callEl[firstCall.id], "left");
+    const p = document.createElementNS(svg.namespaceURI, "path");
+    p.setAttribute("d", `M${sx},${sy} L${tx},${ty}`);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", GOAL_COLOR);
+    p.setAttribute("stroke-dasharray", "3 4"); p.setAttribute("stroke-width", 2);
+    p.setAttribute("opacity", selectedGoal ? 1 : 0.7);
+    svg.appendChild(p);
+  }
+  const nDel = Object.keys(cardEl).filter(id => claimById[id].delegation).length;
+  $("stats").textContent = `${shown.length} calls · ${Object.keys(cardEl).length - nDel} claims` + (nDel ? ` · ${nDel} delegation claims` : "") + (briefsHidden ? ` (${briefsHidden} more without an LLM call to show them)` : "") + ` · ${edges} links` + (same ? ` · ${same} same-claim` : "") + relText + (GOALS.length ? ` · ${GOALS.length} goal${GOALS.length > 1 ? "s" : ""}` : "") + (TASKS.length ? ` · ${TASKS.length} task${TASKS.length > 1 ? "s" : ""}` + (render.hiddenTasks ? ` (${render.hiddenTasks} without a visible call)` : "") + (sameTaskLines ? ` · ${sameTaskLines} same-task` : "") + (implementsLines ? ` · ${implementsLines} implements` : "") + (achievesLines ? ` · ${achievesLines} achieves` : "") + (precededLines ? ` · ${precededLines} preceded-by` : "") : "") + (answersLines ? ` · ${answersLines} answers` : "") + (fulfilsTaskLines ? ` · ${fulfilsTaskLines} fulfils task` : "");
+  side();
+}
+
+function side() {
+  const s = $("side"); s.innerHTML = "";
+  if (selectedGoal) return goalSide(s);
+  if (selectedTask) return taskSide(s);
+  if (selectedFact) return factSide(s);
+  if (!selected) { s.appendChild(el("h2", null, "Click a claim or a fact")); s.appendChild(el("div", "none", "Arrows go from a claim to the LLM calls that received it in their input. Dashed teal boxes are the tool results (facts) present in a call's input.")); return; }
+  const k = claimById[selected], c = callOfClaim[selected];
+  s.appendChild(el("h2", null, "Claim"));
+  s.appendChild(el("pre", null, k.text));
+  const kv = (label, value) => { s.appendChild(el("div", "k", label)); s.appendChild(el("div", null, value)); };
+  if (k.delegation) {
+    const gen = calls.find(x => x.id === k.generated_by);
+    kv("Delegation claim", "said in the brief the caller sent when it delegated (extracted from the input of the receiving call)");
+    kv("Caller agent", k.caller_agent); kv("Written by", gen ? `LLM call #${gen.n} (${gen.id})` : String(k.generated_by));
+    kv("Delegated to", `${c.agent} (${k.delegated_to})`);
+  } else {
+    kv("Agent", c.agent); kv("Generated by", `LLM call #${c.n} (${c.id})`);
+  }
+  kv("Force / kind", `${k.force || "-"} / ${k.kind || "-"}`);
+  if ((k.answers || []).some(id => goalById[id])) {
+    kv("Satisfies the goal", (k.fulfils || []).some(id => goalById[id]) ? "yes (it is one of the claims the criteria are met with)" : k.judged ? "no (the final answer was judged and this claim is not one of those that satisfy it)" : "not judged");
+  }
+  const producedTasks = (producedBy[selected] || []).filter(id => taskById[id]);
+  if (producedTasks.length) {
+    s.appendChild(el("div", "k", "Produced by (task of the agent call)"));
+    const pl = el("ul");
+    producedTasks.forEach(id => {
+      const li = el("li", null, `${taskById[id].agent}: ${taskById[id].text}`);
+      li.style.color = TASK_COLOR; li.onclick = () => { selected = null; selectedTask = id; draw(); };
+      pl.appendChild(li);
+    });
+    s.appendChild(pl);
+    kv("Fulfils the task", (fulfilsTaskOf[selected] || []).length ? "yes (it is one of the claims that fulfil it)" : k.task_judged ? "no (the claims of the task were judged and this one does not fulfil it)" : "not judged");
+  }
+  s.appendChild(el("div", "k", "Verbatim source")); s.appendChild(el("pre", null, k.snippet || "(none, cannot be followed)"));
+  if (k.delegation) {
+    if (k.brief) { s.appendChild(el("div", "k", "Brief (input of the receiving call)")); s.appendChild(el("pre", "factpre", k.brief)); }
+  } else {
+    s.appendChild(el("div", "k", "Present in the input of"));
+    const ul = el("ul");
+    (consumers[selected] || []).forEach(t => ul.appendChild(el("li", null, `#${t.n} ${t.agent}${t.t == null ? "" : " (+" + t.t + "s)"}`)));
+    if (!ul.children.length) ul.appendChild(el("li", null, "no later call"));
+    s.appendChild(ul);
+    factList(s, "Facts in context (in the input of this call)", c.input_facts);
+    factList(s, "Supported by (fact)", k.supported_by);
+  }
+  const claimList = (label, ids) => {
+    if (!ids || !ids.length) return;
+    s.appendChild(el("div", "k", label));
+    const list = el("ul");
+    ids.forEach(id => {
+      const o = claimById[id], oc = callOfClaim[id];
+      const li = el("li", null, `#${oc.n} ${o.delegation ? "brief to " : ""}${oc.agent}: ${o.text}`);
+      li.style.color = SAME_COLOR; li.onclick = () => { selected = id; draw(); };
+      list.appendChild(li);
+    });
+    s.appendChild(list);
+  };
+  claimList("Restates (same claim, earlier)", sameOf[selected]);
+  claimList("Restated by (same claim, later)", sameBy[selected]);
+  if (k.delegation) claimList("Source claims (what the brief could restate)", (k.source_claims || []).filter(id => claimById[id]));
+  const answers = (answersOf[selected] || []).filter(id => goalById[id]);
+  if (answers.length) {
+    s.appendChild(el("div", "k", "Answers (goal; claim of the final answer)"));
+    const fl = el("ul");
+    answers.forEach(id => {
+      const li = el("li", null, `Goal: ${goalById[id].text}`);
+      li.style.color = ANSWERS_COLOR; li.onclick = () => { selected = null; selectedGoal = id; draw(); };
+      fl.appendChild(li);
+    });
+    s.appendChild(fl);
+  }
+  const rels = relationsOf(selected);
+  const relList = (label, ids, type) => {
+    if (!ids.length) return;
+    s.appendChild(el("div", "k", label));
+    const list = el("ul");
+    ids.forEach(id => {
+      const o = claimById[id], oc = callOfClaim[id];
+      const li = el("li", null, `#${oc.n} ${o.delegation ? "brief to " : ""}${oc.agent}: ${o.text}`);
+      li.style.color = REL[type].color; li.onclick = () => { selected = id; draw(); };
+      list.appendChild(li);
+    });
+    s.appendChild(list);
+  };
+  relList("Conflicts with", rels.conflict, "conflict");
+  relList("Same as (LLM judgement)", rels.same_as, "same_as");
+  relList("Derived from (claims it is built on)", rels.derivedFrom, "derived_from");
+  relList("Source of (claims derived from it)", rels.sourceOf, "derived_from");
+}
+
+// the arguments a tool was called with, on one line: key=value, ...
+function argText(f) {
+  const a = f.arguments || {};
+  return Object.keys(a).map(k => k + "=" + (typeof a[k] === "string" ? a[k] : JSON.stringify(a[k]))).join(", ");
+}
+// the text of the claims that announce the tool call (why the agent called it)
+function reasonTexts(f) {
+  return (f.announced_by || []).filter(id => claimById[id]).map(id => claimById[id].text.replace(/\s+/g, " "));
+}
+
+// clickable list of facts in a side panel
+function factList(s, label, ids) {
+  const known = (ids || []).filter(id => FACTS[id]);
+  if (!known.length) return;
+  s.appendChild(el("div", "k", label));
+  const list = el("ul");
+  known.forEach(id => {
+    const f = FACTS[id];
+    const li = el("li", null, `${f.tool || "tool"} (${f.agent}): ${f.text.replace(/\s+/g, " ").slice(0, 80)}${f.text.length > 80 ? "…" : ""}`);
+    li.style.color = FACT_COLOR; li.onclick = () => { selected = null; selectedFact = id; draw(); };
+    list.appendChild(li);
+  });
+  s.appendChild(list);
+}
+
+function goalSide(s) {
+  const g = GOALS.find(x => x.id === selectedGoal);
+  s.appendChild(el("h2", null, "Goal"));
+  s.appendChild(el("pre", null, g.text));
+  const kv = (label, value) => { s.appendChild(el("div", "k", label)); s.appendChild(el("div", null, value)); };
+  s.appendChild(el("div", "k", "Status"));
+  const statusBox = el("div"); statusBox.appendChild(el("span", "badge " + (g.status || "set"), g.status || "-")); s.appendChild(statusBox);
+  if (judgedGoals.has(g.id)) {
+    const n = (satisfiedBy[g.id] || []).length;
+    kv("Final answer satisfies the goal", n ? `yes (${n} claim${n > 1 ? "s" : ""} of the final answer)` : "no");
+  }
+  kv("Inferred", g.inferred ? "yes (not stated in the request)" : "no (stated in the request)");
+  kv("Attached to agent", DATA.goal_agent);
+  s.appendChild(el("div", "k", "Success criteria"));
+  const ul = el("ul");
+  g.criteria.forEach(c => ul.appendChild(el("li", null, c)));
+  s.appendChild(ul);
+  if (g.rationale) { s.appendChild(el("div", "k", "Rationale")); s.appendChild(el("div", null, g.rationale)); }
+  const gc = constraintsOf(g);
+  if (gc.length) { s.appendChild(el("div", "k", "Constraints from the user request (bounded_by)")); constraintList(s, gc); }
+  const by = (achievedBy[g.id] || []).filter(id => taskById[id]);
+  if (by.length) {
+    s.appendChild(el("div", "k", "Achieved by (tasks)"));
+    const bl = el("ul");
+    by.forEach(id => {
+      const o = taskById[id];
+      const li = el("li", null, `${o.agent}: ${o.text}`);
+      li.style.color = TASK_COLOR; li.onclick = () => { selectedGoal = null; selectedTask = id; draw(); };
+      bl.appendChild(li);
+    });
+    s.appendChild(bl);
+  }
+  const conv = DATA.conversation || {};
+  const answered = (answeredBy[g.id] || []).filter(id => claimById[id]);
+  if (answered.length) {
+    s.appendChild(el("div", "k", "Answered by (claims of the final answer)"));
+    const fl = el("ul");
+    answered.forEach(id => {
+      const o = claimById[id], oc = callOfClaim[id];
+      const li = el("li", null, `#${oc.n} ${oc.agent}: ${o.text}`);
+      li.style.color = ANSWERS_COLOR; li.onclick = () => { selectedGoal = null; selected = id; draw(); };
+      fl.appendChild(li);
+    });
+    s.appendChild(fl);
+  }
+  if (conv.query) { s.appendChild(el("div", "k", "User request (session input)")); s.appendChild(el("pre", "factpre", conv.query)); }
+  if (conv.response) { s.appendChild(el("div", "k", "Final response (session output, sets the status)")); s.appendChild(el("pre", "factpre", conv.response)); }
+}
+
+function taskSide(s) {
+  const t = TASKS.find(x => x.id === selectedTask);
+  s.appendChild(el("h2", null, "Task"));
+  s.appendChild(el("pre", null, t.text));
+  const kv = (label, value) => { s.appendChild(el("div", "k", label)); s.appendChild(el("div", null, value)); };
+  kv("Status", t.status || "-"); kv("Inferred", t.inferred ? "yes (not stated in the input of the call: guessed from the context)" : "no (stated in the input)");
+  kv("Owned by agent", t.agent); kv("Agent call", t.agent_call);
+  s.appendChild(el("div", "k", "Acceptance criteria"));
+  const ul = el("ul");
+  t.criteria.forEach(c => ul.appendChild(el("li", null, c)));
+  if (!t.criteria.length) ul.appendChild(el("li", null, "none stated"));
+  s.appendChild(ul);
+  const same = (sameTasks[t.id] || []).filter(id => taskById[id]);
+  if (same.length) {
+    s.appendChild(el("div", "k", "Same task as (identical text)"));
+    const sl = el("ul");
+    same.forEach(id => {
+      const o = taskById[id];
+      const li = el("li", null, `${o.agent} (${o.agent_call}): ${o.text}`);
+      li.style.color = TASK_COLOR; li.onclick = () => { selectedTask = id; draw(); };
+      sl.appendChild(li);
+    });
+    s.appendChild(sl);
+  }
+  const taskList = (label, ids) => {
+    const known = (ids || []).filter(id => taskById[id] || goalById[id]);
+    if (!known.length) return;
+    s.appendChild(el("div", "k", label));
+    const list = el("ul");
+    known.forEach(id => {
+      const goal = goalById[id], o = taskById[id];
+      const li = el("li", null, goal ? `Goal: ${goal.text}` : `${o.agent}: ${o.text}`);
+      li.style.color = goal ? GOAL_COLOR : TASK_COLOR;
+      li.onclick = () => { if (goal) { selectedTask = null; selectedGoal = id; } else { selectedTask = id; } draw(); };
+      list.appendChild(li);
+    });
+    s.appendChild(list);
+  };
+  taskList("Preceded by (tasks of the preceding agent call)", precededBy[t.id]);
+  if (t.has_order && !(precededBy[t.id] || []).length) kv("Preceded by", "no task before it (top level)");
+  taskList("Followed by (tasks of the next agent call)", followedBy[t.id]);
+  taskList("Implements (the task of an earlier agent call)", implementsOf[t.id]);
+  taskList("Achieves (the goal)", achievesOf[t.id]);
+  const tc = constraintsOf(t);
+  if (tc.length) { s.appendChild(el("div", "k", "Bounded by (constraints of the system prompt of the agent)")); constraintList(s, tc); }
+  if (t.has_support) {
+    s.appendChild(el("div", "k", "Capabilities that support the task"));
+    const sup = el("ul");
+    (t.supported_by || []).filter(id => CAP_BY_ID[id]).forEach(id => { const li = el("li", null, CAP_BY_ID[id].text); li.style.color = CAPABILITY_COLOR; li.style.cursor = "default"; sup.appendChild(li); });
+    if (!sup.children.length) {
+      const li = el("li", null, "\u26A0 no capability supports this task");
+      li.style.color = "#b45309"; li.style.fontWeight = "600"; li.style.cursor = "default";
+      sup.appendChild(li);
+    }
+    s.appendChild(sup);
+  }
+  taskList("Implemented by (tasks)", implementedBy[t.id]);
+  const claimsOfTask = (label, ids) => {
+    const known = (ids || []).filter(id => claimById[id]);
+    if (!known.length) return;
+    s.appendChild(el("div", "k", label));
+    const list = el("ul");
+    known.forEach(id => {
+      const o = claimById[id], oc = callOfClaim[id];
+      const li = el("li", null, `#${oc.n} ${oc.agent}: ${o.text}`);
+      li.style.color = FULFILS_TASK_COLOR; li.onclick = () => { selectedTask = null; selected = id; draw(); };
+      list.appendChild(li);
+    });
+    s.appendChild(list);
+  };
+  claimsOfTask("Claims produced by this task (produced_by)", producedOf[t.id]);
+  if (judgedTasks.has(t.id)) {
+    const n = (fulfilledBy[t.id] || []).length;
+    kv("Fulfilled by", n ? `${n} of ${(producedOf[t.id] || []).length} produced claims` : "none of the produced claims");
+    claimsOfTask("Claims that fulfil this task (fulfils)", fulfilledBy[t.id]);
+  }
+  s.appendChild(el("div", "k", "LLM calls of this agent call"));
+  const cl = el("ul");
+  calls.filter(c => c.agent_call === t.agent_call).forEach(c => cl.appendChild(el("li", null, `#${c.n} ${c.agent}${c.t == null ? "" : " (+" + c.t + "s)"}`)));
+  if (!cl.children.length) cl.appendChild(el("li", null, "no LLM call"));
+  s.appendChild(cl);
+  if (t.input) { s.appendChild(el("div", "k", "Agent call input (the task is read from it)")); s.appendChild(el("pre", "factpre", t.input)); }
+  if (t.output) { s.appendChild(el("div", "k", "Agent call output (sets the status)")); s.appendChild(el("pre", "factpre", t.output)); }
+}
+
+function factSide(s) {
+  const f = FACTS[selectedFact];
+  s.appendChild(el("h2", null, "Fact (tool result)"));
+  s.appendChild(el("pre", "factpre", f.text));
+  const kv = (label, value) => { s.appendChild(el("div", "k", label)); s.appendChild(el("div", null, value)); };
+  kv("Tool", f.tool || "-"); kv("Agent", f.agent); kv("Source type", f.source_type || "-");
+  if (argText(f)) { s.appendChild(el("div", "k", "Arguments")); s.appendChild(el("pre", "factpre", JSON.stringify(f.arguments, null, 2))); }
+  kv("Produced by tool call", `${f.tool_call}${f.t == null ? "" : " (+" + f.t + "s)"}`);
+  s.appendChild(el("div", "k", "Present in the input of"));
+  const ul = el("ul");
+  (factConsumers[selectedFact] || []).forEach(t => ul.appendChild(el("li", null, `#${t.n} ${t.agent}${t.t == null ? "" : " (+" + t.t + "s)"}`)));
+  if (!ul.children.length) ul.appendChild(el("li", null, "no LLM call"));
+  s.appendChild(ul);
+  const claimsOf = (label, ids) => {
+    const known = (ids || []).filter(id => claimById[id]);
+    if (!known.length) return;
+    s.appendChild(el("div", "k", label));
+    const list = el("ul");
+    known.forEach(id => {
+      const o = claimById[id], oc = callOfClaim[id];
+      const li = el("li", null, `#${oc.n} ${oc.agent}: ${o.text}`);
+      li.style.color = FACT_COLOR; li.onclick = () => { selectedFact = null; selected = id; draw(); };
+      list.appendChild(li);
+    });
+    s.appendChild(list);
+  };
+  claimsOf("Announced by (the agent's claim saying why it called the tool: announces)", f.announced_by);
+  claimsOf("Claims it supports (supported_by)", f.supports);
+  claimsOf("In context of the claims (generated by the calls that had it in their input)", f.in_context);
+}
+
+["optAll", "optRouting", "optEmpty", "optSame", "optFacts", "optSameTask", "optImplements", "optAchieves", "optAnswers", "optProduced", "optFulfilsTask", "optPreceded", "optSupported", "optConflict", "optSameAs", "optDerivedFrom"].forEach(id => $(id).onchange = render);
+// second tab: the standing tasks, constraints and capabilities of each agent (read from its system prompt), no relations
+const SYS = DATA.system || [];
+const HAS_CONSTRAINTS = SYS.some(a => (a.constraints || []).length);
+const HAS_CAPABILITIES = SYS.some(a => (a.capabilities || []).length);
+const CAPABILITY_COLOR = "#0369a1";
+const CAP_BY_ID = Object.fromEntries(SYS.flatMap(a => (a.capabilities || []).map(c => [c.id, {...c, agent: a.agent}])));
+const SYS_PARTS = ["standing tasks", ...(HAS_CONSTRAINTS ? ["constraints"] : []), ...(HAS_CAPABILITIES ? ["capabilities"] : [])];
+const SYS_LIST = SYS_PARTS.length > 1 ? SYS_PARTS.slice(0, -1).join(", ") + " and " + SYS_PARTS[SYS_PARTS.length - 1] : SYS_PARTS[0];
+if (SYS_PARTS.length > 1) $("tabSys").textContent = "System " + SYS_LIST.replace("standing ", "");
+function renderSys() {
+  const root = $("sys"); root.innerHTML = "";
+  root.appendChild(el("p", "note", SYS_LIST[0].toUpperCase() + SYS_LIST.slice(1) + " of each agent, read from its system prompt: the same for every call of the agent."));
+  SYS.forEach(a => {
+    const card = el("div", "sysagent"); card.style.borderLeftColor = color[a.agent] || "#475569";
+    const h = el("h3", null, a.agent); h.style.color = color[a.agent] || "#1f2933";
+    card.appendChild(h);
+    const ac = (a.constraints || []).filter(id => CONSTRAINTS[id]);
+    const caps = a.capabilities || [];
+    card.appendChild(el("div", "meta", `${a.tasks.length} standing task${a.tasks.length === 1 ? "" : "s"}` + (HAS_CONSTRAINTS ? ` · ${ac.length} constraint${ac.length === 1 ? "" : "s"}` : "") + (HAS_CAPABILITIES ? ` · ${caps.length} capabilit${caps.length === 1 ? "y" : "ies"}` : "") + ` · carried by ${a.calls} agent call${a.calls === 1 ? "" : "s"}` + (a.truncated ? " · system prompt cut by the KG: items after the cut are missing" : "")));
+    a.tasks.forEach(t => {
+      const chip = el("div", "stask is-task");
+      const head = el("div"); head.appendChild(el("span", "tag", "task")); head.appendChild(document.createTextNode(t.text));
+      chip.appendChild(head);
+      if (t.criteria.length) { const ul = el("ul"); t.criteria.forEach(x => ul.appendChild(el("li", null, x))); chip.appendChild(ul); }
+      if (t.has_support) {
+        const names = (t.supported_by || []).filter(id => CAP_BY_ID[id]).map(id => CAP_BY_ID[id].text);
+        chip.appendChild(el("div", "supp" + (names.length ? "" : " none"), names.length ? "supported by: " + names.join(" · ") : "\u26A0 no capability supports this task"));
+      }
+      card.appendChild(chip);
+    });
+    if (!a.tasks.length) card.appendChild(el("div", "none", "no standing task"));
+    ac.forEach(id => {
+      const c = CONSTRAINTS[id];
+      const chip = el("div", "stask is-constraint " + c.strength);
+      const head = el("div"); head.appendChild(el("span", "tag", "constraint · " + c.strength)); head.appendChild(document.createTextNode(c.text));
+      chip.appendChild(head);
+      card.appendChild(chip);
+    });
+    if (HAS_CONSTRAINTS && !ac.length) card.appendChild(el("div", "none", "no constraint"));
+    caps.forEach(c => {
+      const chip = el("div", "stask is-capability");
+      const head = el("div"); head.appendChild(el("span", "tag", "capability")); head.appendChild(document.createTextNode(c.text));
+      chip.appendChild(head);
+      const supported = [...a.tasks, ...TASKS].filter(x => (x.supported_by || []).includes(c.id));
+      if (supported.length) chip.appendChild(el("div", "supp", "supports " + supported.length + " task" + (supported.length === 1 ? "" : "s") + " (" + supported.filter(x => !x.agent).length + " standing)"));
+      card.appendChild(chip);
+    });
+    if (HAS_CAPABILITIES && !caps.length) card.appendChild(el("div", "none", "no capability"));
+    if (a.prompt) {
+      const d = el("details"); d.appendChild(el("summary", null, "system prompt")); d.appendChild(el("pre", null, a.prompt));
+      card.appendChild(d);
+    }
+    root.appendChild(card);
+  });
+}
+function showTab(sys) {
+  $("tabFlow").classList.toggle("on", !sys); $("tabSys").classList.toggle("on", sys);
+  document.querySelector("header").style.display = sys ? "none" : "";
+  document.querySelector("main").style.display = sys ? "none" : "";
+  $("sys").style.display = sys ? "block" : "none";
+  if (!sys) draw();  // the edges are placed from the layout, which was hidden
+}
+if (SYS.length) {
+  $("tabs").classList.add("on");
+  $("tabFlow").onclick = () => showTab(false);
+  $("tabSys").onclick = () => showTab(true);
+  renderSys();
+}
+$("scroll").onclick = () => { if (selected || selectedFact || selectedGoal || selectedTask) { selected = null; selectedFact = null; selectedGoal = null; selectedTask = null; draw(); } };
+window.onresize = draw;
+render();
+</script></body></html>

@@ -114,7 +114,7 @@ jobs:
           from rdflib import Graph
           import sys
           
-          files = ['src/scope_ontology/mas-ontology.ttl', 'src/scope_ontology/semantic-ontology.ttl', 'src/scope_ontology/metrics-ontology.ttl', 'src/scope_ontology/analysis-ontology.ttl', 'src/scope_ontology/insight-ontology.ttl']
+          files = ['src/scope_ontology/mas-ontology.ttl', 'src/scope_ontology/semantic-ontology.ttl', 'src/scope_ontology/metrics-ontology.ttl', 'src/scope_ontology/analysis-ontology.ttl', 'src/scope_ontology/insight-ontology.ttl', 'src/scope_ontology/neurosymbolic-ontology.ttl']
           failed = []
           
           for file in files:
@@ -152,6 +152,7 @@ jobs:
             "src/scope_ontology/metrics-ontology.ttl"
             "src/scope_ontology/analysis-ontology.ttl"
             "src/scope_ontology/insight-ontology.ttl"
+            "src/scope_ontology/neurosymbolic-ontology.ttl"
           )
           
           FAILED=0

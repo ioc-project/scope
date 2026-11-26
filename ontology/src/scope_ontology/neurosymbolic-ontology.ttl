@@ -1,0 +1,774 @@
+# Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
+# SPDX-License-Identifier: Apache-2.0
+
+@prefix mas: <https://ioc-project.github.io/scope-ontology/mas#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# ============================================================
+#   MAS Neurosymbolic Ontology
+#   Companion to mas-ontology.ttl
+#
+#   Scope: symbolic state elements of a multi-agent trajectory
+#   (what agents assert, believe, intend and derive), kept
+#   separate from the structural and execution layers in
+#   mas-ontology.ttl. Every class here is a mas:Element.
+#
+#   Produced by the symbolic-extractor worker and read by the
+#   failure-detection worker.
+# ============================================================
+
+<https://ioc-project.github.io/scope-ontology/neurosymbolic> rdf:type owl:Ontology ;
+    dcterms:title "MAS Neurosymbolic Ontology"@en ;
+    dcterms:description "Symbolic state elements of multi-agent trajectories, anchored to execution nodes of the MAS execution KG. Companion to mas-ontology.ttl."@en ;
+    dcterms:created "2026-10-27"^^xsd:date ;
+    dcterms:license <https://opensource.org/licenses/Apache-2.0> ;
+    dcterms:creator [
+        a foaf:Organization ;
+        foaf:name "Outshift by Cisco" ;
+        foaf:homepage <https://outshift.cisco.com/>
+    ] ;
+    vann:preferredNamespacePrefix "mas" ;
+    vann:preferredNamespaceUri "https://ioc-project.github.io/scope-ontology/mas#" ;
+    owl:versionInfo "1.2.0" ;
+    owl:imports <https://ioc-project.github.io/scope-ontology/mas> ;
+    rdfs:comment "Neurosymbolic ontology: symbolic state elements of a trajectory."@en .
+
+#################################################################
+#    ABSTRACT BASE
+#################################################################
+
+# -- Symbolic State Element
+
+mas:SymbolicStateElement rdf:type owl:Class ;
+    rdfs:subClassOf mas:Element ;
+    mas:layer "symbolic" ;
+    rdfs:comment "Common parent for the symbolic state elements defined in this file."@en .
+
+#################################################################
+#    CLASSES
+#    One section per symbolic state element, each a subclass of
+#    mas:SymbolicStateElement.
+#################################################################
+
+# -- Fact
+
+mas:Fact rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    rdfs:comment "A proposition grounded in provenance external to agent generation: a tool result, a retrieval, a user statement, or a verified external record. Distinguishing test: is there an external source the proposition can be traced to? If the only source is text an LLM or agent generated, it is not a Fact."@en ;
+    skos:example "Booking-API response: 'Hotel Alfama, 2 nights, EUR 280 total, available Fri to Sun.' Source: the ToolCall to the booking API."@en .
+
+mas:factText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:factText ;
+    sh:targetClass mas:Fact ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Fact ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The proposition itself, as text."@en .
+
+mas:factSourceType rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:factSourceType ;
+    sh:targetClass mas:Fact ;
+    sh:in ( "tool_result" "retrieval" "user_statement" "external_record" ) ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Fact ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Kind of external provenance: 'tool_result' (output of a tool call), 'retrieval' (document or record fetched by a retriever), 'user_statement' (said by the user), 'external_record' (verified record from outside the trajectory)."@en .
+
+mas:verbatimSource rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:verbatimSource ;
+    sh:targetClass mas:Fact, mas:Claim ;
+    sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain [ owl:unionOf ( mas:Fact mas:Claim ) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "An exact excerpt of the text of the execution node the element comes from, used to find the element again in the inputs of later calls and so follow it across the trajectory. For a Fact, the excerpt of the tool output (required, see mas:FactVerbatimSourceShape). For a Claim, the excerpt of the LLM call output that expresses it (optional: it is dropped when it cannot be found in the output, and the Claim then cannot be followed across calls). Several Claims can share one excerpt."@en .
+
+mas:FactVerbatimSourceShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Fact ;
+    sh:property [
+        sh:path mas:verbatimSource ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "A mas:Fact requires a mas:verbatimSource."@en
+    ] .
+
+mas:groundedIn rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:groundedIn ;
+    sh:targetClass mas:Fact ;
+    sh:minCount 1 ;
+    # Allowed source classes (see the TODOs below for the sources not yet allowed).
+    sh:or (
+        [ sh:class mas:ToolCall ]
+        # TODO (user statement): do not allow a generic mas:State here. The source
+        # must be the user prompt specifically, not any State (an LLM-produced State
+        # would also pass). Add it once the user prompt can be identified, e.g. as a
+        # dedicated class (a UserPrompt State subclass) or as the initial State
+        # (:hasInitialState) of the root Session / MASCall. Then: [ sh:class mas:<UserPrompt> ]
+        # TODO (system prompt): decide whether a Fact may be grounded in a mas:SystemPrompt
+        # (mas:SystemPrompt now exists). If so: [ sh:class mas:SystemPrompt ]
+    ) ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain mas:Fact ;
+    # TODO: add the user prompt class (and mas:SystemPrompt, if allowed) to the sh:or list above.
+    # mas:State is intentionally left out (see above).
+    # For now the range is only mas:ToolCall. The union with State is commented out on
+    # purpose: it must NOT allow any State, only specific ones (the user prompt), so it
+    # stays disabled until those can be identified:
+    # rdfs:range [ owl:unionOf ( mas:ToolCall mas:State ) ] ;
+    rdfs:range mas:ToolCall ;
+    rdfs:comment "The external source this Fact is traced to. At least one is required (the distinguishing test of a Fact). Currently allowed: a mas:ToolCall, for tool results and retrievals, which keeps the text reachable through :hasState. The source must not be an LLMCall or AgentCall, whose outputs are agent generation. TODO: user statement. It should refer to the user prompt, not just a generic mas:State, because a generic State does not say who authored it and could hold LLM-generated text. It is not allowed until the user prompt can be identified (a dedicated class, or the initial State of the root Session/MASCall). TODO: system prompt. mas:SystemPrompt exists now; decide whether it is an allowed source and add it to the sh:or list. See mas:factSourceType for the declared kind."@en .
+
+# -- Claim
+
+mas:Claim rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    rdfs:comment "A proposition or statement of stance attributed to a specific agent at a specific turn. mas:claimForce says what act is performed (assert, commit, direct); mas:claimKind says what sort of content it carries (a checkable fact, a judgment, a recommendation), which decides how it is verified against Facts."@en ;
+    # TODO: the distinguishing test was cut off in the source text ("Is it a statement made
+    # by an agent, with identifiable ..."). Complete this comment and the rdfs:comment above.
+    skos:example "assertive / factual: 'Hotel Alfama has availability Friday to Sunday.'"@en ,
+        "committing: 'I'll adopt v2.' / 'We'll use microservices.'"@en ,
+        "directive: 'You must use v2.' / 'Visit in October.'"@en .
+
+mas:claimText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:claimText ;
+    sh:targetClass mas:Claim ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The claim itself, as text."@en .
+
+mas:claimForce rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:claimForce ;
+    sh:targetClass mas:Claim ;
+    sh:in ( "assertive" "committing" "directive" ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The act the agent performs. 'assertive': states something about the world, the task or its own work. 'committing': states an intended or adopted action or choice (\"I'll adopt v2\", \"we'll use microservices\"). 'directive': instructs or advises someone to act (\"you must use v2\", \"visit in October\")."@en .
+
+mas:claimKind rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:claimKind ;
+    sh:targetClass mas:Claim ;
+    sh:in ( "factual" "evaluative" "recommendation" ) ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The sort of content the claim carries, which decides how it is verified against Facts. 'factual': a source could confirm or refute it. 'evaluative': a judgment with no checkable core. 'recommendation': advises what to do, or states what suits whom or when. Required for assertive claims and optional for directives (set for advisory directives, absent for plain instructions); must be absent for committing claims (see mas:ClaimKindShape). Set at extraction from the wording alone."@en .
+
+mas:ClaimKindShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim ;
+    sh:severity sh:Violation ;
+    sh:message "mas:claimKind is required when mas:claimForce is 'assertive' and must be absent when it is 'committing'."@en ;
+    sh:and (
+        [ sh:or (
+            [ sh:not [ sh:property [ sh:path mas:claimForce ; sh:hasValue "assertive" ] ] ]
+            [ sh:property [ sh:path mas:claimKind ; sh:minCount 1 ] ]
+        ) ]
+        [ sh:or (
+            [ sh:not [ sh:property [ sh:path mas:claimForce ; sh:hasValue "committing" ] ] ]
+            [ sh:property [ sh:path mas:claimKind ; sh:maxCount 0 ] ]
+        ) ]
+    ) .
+
+mas:generatedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:generatedBy ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:LLMCall ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:LLMCall ;
+    rdfs:comment "The LLM call that generated this Claim (Claim -> LLMCall, the same direction as mas:groundedIn: from the symbolic state element to the execution node). A Claim has exactly one generating call; one LLMCall can generate many Claims. The agent and the turn the Claim is attributed to are reached through that call (the agent that executes it, via the containment topology)."@en .
+
+# -- Goal
+
+mas:Goal rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    rdfs:comment "A desired end state together with its success criteria. A goal has no assignee: it is the standard against which a combined outcome is judged, and it persists after the work is done. Distinguishing test: can the whole outcome be checked yes/no against it?"@en ;
+    skos:example "A complete weekend itinerary for 2 in Lisbon, including transport and lodging, total cost <= EUR 800."@en .
+
+mas:goalText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:goalText ;
+    sh:targetClass mas:Goal ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Goal ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The desired end state, as text."@en .
+
+mas:successCriteria rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:successCriteria ;
+    sh:targetClass mas:Goal ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Goal ;
+    rdfs:range xsd:string ;
+    rdfs:comment "What must hold for the goal to count as met. Required: without criteria the outcome cannot be checked yes/no (the distinguishing test of a Goal). Repeat the property to state several criteria separately."@en .
+
+mas:rationale rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:rationale ;
+    sh:targetClass mas:Goal ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:Goal ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Free text for humans and judges only: why this is the Goal, and how its success criteria were read. Optional."@en .
+
+mas:status rdf:type owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf ( mas:Goal mas:Task ) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Where a Goal or a Task stands. One property shared by both classes, with a different set of allowed values for each: a Goal is 'set', 'decomposed', 'achieved' or 'abandoned' (see mas:GoalStatusShape); a Task is 'assigned', 'accepted', 'in_progress', 'complete' or 'failed' (see mas:TaskStatusShape)."@en .
+
+mas:GoalStatusShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Goal ;
+    sh:property [
+        sh:path mas:status ;
+        sh:in ( "set" "decomposed" "achieved" "abandoned" ) ;
+        sh:maxCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "mas:status of a Goal must be one of 'set', 'decomposed', 'achieved', 'abandoned'."@en
+    ] .
+
+mas:goalOf rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:goalOf ;
+    sh:targetClass mas:Goal ;
+    sh:class mas:MASCall ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Goal ;
+    rdfs:range mas:MASCall ;
+    rdfs:comment "The MAS execution whose combined outcome this Goal is the standard for (Goal -> MASCall, the same direction as mas:generatedBy: from the symbolic state element to the execution node). One MASCall can have several Goals. A Goal has no assignee, so it is not linked to any agent. TODO: a Session can contain several MASCalls (retries, continuations) that share one goal. Decide whether the Goal should link to the Session instead, or to both."@en .
+
+# -- Task
+
+mas:Task rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    rdfs:comment "A unit of work assigned to (or taken on by) a specific agent in service of a goal, with an expected deliverable. Creating a task is the system's act of delegating: there is no separate 'decision to delegate' node. Distinguishing test: does it have an owner and an expected deliverable?"@en ;
+    # The owner is mas:ownedBy. The expected deliverable is not a separate property: it is
+    # part of mas:taskText (see there). TODO: decide whether it needs its own property.
+    # TODO (delegation via messages): not handled yet. A Task can be delegated by an agent
+    # sending a message to another agent, not only by the system creating a Task. Decide how
+    # that case is represented: what node or edge records the message, how the Task is
+    # created from it, and how mas:createdBy / mas:ownedBy / mas:delegatesTo apply to it.
+    # A standing Task read from an agent's system prompt is a Task with mas:source "system" and
+    # mas:definedIn the SystemPrompt; it has no AgentCall (see mas:OwnedByShape).
+    skos:example "Orchestrator to transport agent: 'Find round-trip transport to Lisbon, Fri evening to Sun evening, for 2.'"@en .
+
+mas:taskText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:taskText ;
+    sh:targetClass mas:Task ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Task ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The work to be done and the deliverable expected, as text."@en .
+
+mas:ownedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:ownedBy ;
+    sh:targetClass mas:Task ;
+    sh:class mas:AgentCall ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasAttributedTo ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:AgentCall ;
+    # TODO (retries): one agent can run across several AgentCalls (a retry or a continuation
+    # re-runs the same Agent as a new AgentCall). A Task is owned by one specific AgentCall,
+    # so it does not follow the agent into the next one: after a retry the same unit of work
+    # has no owner link to the new call, or has to be duplicated as a new Task. Decide how
+    # to treat it: link to the Agent type (mas:Agent) instead, keep the AgentCall and add a
+    # link between the Task and its retried call, or accept one Task per attempt.
+    rdfs:comment "The agent execution that owns the Task, i.e. the one the work is assigned to or that took it on (Task -> AgentCall, the same direction as mas:generatedBy and mas:goalOf: from the symbolic state element to the execution node). Required: a Task has an owner (the distinguishing test). The agent is reached through the AgentCall (:executesAgent). Delegation is read from mas:createdBy (the delegator) and mas:ownedBy (the delegate); see mas:createdBy. One AgentCall can own several Tasks. TODO: retries are not handled; a Task stays with the AgentCall that owned it and does not follow the agent into a retry or continuation (see the comment above)."@en .
+
+mas:OwnedByShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Task ;
+    sh:or (
+        [ sh:property [ sh:path mas:ownedBy ; sh:minCount 1 ] ]
+        [ sh:property [ sh:path mas:source ; sh:hasValue "system" ] ]
+    ) ;
+    sh:severity sh:Violation ;
+    sh:message "A mas:Task needs a mas:ownedBy, unless it is a standing Task (mas:source 'system')."@en .
+
+mas:createdBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:createdBy ;
+    sh:targetClass mas:Task ;
+    sh:class mas:AgentCall ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:AgentCall ;
+    rdfs:comment "The agent execution that created the Task, i.e. the delegator (Task -> AgentCall, the same direction as mas:ownedBy). Creating a Task is the system's act of delegating, so the delegation is read as mas:createdBy (delegator) versus mas:ownedBy (delegate); when both are the same call the Task was taken on, not delegated. This makes the delegator explicit for a top-level Task, which has no parent Task to read it from (a Goal has no assignee). Optional: a Task may have no creating AgentCall, for example when the system or the user creates it. Compare mas:delegatesTo, which links a Task to a Task it passes on. The same retries caveat as mas:ownedBy applies (see there)."@en .
+
+mas:acceptanceCriteria rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:acceptanceCriteria ;
+    sh:targetClass mas:Task ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:Task ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The local success definition of the task: what the deliverable must satisfy for the task to count as done. May be empty. Repeat the property to state several criteria separately. Compare mas:successCriteria on a Goal, which judges the combined outcome."@en .
+
+mas:TaskStatusShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Task ;
+    sh:property [
+        sh:path mas:status ;
+        sh:in ( "assigned" "accepted" "in_progress" "complete" "failed" ) ;
+        sh:maxCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "mas:status of a Task must be one of 'assigned', 'accepted', 'in_progress', 'complete', 'failed'."@en
+    ] .
+
+# -- Constraint
+
+mas:Constraint rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    rdfs:comment "A boundary on acceptable solutions, or a selection preference over acceptable solutions, or a rule on agent behavior. One class covers what a user says, what an operator encodes in agent instructions, and what agents derive or decide along the way. The differences between these are carried by attributes, not by separate classes. Distinguishing test: does it forbid, require, or prefer something specific?"@en ;
+    # Origin is carried by mas:source ('system', 'user' or 'agent'). Operator and agent-derived
+    # constraints are linked to a mas:SystemPrompt (mas:definedIn); user ones have no link.
+    # There is no statedIn: the user prompt cannot be identified
+    # yet (see the user statement TODO on mas:groundedIn).
+    skos:example "User: 'Avoid planes, I'm scared of them.'"@en ,
+        "Operator, in the agent instructions: 'Never exceed the budget.'"@en .
+
+mas:constraintText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:constraintText ;
+    sh:targetClass mas:Constraint ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:comment "What the constraint forbids, requires or prefers, as text."@en .
+
+mas:constraintStrength rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:constraintStrength ;
+    sh:targetClass mas:Constraint ;
+    sh:in ( "hard" "soft" ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Constraint ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Must the constraint hold, or is it a preference? 'hard': it must hold (a boundary or a rule). 'soft': it is a preference over acceptable solutions. Named constraintStrength, not strength, because the ontologies share one namespace and mas:derivedFrom also has a strength (see the TODO there)."@en .
+
+mas:providedTo rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:providedTo ;
+    sh:targetClass mas:Constraint ;
+    sh:class mas:AgentCall ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Constraint ;
+    rdfs:range mas:AgentCall ;
+    # Not for operator constraints in the agent's instructions: those hold for every run of
+    # the agent, so linking them to each AgentCall would repeat them per call, and the same
+    # retries caveat as mas:ownedBy would apply. Link them to their mas:SystemPrompt
+    # (mas:definedIn) instead.
+    rdfs:comment "An agent execution that received this Constraint as input (Constraint -> AgentCall, the same direction as mas:ownedBy). Received, not merely in force: whether an agent was given the constraint is what a check of whether it respected it depends on. Optional and repeatable: a Constraint can be given to several agent calls. This is the link for a constraint that reaches one specific agent call as input: in a message, or from the user request. A constraint in the agent's own instructions is linked to its mas:SystemPrompt instead (see mas:definedIn)."@en .
+
+# -- AgentCapability
+
+mas:AgentCapability rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    # Named AgentCapability, not Capability, because the ontologies share one namespace and the
+    # structural classes use Capability for the common parent of LLM, Tool and Processing (the
+    # things an Agent can use, see mas:usesCapability). This class is the symbolic one: what the
+    # operator says the agent can do, read from its instructions.
+    rdfs:comment "Something an agent is able to do: a kind of work it is specialised in, with the means it has for it (the tools it can call, the data it can read). It says what the agent can do, not what it is told to do (that is a Task) and not how it must behave (that is a Constraint). Stated by the operator in the agent's instructions, so it holds for every run of the agent. It is an approximation of what the agent can really do: the instructions may be incomplete and say nothing of what the underlying model can do. Distinguishing test: is it a kind of work the agent can carry out, so that a Task could be checked against it?"@en ;
+    # Read from the agent's system prompt: linked to it with mas:definedIn (the Agent is reached
+    # through mas:systemPromptOf).
+    skos:example "Itinerary agent: 'Find feasible routes between cities and their average travel times, using the graph database and calculation tools.'"@en ,
+        "Pricing agent: 'Look up train fares using the document listing, document reading and calculation tools.'"@en .
+
+mas:agentCapabilityText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:agentCapabilityText ;
+    sh:targetClass mas:AgentCapability ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:AgentCapability ;
+    rdfs:range xsd:string ;
+    rdfs:comment "What the agent is able to do, as one short self-contained sentence, with the means the instructions name for it."@en .
+
+# -- SystemPrompt
+
+mas:SystemPrompt rdf:type owl:Class ;
+    rdfs:subClassOf mas:SymbolicStateElement ;
+    sh:targetClass mas:SystemPrompt ;
+    rdfs:comment "The standing instructions an operator gives an agent: the system prompt it runs with. It is the source the agent's standing Tasks, AgentCapabilities and Constraints are read from (mas:definedIn), and it belongs to an Agent (mas:systemPromptOf). It holds for every run of the agent: it is not repeated per call or per retry. Distinguishing test: is it text the operator wrote for the agent before the run, as opposed to anything produced during it?"@en ;
+    # TODO (versions): the Agent is a type, so two runs of an agent with different system prompts
+    # give two SystemPrompt nodes linked to the same Agent; nothing says which one a given
+    # AgentCall used. Decide whether to link the AgentCall to it.
+    skos:example "Moderator: 'You are a moderator coordinating a team of specialized agents to answer a trip-planning question ...'"@en .
+
+mas:systemPromptText rdf:type owl:DatatypeProperty, sh:PropertyShape ;
+    sh:path mas:systemPromptText ;
+    sh:targetClass mas:SystemPrompt ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:SystemPrompt ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The text of the system prompt, as recorded in the trace."@en .
+
+mas:systemPromptOf rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:systemPromptOf ;
+    sh:targetClass mas:SystemPrompt ;
+    sh:class mas:Agent ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:SystemPrompt ;
+    rdfs:range mas:Agent ;
+    rdfs:comment "The agent type the system prompt belongs to (SystemPrompt -> Agent, from the symbolic state element to the structural node). Required: a system prompt is an agent's."@en .
+
+mas:definedIn rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:definedIn ;
+    sh:targetClass mas:SystemPrompt ;
+    sh:class mas:SystemPrompt ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain [ owl:unionOf ( mas:Task mas:AgentCapability mas:Constraint ) ] ;
+    rdfs:range mas:SystemPrompt ;
+    rdfs:comment "The system prompt a Task, an AgentCapability or a Constraint was read from (element -> SystemPrompt). For a Task, an AgentCapability or an operator Constraint it carries mas:source 'system'. For a Constraint the agent derived or decided along the way (mas:source 'agent'), it is the system prompt of that agent. Optional: elements that come from elsewhere (a delegated Task, a user Constraint) have none. The Agent is reached through the SystemPrompt (mas:systemPromptOf)."@en .
+
+mas:source rdf:type owl:DatatypeProperty ;
+    rdfs:domain [ owl:unionOf ( mas:Task mas:AgentCapability mas:Constraint ) ] ;
+    rdfs:range xsd:string ;
+    rdfs:comment "Where the element comes from, to filter on: 'system' for the ones read from an agent's system prompt (standing Tasks, AgentCapabilities, operator Constraints), 'user' for a Constraint the user stated, 'agent' for a Constraint an agent derived or decided along the way. Absent on a Task assigned during the run."@en .
+
+mas:SourceShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Task, mas:AgentCapability, mas:Constraint ;
+    sh:property [
+        sh:path mas:source ;
+        sh:in ( "system" "user" "agent" ) ;
+        sh:maxCount 1 ;
+        sh:severity sh:Violation ;
+        sh:message "mas:source must be 'system', 'user' or 'agent'."@en
+    ] .
+
+#################################################################
+#    RELATIONS
+#    Object properties between symbolic state elements, and to
+#    execution nodes in mas-ontology.ttl.
+#################################################################
+
+# -- Claim -> Fact
+
+mas:supportedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:supportedBy ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Fact ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Fact ;
+    rdfs:comment "The Fact(s) that confirm this Claim. Used for factual claims (mas:claimKind 'factual'), whose content a source could confirm or refute. Written by the linking step, not by the claim's author. Optional: a factual claim with no supporting Fact is an unsupported claim. Mutually exclusive with mas:groundedOn on the same Claim (see mas:ClaimFactLinkShape)."@en .
+
+mas:groundedOn rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:groundedOn ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Fact ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Fact ;
+    rdfs:comment "The Fact(s) a Claim rests on without being confirmable by them. Used for evaluative and recommendation claims, and for committing claims and plain instructions (every Claim whose mas:claimKind is not 'factual'). Written by the linking step. Not to be confused with mas:groundedIn, which links a Fact to its external source. Mutually exclusive with mas:supportedBy on the same Claim (see mas:ClaimFactLinkShape)."@en .
+
+mas:ClaimFactLinkShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim ;
+    sh:severity sh:Violation ;
+    sh:message "mas:supportedBy is only for claims whose mas:claimKind is 'factual'; every other claim (evaluative, recommendation, committing, plain instruction) uses mas:groundedOn."@en ;
+    sh:and (
+        [ sh:or (
+            [ sh:not [ sh:property [ sh:path mas:supportedBy ; sh:minCount 1 ] ] ]
+            [ sh:property [ sh:path mas:claimKind ; sh:hasValue "factual" ] ]
+        ) ]
+        [ sh:or (
+            [ sh:not [ sh:property [ sh:path mas:groundedOn ; sh:minCount 1 ] ] ]
+            [ sh:not [ sh:property [ sh:path mas:claimKind ; sh:hasValue "factual" ] ] ]
+        ) ]
+    ) .
+
+# -- Claim -> ToolCall
+
+mas:announces rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:announces ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:ToolCall ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:ToolCall ;
+    rdfs:comment "The ToolCall(s) this Claim announces: the agent says, in the text of the LLM call that requested the tool call, that it is about to make it and why (\"Let me look up the hotel prices\"). Claim -> ToolCall, same direction as mas:generatedBy and mas:groundedIn. The Claim is always of mas:claimForce 'committing' (it states an action the agent intends), and its text is the reason the agent gives for the call. That reason is the agent's own words, never evidence: it says why the tool was called, not what the tool returned. A Claim can announce several ToolCalls (one sentence covering several calls) and a ToolCall is announced by zero or more Claims; a ToolCall requested without any text (a tool-call-only turn) is not announced. The Facts extracted from the announced ToolCall are reached through mas:groundedIn (Fact -> ToolCall read backwards), which gives the reason a Fact was fetched: Claim -mas:announces-> ToolCall <-mas:groundedIn- Fact. Written deterministically from the identifiers of the tool calls in the LLM call output, matched to the ToolCall nodes of the trajectory; no extra LLM call. Optional. NOTE: this is a coordinative element (a statement of intent about the agent's own action) carried by a Claim for now. mas:Claim is meant to be epistemic (what the agent holds to be true or advises); announcements may later be moved out of mas:Claim into a separate element dedicated to coordination, so that Claims are solely epistemic. If that happens, mas:announces moves with them and the 'committing' restriction on Claims is revisited."@en .
+
+mas:AnnouncesCommittingShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim ;
+    sh:severity sh:Violation ;
+    sh:message "Only a Claim whose mas:claimForce is 'committing' can mas:announces a ToolCall."@en ;
+    sh:or (
+        [ sh:not [ sh:property [ sh:path mas:announces ; sh:minCount 1 ] ] ]
+        [ sh:property [ sh:path mas:claimForce ; sh:hasValue "committing" ] ]
+    ) .
+
+# -- Claim -> Claim
+
+mas:derivedFrom rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:derivedFrom ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Claim ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Claim ;
+    rdfs:comment "This Claim is derived from another Claim (Claim -> source Claim). Written by the linking step. A Claim may be derived from several Claims. TODO: the linking step also records a mode, a strength and a content for each derivation. These describe the edge itself, not either Claim, so they cannot be plain properties of mas:Claim. They need a reified derivation node (a class with the source Claim, the derived Claim, and these three attributes), or a decision to drop them from the ontology. Their allowed values are not defined yet."@en .
+
+mas:conflictsWith rdf:type owl:ObjectProperty, owl:SymmetricProperty, sh:PropertyShape ;
+    sh:path mas:conflictsWith ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Claim ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Claim ;
+    rdfs:comment "This Claim conflicts with another Claim: the two cannot both hold, either directly (different values for the same thing) or indirectly (incompatible once sums, counts or schedules are worked out). Symmetric: if A conflicts with B, then B conflicts with A. This codebase does no OWL inference, so both directions must be stored (see mas:ConflictsWithSymmetryShape)."@en .
+
+mas:ConflictsWithSymmetryShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim ;
+    sh:property [
+        sh:path [ sh:inversePath mas:conflictsWith ] ;
+        sh:equals mas:conflictsWith ;
+        sh:severity sh:Violation ;
+        sh:message "mas:conflictsWith is symmetric: if A conflicts with B, B must also conflict with A (both directions must be stored)."@en
+    ] .
+
+# -- Claim <-> Claim, Task <-> Task
+
+mas:sameAs rdf:type owl:ObjectProperty, owl:SymmetricProperty ;
+    rdfs:domain [ owl:unionOf ( mas:Claim mas:Task ) ] ;
+    rdfs:range [ owl:unionOf ( mas:Claim mas:Task ) ] ;
+    rdfs:comment "This element states the same thing, or is the same piece of work, as another element of the same class (Claim <-> Claim, Task <-> Task). Between Claims it is the judgement that two claims say the same thing in other words. Between Tasks it is the identical work given to different agent calls. Symmetric: if A is the same as B, then B is the same as A. This codebase does no OWL inference, so both directions must be stored (see mas:SameAsSymmetryShape). Not owl:sameAs: it does not merge the two nodes, which keep their own provenance."@en .
+
+mas:ClaimSameAsShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim ;
+    sh:property [
+        sh:path mas:sameAs ;
+        sh:class mas:Claim ;
+        sh:severity sh:Violation ;
+        sh:message "mas:sameAs of a Claim must link to a Claim."@en
+    ] .
+
+mas:TaskSameAsShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Task ;
+    sh:property [
+        sh:path mas:sameAs ;
+        sh:class mas:Task ;
+        sh:severity sh:Violation ;
+        sh:message "mas:sameAs of a Task must link to a Task."@en
+    ] .
+
+mas:SameAsSymmetryShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Claim, mas:Task ;
+    sh:property [
+        sh:path [ sh:inversePath mas:sameAs ] ;
+        sh:equals mas:sameAs ;
+        sh:severity sh:Violation ;
+        sh:message "mas:sameAs is symmetric: if A is the same as B, B must also be the same as A (both directions must be stored)."@en
+    ] .
+
+# -- Goal <-> Task
+
+mas:decomposedInto rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:decomposedInto ;
+    sh:targetClass mas:Goal ;
+    sh:class mas:Task ;
+    sh:minCount 0 ;
+    sh:severity sh:Info ;
+    rdfs:domain mas:Goal ;
+    rdfs:range mas:Task ;
+    owl:inverseOf mas:achieves ;
+    rdfs:comment "The Tasks a Goal is split into (Goal -> Task, one to many). Inverse of mas:achieves. This codebase does no OWL inference, so both directions must be stored (see mas:GoalTaskLinkShape). Optional: a Goal has no Task until it is decomposed."@en .
+
+mas:achieves rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:achieves ;
+    sh:targetClass mas:Task ;
+    sh:class mas:Goal ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:Goal ;
+    owl:inverseOf mas:decomposedInto ;
+    rdfs:comment "The Goal a Task is in service of (Task -> Goal, many to one). Required: a Task exists in service of a goal. Inverse of mas:decomposedInto."@en .
+
+mas:GoalTaskLinkShape rdf:type sh:NodeShape ;
+    sh:targetClass mas:Task ;
+    sh:property [
+        sh:path [ sh:inversePath mas:decomposedInto ] ;
+        sh:equals mas:achieves ;
+        sh:severity sh:Violation ;
+        sh:message "mas:achieves and mas:decomposedInto are inverses: if a Task achieves a Goal, that Goal must be decomposedInto the Task (both directions must be stored)."@en
+    ] .
+
+# -- Task -> Task
+
+mas:delegatesTo rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:delegatesTo ;
+    sh:targetClass mas:Task ;
+    sh:class mas:Task ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:Task ;
+    rdfs:comment "This Task is delegated onward as another Task (delegating Task -> delegated Task): the owner of this Task hands part or all of the work to another agent by creating the target Task. Creating a Task is itself the act of delegating, so the target Task's owner is the delegate. The delegator of a single Task is stated by mas:createdBy; this property is for chains, where a Task is passed on as another Task. TODO: confirm the direction (delegator to delegated), and how it differs from mas:implements."@en .
+
+mas:implements rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:implements ;
+    sh:targetClass mas:Task ;
+    sh:class mas:Task ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:Task ;
+    rdfs:comment "This Task implements another Task (implementing Task -> implemented Task): carrying out this Task is a step towards fulfilling the target Task. A Task can implement several Tasks. The direction matters: a wider Task does not implement a narrower one. Between Tasks only; the link from a Task to the Goal it serves is mas:achieves."@en .
+
+mas:precededBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:precededBy ;
+    sh:targetClass mas:Task ;
+    sh:class mas:Task ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Task ;
+    rdfs:range mas:Task ;
+    rdfs:comment "This Task comes after the target Task (later Task -> earlier Task): an ordering between Tasks. A Task can be preceded by several Tasks, for example every Task of the agent call that handed control to its own."@en .
+
+# -- Goal / Task -> Constraint
+
+mas:boundedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:boundedBy ;
+    sh:targetClass mas:Goal, mas:Task ;
+    sh:class mas:Constraint ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain [ owl:unionOf ( mas:Goal mas:Task ) ] ;
+    rdfs:range mas:Constraint ;
+    rdfs:comment "A Constraint that bounds this Goal or Task: it forbids, requires or prefers something about the solution (Goal or Task -> Constraint). Many to many: a Constraint can bound several Goals and Tasks, and a Goal or Task can have several Constraints. Optional. A Goal's constraints apply to its Tasks through mas:achieves, so they should not be repeated on each Task; link a Constraint to a Task only when it is specific to that Task (for example one added when the Task is delegated)."@en .
+
+# -- AgentCapability -> Task
+
+mas:supports rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:supports ;
+    sh:targetClass mas:AgentCapability ;
+    sh:class mas:Task ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:AgentCapability ;
+    rdfs:range mas:Task ;
+    # TODO (same agent): the extraction only links an AgentCapability to Tasks of its own agent (the
+    # candidates of a Task are the capabilities of the agent that owns it). Nothing checks that
+    # here: it would need mas:definedIn / mas:systemPromptOf, mas:ownedBy and the
+    # AgentCall -> Agent link (:executesAgent) to agree. Not added yet.
+    # Standing tasks (read from a system prompt) are Tasks with mas:source "system".
+    rdfs:comment "This AgentCapability supports the Task (AgentCapability -> Task, many to many): carrying out the Task, or a part of it, is the kind of work the AgentCapability describes, so the agent that owns the Task is able to do that work. An LLM relation extractor judges it from the texts of the Task (mas:taskText and mas:acceptanceCriteria) and of the AgentCapabilities of its agent; an AgentCapability that only shares the subject or the place with the Task does not support it. A Task can be supported by several AgentCapabilities (it can need several), and an AgentCapability can support many Tasks. It only links; a Task with no incoming mas:supports is one that no AgentCapability of its agent was found to support, or whose agent has no AgentCapability, or that was not judged, and the relation does not tell which. Optional."@en .
+
+# -- Claim -> Task
+
+mas:producedBy rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:producedBy ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Task ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Task ;
+    # TODO (consistency): a Claim has two origins, mas:generatedBy (the LLMCall that wrote
+    # it) and this one (the Task it was produced for). They should agree: the LLMCall should
+    # belong to the AgentCall that owns the Task (mas:ownedBy). Nothing checks that yet,
+    # because the AgentCall -> LLMCall link is the legacy :hasLLMCall (see mas:generatedBy).
+    rdfs:comment "The Task(s) this Claim was produced by (Claim -> Task, a Task can produce several Claims). Normally one: the Task of the AgentCall that owns the LLMCall that wrote the Claim. An AgentCall can own several Tasks (independent pieces of work in one assignment), and then the Claim is linked to each of them, because nothing tells which one it comes from. Same direction as mas:generatedBy: from the symbolic state element to its origin. Complements mas:generatedBy, which says which LLM call wrote the Claim; this says which unit of work it came out of. Deterministic: it is computed from the trajectory (LLMCall -> AgentCall) and mas:ownedBy, nothing is judged; whether the Claim fulfils the Task is mas:fulfils. Optional: a Claim made outside any Task (for example by an agent call with no assigned Task) has no such link."@en .
+
+# -- Claim -> Goal
+
+mas:answers rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:answers ;
+    sh:targetClass mas:Claim ;
+    sh:class mas:Goal ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range mas:Goal ;
+    rdfs:comment "This Claim is part of the answer given for the Goal (Claim -> Goal, many to many): it was generated by the LLM call that wrote the final answer of the session (the one whose output is the final State of the Session, see mas:generatedBy), so the set of Claims that answer a Goal is the final answer, broken into Claims. Same direction as mas:generatedBy and mas:achieves: from the symbolic state element to its target. It says where the Claim sits, not that it meets the Goal's mas:successCriteria: whether it does is what mas:fulfils says. Optional: a Claim of any other call has no such link."@en .
+
+mas:fulfils rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:fulfils ;
+    sh:targetClass mas:Claim ;
+    sh:or ( [ sh:class mas:Goal ] [ sh:class mas:Task ] ) ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Claim ;
+    rdfs:range [ owl:unionOf ( mas:Goal mas:Task ) ] ;
+    rdfs:comment "A Claim fulfils a Goal or a Task (Claim -> Goal or Task, many to many); an LLM relation extractor judges it, it is not a position. For a Goal: this Claim is one of the Claims that satisfy the Goal: taken together with the other Claims that mas:answers the Goal, they meet all of the Goal's mas:successCriteria, and this Claim is one of those the criteria are met with. It is evaluated over the Claims that mas:answers the Goal, so a Claim that fulfils a Goal also answers it, while a Claim that answers a Goal may not fulfil it. The Claims are judged as a set (a criterion can be met by several Claims together). When they do not satisfy the Goal, none of them fulfils it. For a Task: this Claim states part of the deliverable the Task asks for, or something one of its mas:acceptanceCriteria requires. It is evaluated over the Claims that are mas:producedBy the Task, so a Claim that fulfils a Task was also produced by it, while a Claim produced by a Task (its process, restating the request) may not fulfil it. A Task none of whose Claims fulfils it has no incoming mas:fulfils. Same direction as mas:answers and mas:producedBy. Optional: a Claim that was not judged has no such link."@en .
+
+# -- LLMCall -> Claim / Fact (input tracking)
+
+mas:inputClaim rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:inputClaim ;
+    sh:targetClass mas:LLMCall ;
+    sh:class mas:Claim ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:LLMCall ;
+    rdfs:range mas:Claim ;
+    rdfs:comment "A Claim that is present in the input of this LLM call (LLMCall -> Claim). Unlike mas:generatedBy, the direction is from the execution node to the symbolic state element: it records what the call received, not what it produced. Optional and repeatable. Found by following the claim through the trajectory (claims travel between agent calls) and matching its mas:verbatimSource in the conversation part of the call input, so a Claim without a mas:verbatimSource is never an input claim. It can only be computed when the trajectory is known."@en .
+
+mas:inputFact rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:inputFact ;
+    sh:targetClass mas:LLMCall ;
+    sh:class mas:Fact ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:LLMCall ;
+    rdfs:range mas:Fact ;
+    rdfs:comment "A Fact that is present in the input of this LLM call (LLMCall -> Fact). Same direction as mas:inputClaim. Facts do not cross agents: only the Facts of ToolCalls of the same agent call that had finished when the LLM call started are candidates, and one is an input fact when its mas:verbatimSource occurs in the conversation part of the call input. Optional and repeatable."@en .
+
+# -- Fact -> Claim (context)
+
+mas:inContext rdf:type owl:ObjectProperty, sh:PropertyShape ;
+    sh:path mas:inContext ;
+    sh:targetClass mas:Fact ;
+    sh:class mas:Claim ;
+    sh:minCount 0 ;
+    sh:severity sh:Violation ;
+    rdfs:domain mas:Fact ;
+    rdfs:range mas:Claim ;
+    rdfs:comment "This Fact was in the context of the LLM call that generated the target Claim (Fact -> Claim): the Fact is one of the mas:inputFact of the call named by the Claim's mas:generatedBy. It says only that the Fact was available to the call, not that the Claim rests on it; for that see mas:supportedBy and mas:groundedOn. Derived from mas:inputFact and mas:generatedBy, no LLM involved. Optional and repeatable: a Fact can be in the context of several Claims."@en .

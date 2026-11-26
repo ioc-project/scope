@@ -22,7 +22,7 @@ from .verification import (
 )
 
 # Expose package version
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 __all__ = [
     "KGVerificationReport",
@@ -52,6 +52,7 @@ ONTOLOGY_FILES = {
     "metrics": "metrics-ontology.ttl",
     "analysis": "analysis-ontology.ttl",
     "insight": "insight-ontology.ttl",
+    "neurosymbolic": "neurosymbolic-ontology.ttl",
 }
 
 
@@ -60,7 +61,7 @@ def get_ontology_path(name: str = "mas") -> Path:
     Returns the absolute path to a bundled ontology .ttl file.
 
     Args:
-        name: One of 'mas', 'semantic', 'metrics', 'analysis', 'insight'
+        name: One of 'mas', 'semantic', 'metrics', 'analysis', 'insight', 'neurosymbolic'
               (or exact filename with .ttl extension)
     """
     # Normalize name (remove extension if present)

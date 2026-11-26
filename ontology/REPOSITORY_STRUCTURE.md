@@ -21,6 +21,7 @@ ontology/
 │  ├── metrics-ontology.ttl       # Metrics ontology (Metric/MetricResult, templates)
 │  ├── analysis-ontology.ttl      # Post-hoc group analysis reports
 │  ├── insight-ontology.ttl       # Rendered, catalog-templated insights
+│  ├── neurosymbolic-ontology.ttl # Symbolic state: claims, facts, goals, tasks...
 │  ├── mas-shapes-custom.ttl      # Hand-maintained SHACL (SPARQL-based multi-node constraints) — committed
 │  ├── mas-shapes.ttl             # Auto-generated SHACL scaffolding — gitignored, NOT committed
 │  └── models/                    # Pydantic KG node/edge models
@@ -64,6 +65,7 @@ As of `v2.0.0`, the bundled set is exactly five ontology files, all merged under
 | `metrics` | `metrics-ontology.ttl` | Lockstep |
 | `analysis` | `analysis-ontology.ttl` | Lockstep |
 | `insight` | `insight-ontology.ttl` | Lockstep |
+| `neurosymbolic` | `neurosymbolic-ontology.ttl` | Lockstep |
 
 ## Quick Commands
 

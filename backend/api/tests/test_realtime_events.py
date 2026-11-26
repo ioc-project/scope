@@ -56,6 +56,17 @@ def http(db, cognition_fabric_app):
     return TestClient(cognition_fabric_app, raise_server_exceptions=False)
 
 
+@pytest.mark.parametrize(
+    ("rows", "expected"), [([("app-a",), ("app-b",)], ["app-a", "app-b"]), ([], [])]
+)
+def test_session_application_ids(http, db, rows, expected):
+    db.execute.return_value = rows
+    response = http.get(f"{BASE}/sessions/observe_session-1/application-ids")
+    assert response.status_code == 200
+    assert response.json() == expected
+    assert db.execute.call_args.args[1] == {"session_id": "observe_session-1"}
+
+
 def test_default_history_keeps_normalized_payload_and_storage_event_id(http, db):
     db.execute.return_value = [(EVENT_A, payload())]
     response = http.get(f"{BASE}/sessions/session-1/events", params=SCOPE)

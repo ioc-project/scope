@@ -155,6 +155,27 @@ def seeded_client():
             f"INSERT INTO {table} FORMAT JSONEachRow\n"
             + "\n".join(json.dumps(record) for record in reversed(records))
         )
+        traces_table = f"{database}.otel_traces"
+        patch.setattr(queries, "TRACES_TABLE", traces_table)
+        db.execute_command(
+            f"""
+            CREATE TABLE {traces_table} (
+                session_id String,
+                application_id String,
+                SpanAttributes Map(String, String)
+            ) ENGINE = Memory
+            """
+        )
+        db.execute_command(
+            f"""
+            INSERT INTO {traces_table} VALUES
+                ('session-1', 'app-b', {{'session.id': 'observe_session-1'}}),
+                ('session-1', 'app-a', {{'session.id': 'observe_session-1'}}),
+                ('session-1', 'app-a', {{'session.id': 'observe_session-1'}}),
+                ('session-1', '', {{'session.id': 'observe_session-1'}}),
+                ('session-2', 'other-app', {{'session.id': 'observe_session-2'}})
+            """
+        )
         yield LocalClient(db=db)
     finally:
         patch.undo()
@@ -169,6 +190,18 @@ def history(client, **kwargs):
 
 def ids(page):
     return [event["event_id"] for event in page.events]
+
+
+@pytest.mark.parametrize(
+    ("session_id", "expected"),
+    [
+        ("observe_session-1", ["app-a", "app-b"]),
+        ("session-1", ["app-a", "app-b"]),
+        ("not-found", []),
+    ],
+)
+def test_sql_distinct_session_application_ids(seeded_client, session_id, expected):
+    assert seeded_client.get_session_application_ids(session_id=session_id) == expected
 
 
 def test_sql_deduplicates_scopes_and_orders_at_nanosecond_precision(seeded_client):

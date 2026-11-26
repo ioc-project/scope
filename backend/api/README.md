@@ -39,7 +39,13 @@ When disabled, the following routes are not registered or included in OpenAPI,
 and startup does not initialize the Cognition Store database.
 
 When enabled, `/api/v1/realtime` reads normalized events from ClickHouse by
-session ID, span ID, or event ID. `/api/v1/cognition-store` provides item,
+session ID, span ID, or event ID. It also provides
+`GET /api/v1/realtime/sessions/{session_id}/application-ids`: pass the `session.id`
+from an event to get a sorted JSON array of distinct, non-empty `application_id`
+values from `otel_traces` (for example, `["app-a", "app-b"]`). If no matching
+traces have an application ID, the endpoint returns `200 OK` with `[]`.
+
+`/api/v1/cognition-store` provides item,
 subscription, and finding operations backed by Postgres. Set `POSTGRES_URL`
 (or `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
 and `POSTGRES_DB`) to a database where the app can initialize its tables.

@@ -33,7 +33,11 @@ def test_cognition_fabric_flag_controls_routes_and_postgres(monkeypatch, enabled
         }
         assert "/api/v1/sessions/{session_id}/conversation" in paths
         if enabled == "true":
-            assert len(operations) == 11
+            assert len(operations) == 12
+            assert (
+                "/api/v1/realtime/sessions/{session_id}/application-ids",
+                "get",
+            ) in operations
             postgres.assert_called_once()
             assert db.execute_command.call_count == 3
         else:

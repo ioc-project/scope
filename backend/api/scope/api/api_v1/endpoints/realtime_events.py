@@ -39,6 +39,15 @@ def get_session_events(
     return client.get_realtime_events(session_id=session_id, query=query)
 
 
+@router.get("/sessions/{session_id}/application-ids")
+def get_session_application_ids(
+    session_id: Annotated[str, Path(min_length=1)],
+    client: Annotated[RealtimeEventsClient, Depends(_client)],
+) -> list[str]:
+    """List distinct application IDs from traces for a session ID from an event."""
+    return client.get_session_application_ids(session_id=session_id)
+
+
 @router.get("/spans/{span_id}/events", response_model=RealtimeEventPage)
 def get_span_session_events(
     span_id: Annotated[str, Path(pattern=r"^[0-9a-f]{16}$")],

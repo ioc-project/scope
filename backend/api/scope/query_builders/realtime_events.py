@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 # SPDX-License-Identifier: Apache-2.0
 
-"""Parameterized ClickHouse reads of the exporter's normalized_events table."""
+"""Parameterized ClickHouse reads for realtime session and event lookups."""
 
 from __future__ import annotations
 
@@ -10,7 +10,20 @@ from typing import Any
 from scope.models.realtime_events import EventScope, RealtimeEventQuery
 
 TABLE = "normalized_events FINAL"
+TRACES_TABLE = "otel_traces"
 POSITION = "(event_time, event_id)"
+
+
+def session_application_ids_query() -> str:
+    # Events keep the raw session ID, while the trace column can strip its prefix.
+    return f"""
+        SELECT DISTINCT application_id
+        FROM {TRACES_TABLE}
+        WHERE (session_id = {{session_id:String}}
+               OR SpanAttributes['session.id'] = {{session_id:String}})
+          AND application_id != ''
+        ORDER BY application_id
+    """
 
 
 def scope_params(scope: EventScope) -> dict[str, Any]:

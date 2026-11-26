@@ -31,6 +31,12 @@ def _decode_event(event_id: str | bytes, payload: str) -> dict[str, JsonValue]:
 class RealtimeEventsClient:
     db: Connector
 
+    def get_session_application_ids(self, *, session_id: str) -> list[str]:
+        rows = self.db.execute(
+            queries.session_application_ids_query(), {"session_id": session_id}
+        )
+        return [application_id for (application_id,) in rows]
+
     def get_realtime_event(
         self, *, event_id: str, scope: EventScope
     ) -> dict[str, JsonValue]:

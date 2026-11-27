@@ -21,8 +21,8 @@ run SCOPE**, to **send it traces**, or to **work on this repository**. Human-ori
 ## Install and run
 
 Pick one. Both need an OpenAI-compatible LLM endpoint and a text-embedding model: the analysis
-workers call them. The judge workers (cognitive failures, cognition protocols) reason over whole
-traces, and the cognitive-failure worker needs a model that supports tool calling.
+workers call them. The symbolic extractor (cognitive failures) makes an LLM call for every session,
+and the cognition-protocols judge reasons over whole traces.
 
 ### Docker Compose (one machine)
 
@@ -58,9 +58,10 @@ kubectl -n scope port-forward svc/scope-gateway 8080:8080   # then open http://l
 - The LLM credentials, ClickHouse, RabbitMQ and Neo4j each take an inline value or an existing
   Secret. Use existing Secrets for anything shared. Details and the secret layout:
   [deploy/k8s/charts/scope/README.md](deploy/k8s/charts/scope/README.md).
-- The `cognitive-failure` and `cognition-protocols` workers are **enabled by default**. The first
-  makes a judge-model call for every session. Disable with
-  `--set workers.cognitive-failure.enabled=false` or `--set workers.cognition-protocols.enabled=false`.
+- The `symbolic-extractor`, `failure-detection` and `cognition-protocols` workers are **enabled by default**.
+  The extractor makes LLM calls for every session. Disable with
+  `--set workers.symbolic-extractor.enabled=false --set workers.failure-detection.enabled=false` or
+  `--set workers.cognition-protocols.enabled=false`.
 - The chart ships an OTel collector and its ConfigMap (`templates/otel-collector-configmap.yaml`).
   Check it before writing your own.
 - Neo4j data is persistent. If workers fail with `Neo.ClientError.Security.Unauthorized`, the

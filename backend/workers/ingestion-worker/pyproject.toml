@@ -12,7 +12,7 @@ authors = [
     { name = "Outshift Open", email = "oss-github@cisco.com" }
 ]
 license = "Apache-2.0"
-description = "Ingestion workers (norm, embedding) in one process"
+description = "Ingestion workers (norm, embedding, symbolic-extractor) in one process"
 readme = "README.md"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -22,10 +22,11 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-requires-python = ">=3.11"
+requires-python = ">=3.13"  # the symbolic extractor needs it
 dependencies = [
     "norm-worker",
     "embedding-worker",
+    "symbolic-extractor-worker",
     "ioc-scope-worker-base",
 ]
 
@@ -40,6 +41,7 @@ ingestion-worker-cli = "ingestion_worker.cli:main"
 [tool.uv.sources]
 norm-worker = { workspace = true }
 embedding-worker = { workspace = true }
+symbolic-extractor-worker = { workspace = true }
 ioc-scope-worker-base = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
@@ -47,7 +49,7 @@ packages = ["src/ingestion_worker"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

@@ -1,0 +1,116 @@
+{{- $worker := index .Values.workers "symbolic-extractor" -}}
+{{- if and .Values.workers.enabled $worker.enabled }}
+{{- $workerOverrides := default dict $worker.secretOverrides }}
+{{- $llmSecretName := include "scope.secretName" . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scope.workerDeploymentName" (dict "root" . "name" "symbolic-extractor") }}
+  labels:
+    {{- include "scope.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/worker-name: symbolic-extractor
+spec:
+  replicas: {{ default 1 $worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "scope.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+      app.kubernetes.io/worker-name: symbolic-extractor
+  template:
+    metadata:
+      labels:
+        {{- include "scope.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/worker-name: symbolic-extractor
+    spec:
+      {{- $globalValues := get .Values "global" | default dict }}
+      {{- $globalPullSecrets := get $globalValues "imagePullSecrets" | default (list) }}
+      {{- $pullSecrets := .Values.imagePullSecrets | default $globalPullSecrets }}
+      {{- with $pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- $waitInitContainers := include "scope.workerInitContainers.waitDependencies" (dict "root" .) }}
+      {{- if $waitInitContainers }}
+      initContainers:
+        {{- $waitInitContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: symbolic-extractor
+          image: "{{ $worker.image.repository }}:{{ $worker.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ $worker.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "scope.workerEnvConfigMapName" . }}
+          {{- with $worker.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "scope.rabbitmqWorkerEnv" . | nindent 12 }}
+            {{- include "scope.neo4jWorkerEnv" . | nindent 12 }}
+            - name: SYMBOLIC_EXTRACTOR_INPUT_QUEUE
+              value: {{ $worker.inputQueue | quote }}
+            - name: SYMBOLIC_EXTRACTOR_OUTPUT_QUEUE
+              value: {{ include "scope.workerOutputQueues" (dict "root" . "worker" $worker "branches" (list "failure-detection")) | quote }}
+            {{ if $worker.feedbackQueue }}
+            - name: SYMBOLIC_EXTRACTOR_FEEDBACK_QUEUE
+              value: {{ $worker.feedbackQueue | quote }}
+            {{ end }}
+            {{- $extractorLlmModelKey := default .Values.secrets.llm.llmModelNameKey (get $workerOverrides "llmModelNameKey") }}
+            - name: LLM_MODEL_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $llmSecretName }}
+                  key: {{ $extractorLlmModelKey }}
+            {{- $embeddingModelKey := default .Values.secrets.llm.embeddingModelNameKey (get $workerOverrides "embeddingModelNameKey") }}
+            - name: EMBEDDING_MODEL_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $llmSecretName }}
+                  key: {{ $embeddingModelKey }}
+            {{- if not $worker.sameClaims }}
+            - name: SYMBOLIC_EXTRACTOR_NO_SAME_CLAIMS
+              value: "1"
+            {{- end }}
+            - name: MAX_INFLIGHT_MESSAGES
+              value: {{ $worker.maxInflightMessages | quote }}
+            {{- if $workerOverrides.aiGatewayApiKey }}
+            - name: OPENAI_API_KEY
+              value: {{ $workerOverrides.aiGatewayApiKey | quote }}
+            {{- else }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $llmSecretName }}
+                  key: {{ .Values.secrets.llm.llmGatewayApiKeyKey }}
+            {{- end }}
+            {{- if $workerOverrides.aiGatewayBaseUrl }}
+            - name: LLM_BASE_URL
+              value: {{ $workerOverrides.aiGatewayBaseUrl | quote }}
+            {{- else }}
+            - name: LLM_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $llmSecretName }}
+                  key: {{ .Values.secrets.llm.llmGatewayBaseUrlKey }}
+            {{- end }}
+          {{- with $worker.extraEnv }}
+            {{- range $envName, $envValue := . }}
+            - name: {{ $envName }}
+              value: {{ $envValue | quote }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml $worker.resources | nindent 12 }}
+          {{- with $worker.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with $worker.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

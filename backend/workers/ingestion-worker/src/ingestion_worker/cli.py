@@ -12,6 +12,7 @@ GROUP = "ingestion"
 MEMBERS = (
     Member("norm", "NORM", "norm_worker.cli:main"),
     Member("embedding", "EMBEDDING", "embedding_worker.cli:main"),
+    Member("symbolic-extractor", "SYMBOLIC_EXTRACTOR", "symbolic_extractor_worker.cli:main"),
 )
 
 

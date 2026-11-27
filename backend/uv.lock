@@ -1866,6 +1866,7 @@ dependencies = [
     { name = "embedding-worker" },
     { name = "ioc-scope-worker-base" },
     { name = "norm-worker" },
+    { name = "symbolic-extractor-worker" },
 ]
 
 [package.optional-dependencies]
@@ -1879,6 +1880,7 @@ requires-dist = [
     { name = "ioc-scope-worker-base", editable = "worker-base" },
     { name = "norm-worker", editable = "workers/norm-worker" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "symbolic-extractor-worker", editable = "workers/symbolic-extractor-worker" },
 ]
 provides-extras = ["dev"]
 

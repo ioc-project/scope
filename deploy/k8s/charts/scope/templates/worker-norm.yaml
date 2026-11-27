@@ -53,7 +53,7 @@ spec:
             - name: NORM_INPUT_QUEUE
               value: {{ $worker.inputQueue | quote }}
             - name: NORM_OUTPUT_QUEUE
-              value: {{ include "scope.listOrStringEnvValue" $worker.outputQueue | quote }}
+              value: {{ include "scope.normOutputQueues" . | quote }}
             {{ if $worker.feedbackQueue }}
             - name: NORM_FEEDBACK_QUEUE
               value: {{ $worker.feedbackQueue | quote }}

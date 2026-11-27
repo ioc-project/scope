@@ -18,6 +18,7 @@ members = [
     "embedding-worker",
     "eval-worker",
     "failure-detection",
+    "failure-detection-worker",
     "grouping-worker",
     "hierarchical-grouping-worker",
     "ingestion-worker",
@@ -1302,6 +1303,48 @@ requires-dist = [
     { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.10" },
+    { name = "symbolic-extractor", editable = "symbolic-extractor" },
+]
+provides-extras = ["dev"]
+
+[[package]]
+name = "failure-detection-worker"
+version = "1.2.0"
+source = { editable = "workers/failure-detection-worker" }
+dependencies = [
+    { name = "aio-pika" },
+    { name = "click" },
+    { name = "failure-detection" },
+    { name = "ioc-scope-api" },
+    { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "ioc-scope-worker-base" },
+    { name = "pika" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "symbolic-extractor" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aio-pika", specifier = ">=8.0.0" },
+    { name = "click", specifier = ">=8.0.0" },
+    { name = "failure-detection", editable = "failure-detection" },
+    { name = "ioc-scope-api", editable = "api" },
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "ioc-scope-worker-base", editable = "worker-base" },
+    { name = "pika", specifier = ">=1.3.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.10" },
     { name = "symbolic-extractor", editable = "symbolic-extractor" },
 ]

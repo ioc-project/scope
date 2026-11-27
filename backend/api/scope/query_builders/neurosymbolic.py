@@ -153,3 +153,41 @@ def final_agent_call_query(session_id: str) -> tuple[str, dict[str, Any]]:
 def mas_name_query(session_id: str) -> tuple[str, dict[str, Any]]:
     """The MAS that ran a session: rows ``name``."""
     return MAS_NAME_QUERY, {"session_id": session_id}
+
+
+#: The symbolic state nodes of a session, one row per node: ``id``, ``label`` (the symbolic label it carries)
+#: and all its ``props``.
+SYMBOLIC_NODES_QUERY = """
+MATCH (n {sessionId: $session_id})
+WHERE any(label IN labels(n) WHERE label IN $labels)
+RETURN n.id AS id, [label IN labels(n) WHERE label IN $labels][0] AS label, properties(n) AS props
+"""
+
+#: The relationships of the given types that start at a node of the session: between symbolic state nodes, from
+#: them to the calls (``generatedBy``, ``groundedIn``, ...) and from the LLM calls to them (``inputClaim``).
+SYMBOLIC_EDGES_QUERY = """
+MATCH (a {sessionId: $session_id})-[r]->(b)
+WHERE type(r) IN $types
+RETURN a.id AS source, type(r) AS type, b.id AS target
+"""
+
+
+def symbolic_nodes_query(session_id: str) -> tuple[str, dict[str, Any]]:
+    """The symbolic state nodes of a session: rows ``id``, ``label``, ``props``."""
+    return SYMBOLIC_NODES_QUERY, {
+        "session_id": session_id,
+        "labels": list(SYMBOLIC_LABELS),
+    }
+
+
+def symbolic_edges_query(
+    session_id: str, edge_types: list[str]
+) -> tuple[str, dict[str, Any]]:
+    """The relationships of ``edge_types`` that start at a node of the session: rows ``source``, ``type``,
+    ``target``."""
+    for name in edge_types:
+        _check(name)
+    return SYMBOLIC_EDGES_QUERY, {
+        "session_id": session_id,
+        "types": list(edge_types),
+    }

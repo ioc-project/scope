@@ -23,28 +23,58 @@ def llm_input(*texts: str) -> str:
 
 
 def agent(call_id, name, start, goto=None):
-    output = json.dumps({"type": "Command", "goto": goto, "update": {"next": goto}}) if goto else "(no content recorded)"
-    return {"call_id": call_id, "kind": "agent", "agent_id": name, "name": name,
-            "parent_id": "", "start_time": start, "output_text": output}
+    output = (
+        json.dumps({"type": "Command", "goto": goto, "update": {"next": goto}})
+        if goto
+        else "(no content recorded)"
+    )
+    return {
+        "call_id": call_id,
+        "kind": "agent",
+        "agent_id": name,
+        "name": name,
+        "parent_id": "",
+        "start_time": start,
+        "output_text": output,
+    }
 
 
 def llm(call_id, owner, start, input_text, duration_ms=100.0):
-    return {"call_id": call_id, "kind": "llm", "agent_id": "x", "parent_id": owner,
-            "start_time": start, "duration_ms": duration_ms, "input_text": input_text}
+    return {
+        "call_id": call_id,
+        "kind": "llm",
+        "agent_id": "x",
+        "parent_id": owner,
+        "start_time": start,
+        "duration_ms": duration_ms,
+        "input_text": input_text,
+    }
 
 
 def store_with(**claims):
     """claims: claim_id=(llm_call_id, verbatim_source)."""
     store = SymbolicSessionStore("s")
     for cid, (node, snippet) in claims.items():
-        store.add("claims", Claim(id=cid, claim_text=cid, claim_force="assertive",
-                                  claim_kind="factual", verbatim_source=snippet,
-                                  generated_by=node), node)
+        store.add(
+            "claims",
+            Claim(
+                id=cid,
+                claim_text=cid,
+                claim_force="assertive",
+                claim_kind="factual",
+                verbatim_source=snippet,
+                generated_by=node,
+            ),
+            node,
+        )
     return store
 
 
 def test_route_decision():
-    assert route_decision('{"type": "Command", "goto": "a", "update": {"next": "a"}}') == ("a", False)
+    assert route_decision('{"type": "Command", "goto": "a", "update": {"next": "a"}}') == (
+        "a",
+        False,
+    )
     assert route_decision('{"goto": "__end__"}') == ("__end__", True)
     assert route_decision('{"update": {"next_agent": "FINISH"}}') == ("FINISH", True)
     assert route_decision('{"type": "Command", "goto": "b", "upd') == ("b", False)  # truncated
@@ -60,7 +90,12 @@ def test_input_texts_skips_system_and_decodes_both_arrays():
 
 
 def test_input_texts_includes_tool_responses_and_plain_fallback():
-    messages = [{"role": "tool", "parts": [{"type": "tool_call_response", "id": "1", "response": "Fare: $75"}]}]
+    messages = [
+        {
+            "role": "tool",
+            "parts": [{"type": "tool_call_response", "id": "1", "response": "Fare: $75"}],
+        }
+    ]
     assert input_texts(f"{SYSTEM}\n\n{json.dumps(messages)}") == ["Fare: $75"]
     assert input_texts("not json  at all") == ["not json at all"]
     assert input_texts("") == []
@@ -84,7 +119,12 @@ def test_transitions_router_worker_roundtrip_and_end():
 
 
 def test_transitions_fallback_sequence_but_not_after_end():
-    steps = [agent("a", "a", 1), agent("b", "b", 2), agent("r", "r", 3, goto="end"), agent("c", "c", 4)]
+    steps = [
+        agent("a", "a", 1),
+        agent("b", "b", 2),
+        agent("r", "r", 3, goto="end"),
+        agent("c", "c", 4),
+    ]
     pairs = [(t.from_call, t.to_call, t.via) for t in build_transitions(steps)]
     assert pairs == [("a", "b", "sequence"), ("b", "r", "sequence")]
 
@@ -131,7 +171,11 @@ def test_kg_handoff_replaces_the_return_guess():
 
 
 def test_no_handoffs_means_heuristics_only():
-    steps = [agent("m1", "moderator", 1, goto="w"), agent("w1", "w", 2), agent("m2", "moderator", 3, goto="__end__")]
+    steps = [
+        agent("m1", "moderator", 1, goto="w"),
+        agent("w1", "w", 2),
+        agent("m2", "moderator", 3, goto="__end__"),
+    ]
     assert _triples(build_transitions(steps, [])) == _triples(build_transitions(steps, None))
     assert _triples(build_transitions(steps)) == [("m1", "w1", "route"), ("w1", "m2", "return")]
 
@@ -144,7 +188,9 @@ def test_claims_flow_follows_kg_handoffs():
         llm("l_b", "b", 2.1, llm_input("question", "Fact A is true.")),
     ]
     store = store_with(ca=("l_a", "Fact A is true."))
-    trace = track_symbolic_state(steps, store, handoffs=[{"from_call": "a", "to_call": "b", "kind": "handoff"}])
+    trace = track_symbolic_state(
+        steps, store, handoffs=[{"from_call": "a", "to_call": "b", "kind": "handoff"}]
+    )
     assert trace.input_claims["l_b"] == ["ca"]
     assert [t.via for t in trace.transitions] == ["handoff"]
 
@@ -210,7 +256,11 @@ def test_claim_in_system_prompt_or_without_snippet_is_not_an_input_claim():
 
 
 def test_snippet_with_line_breaks_and_json_escapes_matches():
-    steps = [agent("a", "a", 1), llm("l1", "a", 1.0, llm_input("q")), llm("l2", "a", 2.0, llm_input('He said "hi"\n\n- item   one'))]
+    steps = [
+        agent("a", "a", 1),
+        llm("l1", "a", 1.0, llm_input("q")),
+        llm("l2", "a", 2.0, llm_input('He said "hi"\n\n- item   one')),
+    ]
     store = store_with(c1=("l1", 'He said "hi" - item one'))
     assert track_symbolic_state(steps, store).input_claims["l2"] == ["c1"]
 
@@ -229,7 +279,9 @@ def test_agent_without_llm_calls_passes_state_through():
     assert trace.input_claims["l3"] == ["c1"]
 
 
-REAL = Path(__file__).parent.parent / "input" / "trajectory_eeec0920-92ed-4ced-90d9-33734edfea9d.json"
+REAL = (
+    Path(__file__).parent.parent / "input" / "trajectory_eeec0920-92ed-4ced-90d9-33734edfea9d.json"
+)
 
 
 @pytest.mark.skipif(not REAL.exists(), reason="saved trajectory not available")

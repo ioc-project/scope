@@ -87,7 +87,9 @@ class CapabilityEvaluation(BaseModel):
 
 def render_prompt(task: Task | SystemTask, capabilities: Sequence[AgentCapability]) -> str:
     criteria = (
-        "\n".join(f"- {c}" for c in task.acceptance_criteria) if task.acceptance_criteria else "(none stated)"
+        "\n".join(f"- {c}" for c in task.acceptance_criteria)
+        if task.acceptance_criteria
+        else "(none stated)"
     )
     listed = "\n".join(f"C{i}. {c.capability_text}" for i, c in enumerate(capabilities, start=1))
     return (
@@ -96,7 +98,9 @@ def render_prompt(task: Task | SystemTask, capabilities: Sequence[AgentCapabilit
     )
 
 
-def parse_evaluation(data: dict, capabilities: Sequence[AgentCapability]) -> tuple[list[AgentCapability], str]:
+def parse_evaluation(
+    data: dict, capabilities: Sequence[AgentCapability]
+) -> tuple[list[AgentCapability], str]:
     """The capabilities the reply says support the task, and the reasoning. Labels that are not capabilities
     are ignored (logged), a label given twice counts once. Raises ``ValueError`` when the reply has no list
     of labels under ``supports``, which is a failed request, not "no capability supports the task"."""
@@ -154,14 +158,21 @@ class CapabilityTaskRelationExtractor(SemanticRelationExtractor):
         """The capabilities of the agent of ``task``: through ``has_capability`` of its agent call for a
         ``Task``, through ``agent_id`` for a ``SystemTask``. Empty when the agent has none (yet)."""
         if isinstance(task, SystemTask):
-            return [s.element for s in store.by_kind("capabilities") if s.element.agent_id == task.agent_id]
+            return [
+                s.element
+                for s in store.by_kind("capabilities")
+                if s.element.agent_id == task.agent_id
+            ]
         return [
             stored.element
             for capability_id in store.related(HAS_CAPABILITY, task.owned_by)
-            if (stored := store.get(capability_id)) is not None and isinstance(stored.element, AgentCapability)
+            if (stored := store.get(capability_id)) is not None
+            and isinstance(stored.element, AgentCapability)
         ]
 
-    def evaluate(self, task: Task | SystemTask, capabilities: Sequence[AgentCapability]) -> CapabilityEvaluation:
+    def evaluate(
+        self, task: Task | SystemTask, capabilities: Sequence[AgentCapability]
+    ) -> CapabilityEvaluation:
         """Which of ``capabilities`` support ``task``: one request, and one more when the reply is not
         usable (not JSON at all, the client raises ``ValueError``, or JSON that ``parse_evaluation``
         rejects). The usage of every request that returned is added to ``last_usage``. API errors are not
@@ -169,7 +180,9 @@ class CapabilityTaskRelationExtractor(SemanticRelationExtractor):
         prompt = render_prompt(task, capabilities)
         for attempt in (1, 2):
             try:
-                reply = self._llm.complete_json(SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder())
+                reply = self._llm.complete_json(
+                    SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder()
+                )
             except ValueError as exc:
                 self.last_usage = self.last_usage + usage_of(exc)
                 if attempt == 2:

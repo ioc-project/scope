@@ -77,7 +77,9 @@ def find_argument_facts(
     """The links of one tool call (see the module docstring), one per source fact.
     Empty when the tool call is unknown, has no fact in the store or no string argument."""
     steps = trajectory.steps
-    step = next((s for s in steps if s.get("kind") == "tool" and s["call_id"] == tool_call_id), None)
+    step = next(
+        (s for s in steps if s.get("kind") == "tool" and s["call_id"] == tool_call_id), None
+    )
     if step is None:
         return []
     found = store.for_node(tool_call_id, "facts")
@@ -88,13 +90,19 @@ def find_argument_facts(
 
     owner = step.get("parent_id") or ""
     start = step.get("start_time") or 0.0
-    requesters = [s for s in steps if s.get("kind") == "llm" and (s.get("parent_id") or "") == owner and _end(s) <= start]
+    requesters = [
+        s
+        for s in steps
+        if s.get("kind") == "llm" and (s.get("parent_id") or "") == owner and _end(s) <= start
+    ]
     # What the requesting LLM call could see: the results finished before it started (before the tool call
     # itself when no LLM call is known).
     requester = max(requesters, key=_end, default=None)
     cut = (requester.get("start_time") or 0.0) if requester else start
     sources = []  # (tool call step, its fact), earliest first
-    for s in sorted((s for s in steps if s.get("kind") == "tool"), key=lambda s: s.get("start_time") or 0.0):
+    for s in sorted(
+        (s for s in steps if s.get("kind") == "tool"), key=lambda s: s.get("start_time") or 0.0
+    ):
         if s["call_id"] == tool_call_id or (s.get("parent_id") or "") != owner or _end(s) > cut:
             continue
         stored = store.for_node(s["call_id"], "facts")
@@ -110,7 +118,9 @@ def find_argument_facts(
                 continue  # echo: the source was called with that value
             by_fact.setdefault(fact.id, {})[name] = value
             break
-    return [ArgumentFactLink(fact_id=own_fact_id, source_id=f, arguments=a) for f, a in by_fact.items()]
+    return [
+        ArgumentFactLink(fact_id=own_fact_id, source_id=f, arguments=a) for f, a in by_fact.items()
+    ]
 
 
 class ArgumentFactLinker(SemanticRelationExtractor):
@@ -137,7 +147,11 @@ class ArgumentFactLinker(SemanticRelationExtractor):
         if trajectory is None:
             return links
         for element in elements:
-            if not isinstance(element, Fact) or not element.tool_arguments or store.get(element.id) is None:
+            if (
+                not isinstance(element, Fact)
+                or not element.tool_arguments
+                or store.get(element.id) is None
+            ):
                 continue
             for link in find_argument_facts(store, trajectory, element.grounded_in):
                 store.link(SUPPORTED_BY, link.fact_id, link.source_id, arguments=link.arguments)

@@ -6,7 +6,7 @@ from symbolic_extractor import SessionData, SymbolicExtractor
 from symbolic_extractor.extractors import ClaimExtractionPrompt, ElementExtractor
 from symbolic_extractor.extractors.claims import is_verbatim, readable_output, recover_verbatim
 from symbolic_extractor.llm import LLMReply, parse_json_object
-from symbolic_extractor.models import KGNode, SessionData
+from symbolic_extractor.models import KGNode
 from symbolic_extractor.usage import LLMUsage, TokenPricing
 
 
@@ -25,13 +25,25 @@ class FakeLLM:
 
 LLM_NODE = KGNode(
     node_type="LLMCall",
-    node={"id": "l1", "completion": "Hotel Alfama is available. I'll book it.", "prompt": "Find a hotel"},
+    node={
+        "id": "l1",
+        "completion": "Hotel Alfama is available. I'll book it.",
+        "prompt": "Find a hotel",
+    },
 )
 
 REPLY = {
     "claims": [
-        {"claim_text": "Hotel Alfama is available.", "claim_force": "assertive", "claim_kind": "factual"},
-        {"claim_text": "The agent will book Hotel Alfama.", "claim_force": "committing", "claim_kind": "factual"},
+        {
+            "claim_text": "Hotel Alfama is available.",
+            "claim_force": "assertive",
+            "claim_kind": "factual",
+        },
+        {
+            "claim_text": "The agent will book Hotel Alfama.",
+            "claim_force": "committing",
+            "claim_kind": "factual",
+        },
     ]
 }
 
@@ -48,7 +60,9 @@ def test_claims_are_extracted_and_anchored_to_the_llm_call():
 
 def test_claim_ids_are_deterministic():
     extractor = ElementExtractor(FakeLLM(REPLY), ClaimExtractionPrompt())
-    assert [c.id for c in extractor.extract(LLM_NODE)] == [c.id for c in extractor.extract(LLM_NODE)]
+    assert [c.id for c in extractor.extract(LLM_NODE)] == [
+        c.id for c in extractor.extract(LLM_NODE)
+    ]
 
 
 def test_invalid_items_are_dropped():
@@ -88,7 +102,17 @@ def test_verbatim_source_is_kept_only_when_it_is_in_the_output():
 
 def test_verbatim_source_matches_decoded_text_of_otel_messages():
     completion = json.dumps(
-        [{"role": "assistant", "parts": [{"type": "text", "content": 'The "Express Train" takes **5 hours**.\nNo transfers.'}]}]
+        [
+            {
+                "role": "assistant",
+                "parts": [
+                    {
+                        "type": "text",
+                        "content": 'The "Express Train" takes **5 hours**.\nNo transfers.',
+                    }
+                ],
+            }
+        ]
     )
     node = KGNode(node_type="LLMCall", node={"id": "l3", "completion": completion})
     reply = {
@@ -165,17 +189,26 @@ def test_recover_verbatim_returns_the_original_text_with_its_formatting():
     cleaned = "Attractions: 1. Crystal Tower Observatory: Panoramic views ($25/person)."
     excerpt = recover_verbatim(cleaned, MARKDOWN_ANSWER)
 
-    assert excerpt == "Attractions:**\n1. **Crystal Tower Observatory**: Panoramic views ($25/person"
+    assert (
+        excerpt == "Attractions:**\n1. **Crystal Tower Observatory**: Panoramic views ($25/person"
+    )
     assert is_verbatim(excerpt, MARKDOWN_ANSWER)
     # case and punctuation do not matter, wording does
     assert recover_verbatim("total for 2 days $145-205 per person", MARKDOWN_ANSWER) is None
-    assert recover_verbatim("TOTAL FOR 2 DAYS: $145-205/PERSON", MARKDOWN_ANSWER) == "Total for 2 days: $145-205/person"
+    assert (
+        recover_verbatim("TOTAL FOR 2 DAYS: $145-205/PERSON", MARKDOWN_ANSWER)
+        == "Total for 2 days: $145-205/person"
+    )
 
 
 def test_recover_verbatim_keeps_an_exact_snippet_and_refuses_short_or_unknown_ones():
     assert recover_verbatim(" Day 1-2: Celestia ", MARKDOWN_ANSWER) == "Day 1-2: Celestia"
-    assert recover_verbatim("Costs", MARKDOWN_ANSWER) == "Costs"  # exact, so kept whatever its length
-    assert recover_verbatim("**Cost** s", "Costs: a lot") is None  # too short to recover by alignment
+    assert (
+        recover_verbatim("Costs", MARKDOWN_ANSWER) == "Costs"
+    )  # exact, so kept whatever its length
+    assert (
+        recover_verbatim("**Cost** s", "Costs: a lot") is None
+    )  # too short to recover by alignment
     assert recover_verbatim("Visit the Eiffel Tower in spring", MARKDOWN_ANSWER) is None
 
 
@@ -219,7 +252,9 @@ def test_pipeline_sorts_by_time_and_keeps_original_node():
         ],
         "tool_spans": [{"id": "t-notime"}],
     }
-    llm = FakeLLM({"claims": [{"claim_text": "c", "claim_force": "assertive", "claim_kind": "factual"}]})
+    llm = FakeLLM(
+        {"claims": [{"claim_text": "c", "claim_force": "assertive", "claim_kind": "factual"}]}
+    )
     pipeline = SymbolicExtractor([ElementExtractor(llm, ClaimExtractionPrompt())])
 
     result = pipeline.process(SessionData.from_payload(payload))
@@ -256,7 +291,9 @@ def test_usage_sum_skips_unknown_costs():
 
 
 def test_token_pricing_is_per_million_tokens():
-    assert TokenPricing(input_per_1m=2.0, output_per_1m=10.0).cost(500_000, 100_000) == pytest.approx(2.0)
+    assert TokenPricing(input_per_1m=2.0, output_per_1m=10.0).cost(
+        500_000, 100_000
+    ) == pytest.approx(2.0)
 
 
 def test_nodes_are_sorted_numerically_by_epoch_start_time():
@@ -281,9 +318,7 @@ def test_parse_json_object_handles_code_fence():
 def test_parse_json_object_recovers_from_stray_prefix():
     # Reply shape seen from a model behind the LiteLLM proxy: a stray `{"` before the object.
     reply = '{"{\n  "claims": [\n    {"claim_text": "x", "claim_force": "assertive"}\n  ]\n}'
-    assert parse_json_object(reply) == {
-        "claims": [{"claim_text": "x", "claim_force": "assertive"}]
-    }
+    assert parse_json_object(reply) == {"claims": [{"claim_text": "x", "claim_force": "assertive"}]}
     assert parse_json_object('Here you go: {"claims": []} Hope it helps') == {"claims": []}
 
 

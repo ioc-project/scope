@@ -155,18 +155,28 @@ class AgentSystemPromptExtractor:
             return []
         agent = trajectory.agent_name(node.node_id) if trajectory is not None else None
         if not agent:
-            logger.debug("Agent of LLM call %s unknown (no trajectory step): no system prompt", node.node_id)
+            logger.debug(
+                "Agent of LLM call %s unknown (no trajectory step): no system prompt", node.node_id
+            )
             return []
         if store is not None and agent_system_prompt(store, agent) is not None:
             return []
-        found = split_system_prompt(str(node.node.get("prompt") or node.node.get("inputContent") or ""))
+        found = split_system_prompt(
+            str(node.node.get("prompt") or node.node.get("inputContent") or "")
+        )
         if found is None:
             return []
         text, truncated = found
         # Deterministic id: re-running on the same session yields the same one.
-        prompt_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{node.node_id}|system_prompt|{agent}|{text}"))
+        prompt_id = str(
+            uuid.uuid5(uuid.NAMESPACE_OID, f"{node.node_id}|system_prompt|{agent}|{text}")
+        )
         return [
             AgentSystemPrompt(
-                id=prompt_id, agent_id=agent, system_prompt=text, truncated=truncated, read_from=node.node_id
+                id=prompt_id,
+                agent_id=agent,
+                system_prompt=text,
+                truncated=truncated,
+                read_from=node.node_id,
             )
         ]

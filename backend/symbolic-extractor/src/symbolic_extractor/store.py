@@ -186,7 +186,10 @@ class SymbolicSessionStore:
             edge.attributes.update(attributes)
             return False
         self._edges[key] = Edge(
-            edge_type=relation, source_id=source_id, target_id=target_id, attributes=dict(attributes)
+            edge_type=relation,
+            source_id=source_id,
+            target_id=target_id,
+            attributes=dict(attributes),
         )
         self._relations.setdefault(relation, {}).setdefault(source_id, {})[target_id] = None
         return True
@@ -210,7 +213,11 @@ class SymbolicSessionStore:
 
     def related_from(self, relation: str, target_id: str) -> list[str]:
         """Source ids that have ``relation`` to ``target_id`` (the inverse of ``related``), in insertion order."""
-        return [source for source, targets in self._relations.get(relation, {}).items() if target_id in targets]
+        return [
+            source
+            for source, targets in self._relations.get(relation, {}).items()
+            if target_id in targets
+        ]
 
     def by_kind(self, kind: str) -> list[StoredElement]:
         return [self._by_id[i] for i in self._by_kind.get(kind, {})]

@@ -46,13 +46,31 @@ class EchoLLM:
     def complete_json(self, system, user):
         self.calls += 1
         output = user.split("(extract claims from this) ===\n")[1].strip()
-        claim = {"claim_text": output, "claim_force": "assertive", "claim_kind": "factual", "verbatim_source": output}
-        return LLMReply(data={"claims": [claim]}, usage=LLMUsage(calls=1, prompt_tokens=10, completion_tokens=5, cost_usd=0.01))
+        claim = {
+            "claim_text": output,
+            "claim_force": "assertive",
+            "claim_kind": "factual",
+            "verbatim_source": output,
+        }
+        return LLMReply(
+            data={"claims": [claim]},
+            usage=LLMUsage(calls=1, prompt_tokens=10, completion_tokens=5, cost_usd=0.01),
+        )
 
 
 # The session: agent a1 runs l1, then the tool t1, then l2 (which received the claim of l1 and the tool result).
-L1 = KGNode(node_type="LLMCall", node={"id": "l1", "startTime": 1.0, "prompt": llm_input("q"), "completion": "Hotel Alfama is free."})
-T1 = KGNode(node_type="ToolCall", node={"id": "t1", "startTime": 2.0, "outputContent": json.dumps(FARE)})
+L1 = KGNode(
+    node_type="LLMCall",
+    node={
+        "id": "l1",
+        "startTime": 1.0,
+        "prompt": llm_input("q"),
+        "completion": "Hotel Alfama is free.",
+    },
+)
+T1 = KGNode(
+    node_type="ToolCall", node={"id": "t1", "startTime": 2.0, "outputContent": json.dumps(FARE)}
+)
 L2 = KGNode(
     node_type="LLMCall",
     node={
@@ -97,7 +115,10 @@ class YesNoLLM:
         reply = self.replies[len(self.calls) - 1]
         if isinstance(reply, Exception):
             raise reply
-        return TextReply(text=reply, usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=2, cost_usd=0.001))
+        return TextReply(
+            text=reply,
+            usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=2, cost_usd=0.001),
+        )
 
 
 def test_each_call_extracts_from_its_node_only_and_returns_only_that_node():
@@ -126,7 +147,11 @@ def test_the_store_is_kept_between_calls_and_gives_the_input_claims_and_facts_of
     assert tool.nodes[0].input_claims is None  # only LLM calls have them
 
     store = extractor.store
-    assert {s.id for s in store} == {claim_id, fact_id, last.nodes[0].symbolic_state_elements["claims"][0]["id"]}
+    assert {s.id for s in store} == {
+        claim_id,
+        fact_id,
+        last.nodes[0].symbolic_state_elements["claims"][0]["id"],
+    }
     assert store.related("input_claim", "l2") == [claim_id]
     assert store.related("input_fact", "l2") == [fact_id]
     assert store.related("input_claim", "l1") == []
@@ -189,7 +214,9 @@ def test_a_not_backed_pair_records_no_supported_by():
 
 
 def test_a_failing_relation_extractor_does_not_lose_the_node(caplog):
-    extractor, _ = pipeline(relation_extractors=[FactClaimLinker(YesNoLLM(RuntimeError("proxy down")))])
+    extractor, _ = pipeline(
+        relation_extractors=[FactClaimLinker(YesNoLLM(RuntimeError("proxy down")))]
+    )
     extractor.live_process(L1, REQUEST, trajectory())
     extractor.live_process(T1, REQUEST, trajectory())
     with caplog.at_level(logging.WARNING):
@@ -203,7 +230,9 @@ def test_without_relation_extractors_nothing_is_added():
     for node in NODES:
         last = extractor.live_process(node, REQUEST, trajectory())
     assert "relations" not in last.llm_usage_by_element
-    assert all(not extractor.store.related(SUPPORTED_BY, c.id) for c in extractor.store.by_kind("claims"))
+    assert all(
+        not extractor.store.related(SUPPORTED_BY, c.id) for c in extractor.store.by_kind("claims")
+    )
 
 
 def test_process_runs_the_relation_extractors_on_every_node():
@@ -235,7 +264,9 @@ def test_process_and_live_record_the_same_supported_by():
 
     (claim_whole,) = whole.store.claims_for_node("l2")
     (claim_live,) = live.store.claims_for_node("l2")
-    assert whole.store.related(SUPPORTED_BY, claim_whole.id) == live.store.related(SUPPORTED_BY, claim_live.id)
+    assert whole.store.related(SUPPORTED_BY, claim_whole.id) == live.store.related(
+        SUPPORTED_BY, claim_live.id
+    )
     assert len(live.store.related(SUPPORTED_BY, claim_live.id)) == 1
 
 
@@ -247,8 +278,15 @@ class RelationLLM:
 
     def complete_json(self, system, user):
         self.calls += 1
-        data = {"relations": [{"new": "N1", "earlier": "E1", "relation": "contributes", "reasoning": "x"}]}
-        return LLMReply(data=data, usage=LLMUsage(calls=1, prompt_tokens=50, completion_tokens=10, cost_usd=0.005))
+        data = {
+            "relations": [
+                {"new": "N1", "earlier": "E1", "relation": "contributes", "reasoning": "x"}
+            ]
+        }
+        return LLMReply(
+            data=data,
+            usage=LLMUsage(calls=1, prompt_tokens=50, completion_tokens=10, cost_usd=0.005),
+        )
 
 
 def test_live_annotates_the_claims_with_their_relations_to_the_input_claims():
@@ -264,7 +302,9 @@ def test_live_annotates_the_claims_with_their_relations_to_the_input_claims():
     assert l2_claim["derived_from"] == [claim_l1.id]
     assert l2_claim["conflicts_with"] == [] and l2_claim["same_as"] == []
     assert extractor.store.related(DERIVED_FROM, claim_l2.id) == [claim_l1.id]
-    assert not {"derived_from", "conflicts_with", "same_as"} & set(l1_claim)  # l1 has no input claims
+    assert not {"derived_from", "conflicts_with", "same_as"} & set(
+        l1_claim
+    )  # l1 has no input claims
     assert relation_llm.calls == 1  # l1 has no input claims: no request
     assert results["l2"].llm_usage_by_element["relations"].calls == 1
     assert results["l1"].llm_usage_by_element.get("relations") is None
@@ -289,7 +329,10 @@ def test_live_gives_the_same_input_claims_and_facts_as_the_per_session_process()
         tool_spans=[T1.node],
     )
     whole, _ = pipeline()
-    expected = {n.node_id: (n.input_claims, n.input_facts) for n in whole.process(session, trajectory=trajectory()).nodes}
+    expected = {
+        n.node_id: (n.input_claims, n.input_facts)
+        for n in whole.process(session, trajectory=trajectory()).nodes
+    }
 
     live, _ = pipeline()
     got = {}
@@ -314,8 +357,12 @@ def test_the_final_llm_call_is_recognised_by_the_extractor_and_its_claims_answer
 
     extractor, _ = pipeline()
     extractor.store = SymbolicSessionStore("s1")  # the goal comes from the Conversation node, first
-    extractor.store.add("goals", Goal(id="g1", goal_text="Book it", success_criteria=["booked"]), "conv")
-    final = SessionTrajectory(session_id="s1", steps=STEPS, final_agent_call="a1")  # l2 is its last LLM call
+    extractor.store.add(
+        "goals", Goal(id="g1", goal_text="Book it", success_criteria=["booked"]), "conv"
+    )
+    final = SessionTrajectory(
+        session_id="s1", steps=STEPS, final_agent_call="a1"
+    )  # l2 is its last LLM call
 
     first = extractor.live_process(L1, REQUEST, final)
     extractor.live_process(T1, REQUEST, final)
@@ -337,14 +384,19 @@ def test_live_the_goal_is_judged_when_the_final_llm_node_is_processed_and_not_be
         def complete_json(self, system, user):
             self.calls += 1
             return LLMReply(
-                data={"satisfied": True, "fulfils": ["C1"], "reasoning": "booked"}, usage=LLMUsage(calls=1)
+                data={"satisfied": True, "fulfils": ["C1"], "reasoning": "booked"},
+                usage=LLMUsage(calls=1),
             )
 
     judge = JudgeLLM()
     extractor, _ = pipeline(relation_extractors=[GoalClaimRelationExtractor(judge)])
     extractor.store = SymbolicSessionStore("s1")
-    extractor.store.add("goals", Goal(id="g1", goal_text="Book it", success_criteria=["booked"]), "conv")
-    final = SessionTrajectory(session_id="s1", steps=STEPS, final_agent_call="a1")  # l2 is its last LLM call
+    extractor.store.add(
+        "goals", Goal(id="g1", goal_text="Book it", success_criteria=["booked"]), "conv"
+    )
+    final = SessionTrajectory(
+        session_id="s1", steps=STEPS, final_agent_call="a1"
+    )  # l2 is its last LLM call
 
     first = extractor.live_process(L1, REQUEST, final)
     extractor.live_process(T1, REQUEST, final)
@@ -408,9 +460,16 @@ class TopicBackend:
 # A later call that restates the claim of l1 (it received it as input).
 L3 = KGNode(
     node_type="LLMCall",
-    node={"id": "l3", "startTime": 4.0, "prompt": llm_input("q", "Hotel Alfama is free."), "completion": "Hotel Alfama is free."},
+    node={
+        "id": "l3",
+        "startTime": 4.0,
+        "prompt": llm_input("q", "Hotel Alfama is free."),
+        "completion": "Hotel Alfama is free.",
+    },
 )
-STEPS3 = STEPS + [{"call_id": "l3", "kind": "llm", "parent_id": "a1", "start_time": 4.0, "duration_ms": 100.0}]
+STEPS3 = STEPS + [
+    {"call_id": "l3", "kind": "llm", "parent_id": "a1", "start_time": 4.0, "duration_ms": 100.0}
+]
 
 
 def embedding_pipeline():
@@ -422,7 +481,9 @@ def embedding_pipeline():
 def test_same_claims_are_computed_one_node_at_a_time_and_embeddings_accumulate():
     extractor, backend = embedding_pipeline()
     first = extractor.live_process(L1, REQUEST, trajectory(STEPS3))
-    assert first.nodes[0].symbolic_state_elements["claims"][0]["same_claims"] == []  # no input claim yet
+    assert (
+        first.nodes[0].symbolic_state_elements["claims"][0]["same_claims"] == []
+    )  # no input claim yet
     assert len(extractor.embeddings.elements) == 1
 
     extractor.live_process(T1, REQUEST, trajectory(STEPS3))
@@ -443,7 +504,9 @@ def test_same_claims_are_computed_one_node_at_a_time_and_embeddings_accumulate()
 
 
 def test_live_same_claims_equal_the_per_session_ones():
-    session = SessionData(session_id="s1", llm_spans=[L1.node, L2.node, L3.node], tool_spans=[T1.node])
+    session = SessionData(
+        session_id="s1", llm_spans=[L1.node, L2.node, L3.node], tool_spans=[T1.node]
+    )
     whole, _ = pipeline(embedder=TextEmbedder(TopicBackend()))
     expected = {
         n.node_id: [c["same_claims"] for c in n.symbolic_state_elements.get("claims", [])]
@@ -458,7 +521,9 @@ def test_live_same_claims_equal_the_per_session_ones():
 
     assert got == expected
     assert got["l3"] != [[]]  # the comparison did find something
-    assert {e.element_id for e in live.embeddings.elements} == {e.element_id for e in whole.embeddings.elements}
+    assert {e.element_id for e in live.embeddings.elements} == {
+        e.element_id for e in whole.embeddings.elements
+    }
 
 
 def test_without_a_trajectory_claims_are_embedded_but_not_compared():

@@ -149,14 +149,19 @@ def parse_relations(
             continue
         variant = f"derived_from:{other.id}" if kind == "derived_from" else kind
         relation = ClaimRelation(
-            claim_id=new.id, other_id=other.id, relation=kind, reasoning=str(entry.get("reasoning", "")).strip()
+            claim_id=new.id,
+            other_id=other.id,
+            relation=kind,
+            reasoning=str(entry.get("reasoning", "")).strip(),
         )
         found.setdefault(frozenset((new.id, other.id)), {}).setdefault(variant, relation)
 
     relations = []
     for pair, variants in found.items():
         if len(variants) > 1:
-            logger.warning("Claims %s got several relations %s: dropped", sorted(pair), sorted(variants))
+            logger.warning(
+                "Claims %s got several relations %s: dropped", sorted(pair), sorted(variants)
+            )
             continue
         relations.extend(variants.values())
     return relations
@@ -209,7 +214,9 @@ class ClaimRelationExtractor(SemanticRelationExtractor):
             relations.extend(found)
         return relations
 
-    def relate(self, new_claims: Sequence[Claim], earlier_claims: Sequence[Claim]) -> list[ClaimRelation]:
+    def relate(
+        self, new_claims: Sequence[Claim], earlier_claims: Sequence[Claim]
+    ) -> list[ClaimRelation]:
         """The relations between the new claims and the earlier ones, and among the new claims: one
         request, and one more when the reply is not usable: not JSON at all (the client raises
         ``ValueError``) or JSON without a ``relations`` list (the model sometimes answers with
@@ -233,7 +240,9 @@ class ClaimRelationExtractor(SemanticRelationExtractor):
             except ValueError:
                 if attempt == 2:
                     raise
-                logger.warning("Reply without a relations list, asking again: %.200s", str(reply.data))
+                logger.warning(
+                    "Reply without a relations list, asking again: %.200s", str(reply.data)
+                )
         raise AssertionError("unreachable")
 
     @staticmethod

@@ -63,12 +63,16 @@ Do not answer with anything else."""
 
 def _prompt(verb: str, bare: str, candidates: str) -> str:
     return (
-        _PROMPT_TEMPLATE.replace("@VERB@", verb).replace("@BARE@", bare).replace("@CANDIDATES@", candidates)
+        _PROMPT_TEMPLATE.replace("@VERB@", verb)
+        .replace("@BARE@", bare)
+        .replace("@CANDIDATES@", candidates)
     )
 
 
 #: System prompt to judge ``implements``: the candidates are tasks.
-SYSTEM_PROMPT = _prompt(IMPLEMENTS, "implement", "the tasks of the agent that handed the work over to it")
+SYSTEM_PROMPT = _prompt(
+    IMPLEMENTS, "implement", "the tasks of the agent that handed the work over to it"
+)
 #: System prompt to judge ``achieves``: the candidate is the goal of the session.
 GOAL_SYSTEM_PROMPT = _prompt(ACHIEVES, "achieve", "the goal of the whole session")
 
@@ -100,11 +104,16 @@ def _relation_of(candidates: Sequence[Candidate]) -> str:
     """The relation judged against ``candidates``: ``achieves`` for the goal, else ``implements``."""
     return ACHIEVES if candidates and isinstance(candidates[0], Goal) else IMPLEMENTS
 
+
 def _describe(element: Candidate) -> str:
     if isinstance(element, Goal):
         text, label, criteria = element.goal_text, "Success criteria", element.success_criteria
     else:
-        text, label, criteria = element.task_text, "Acceptance criteria", element.acceptance_criteria
+        text, label, criteria = (
+            element.task_text,
+            "Acceptance criteria",
+            element.acceptance_criteria,
+        )
     return f"{text} ({label}: {'; '.join(criteria)})" if criteria else text
 
 
@@ -212,7 +221,9 @@ class TaskRelationExtractor(SemanticRelationExtractor):
             except ValueError:
                 if attempt == 2:
                     raise
-                logger.warning("Reply without a %s list, asking again: %.200s", relation, str(reply.data))
+                logger.warning(
+                    "Reply without a %s list, asking again: %.200s", relation, str(reply.data)
+                )
                 continue
             return [
                 TaskRelation(

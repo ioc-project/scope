@@ -120,8 +120,12 @@ class UserConstraintPrompt(ExtractionPrompt[ConstraintItem, Constraint]):
 
     def build_element(self, item: ConstraintItem, node: KGNode) -> Constraint:
         # Deterministic id: re-running on the same session yields the same constraint ids.
-        constraint_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{node.node_id}|constraint|user|{item.constraint_text}"))
-        return Constraint(**item.model_dump(), id=constraint_id, origin="user", read_from=node.node_id or "")
+        constraint_id = str(
+            uuid.uuid5(uuid.NAMESPACE_OID, f"{node.node_id}|constraint|user|{item.constraint_text}")
+        )
+        return Constraint(
+            **item.model_dump(), id=constraint_id, origin="user", read_from=node.node_id or ""
+        )
 
 
 def render_system_constraint_prompt(prompt: AgentSystemPrompt) -> str:
@@ -139,7 +143,9 @@ def agent_constraints(store: SymbolicSessionStore, agent_id: str) -> list[Constr
     return [
         s.element
         for s in store.by_kind("constraints")
-        if isinstance(s.element, Constraint) and s.element.origin == "system" and s.element.agent_id == agent_id
+        if isinstance(s.element, Constraint)
+        and s.element.origin == "system"
+        and s.element.agent_id == agent_id
     ]
 
 
@@ -182,14 +188,17 @@ class SystemConstraintExtractor:
 
         # Transport / API errors are not caught: a failed LLM call must not be silently mistaken
         # for "no constraints" (the agent would never be asked again).
-        reply = self._llm.complete_json(SYSTEM_SYSTEM_PROMPT, render_system_constraint_prompt(prompt))
+        reply = self._llm.complete_json(
+            SYSTEM_SYSTEM_PROMPT, render_system_constraint_prompt(prompt)
+        )
         self.last_usage = reply.usage
         self.usage = self.usage + reply.usage
 
         raw_items = reply.data.get("constraints", [])
         if not isinstance(raw_items, list):
             logger.warning(
-                "LLM reply for the system prompt of %s: 'constraints' is not a list, ignoring", prompt.agent_id
+                "LLM reply for the system prompt of %s: 'constraints' is not a list, ignoring",
+                prompt.agent_id,
             )
             return []
         constraints: list[Constraint] = []
@@ -198,11 +207,17 @@ class SystemConstraintExtractor:
                 item = ConstraintItem.model_validate(raw)
             except ValidationError as exc:
                 logger.warning(
-                    "Dropping invalid constraint of %s: %s", prompt.agent_id, exc.errors(include_url=False)
+                    "Dropping invalid constraint of %s: %s",
+                    prompt.agent_id,
+                    exc.errors(include_url=False),
                 )
                 continue
             # Deterministic id: re-running on the same session yields the same ids.
-            constraint_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{prompt.id}|constraint|system|{item.constraint_text}"))
+            constraint_id = str(
+                uuid.uuid5(
+                    uuid.NAMESPACE_OID, f"{prompt.id}|constraint|system|{item.constraint_text}"
+                )
+            )
             constraints.append(
                 Constraint(
                     **item.model_dump(),

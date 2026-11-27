@@ -25,7 +25,12 @@ STEPS = [
     {"call_id": "a3", "kind": "agent", "parent_id": ""},
     {"call_id": "l4", "kind": "llm", "parent_id": "a3"},
 ]
-TASK = Task(id="t1", task_text="Find a hotel in Lisbon.", acceptance_criteria=["under 150 EUR"], owned_by="a1")
+TASK = Task(
+    id="t1",
+    task_text="Find a hotel in Lisbon.",
+    acceptance_criteria=["under 150 EUR"],
+    owned_by="a1",
+)
 
 
 class JudgeLLM:
@@ -102,7 +107,9 @@ def test_linking_twice_changes_nothing():
 
 def _node(*claim_ids):
     return AnnotatedNode(
-        node_type="LLMCall", node={"id": "n"}, symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]}
+        node_type="LLMCall",
+        node={"id": "n"},
+        symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]},
     )
 
 
@@ -138,11 +145,16 @@ def test_the_claims_given_are_judged_together_against_the_task_and_its_criteria(
 
     assert len(llm.prompts) == 1
     assert "Find a hotel in Lisbon." in llm.prompts[0] and "- under 150 EUR" in llm.prompts[0]
-    assert "C1. Searching hotels." in llm.prompts[0] and "C3. I recommend Hotel Alfama." in llm.prompts[0]
+    assert (
+        "C1. Searching hotels." in llm.prompts[0]
+        and "C3. I recommend Hotel Alfama." in llm.prompts[0]
+    )
     assert "A flight leaves at 9." not in llm.prompts[0]  # a claim produced by another task
     assert evaluation.task_id == "t1" and evaluation.claim_ids == ["c1", "c2", "c3"]
     assert evaluation.fulfils == ["c2", "c3"] and evaluation.reasoning == "price and recommendation"
-    assert store.related(FULFILS_TASK, "c2") == ["t1"] and store.related(FULFILS_TASK, "c3") == ["t1"]
+    assert store.related(FULFILS_TASK, "c2") == ["t1"] and store.related(FULFILS_TASK, "c3") == [
+        "t1"
+    ]
     assert store.related(FULFILS_TASK, "c1") == []
     assert extractor.last_usage.calls == 1
 
@@ -152,15 +164,18 @@ def test_only_the_claims_given_are_judged_not_all_those_produced_by_the_task():
     llm = JudgeLLM({"fulfils": ["C1"], "reasoning": ""})
     (evaluation,) = TaskClaimRelationExtractor(llm).extract(store, [TASK, *_given(store, "c2")])
     assert evaluation.claim_ids == ["c2"] and evaluation.fulfils == ["c2"]
-    assert "Searching hotels." not in llm.prompts[0] and "C1. Hotel Alfama costs 120 EUR." in llm.prompts[0]
+    assert (
+        "Searching hotels." not in llm.prompts[0]
+        and "C1. Hotel Alfama costs 120 EUR." in llm.prompts[0]
+    )
 
 
 def test_no_claim_fulfilling_the_task_is_a_valid_verdict():
     _, store, _ = _store()
     claims = _given(store, "c1", "c2", "c3")
-    (evaluation,) = TaskClaimRelationExtractor(JudgeLLM({"fulfils": [], "reasoning": "only process"})).extract(
-        store, [TASK, *claims]
-    )
+    (evaluation,) = TaskClaimRelationExtractor(
+        JudgeLLM({"fulfils": [], "reasoning": "only process"})
+    ).extract(store, [TASK, *claims])
     assert evaluation.fulfils == [] and evaluation.claim_ids == ["c1", "c2", "c3"]
     assert all(store.related(FULFILS_TASK, c) == [] for c in ("c1", "c2", "c3"))
 
@@ -168,7 +183,9 @@ def test_no_claim_fulfilling_the_task_is_a_valid_verdict():
 def test_labels_that_are_not_claims_are_ignored_and_digits_are_accepted():
     _, store, _ = _store()
     reply = {"fulfils": ["2", "C2", "c9", "C7"], "reasoning": ""}
-    (evaluation,) = TaskClaimRelationExtractor(JudgeLLM(reply)).extract(store, [TASK, *_given(store, "c1", "c2", "c3")])
+    (evaluation,) = TaskClaimRelationExtractor(JudgeLLM(reply)).extract(
+        store, [TASK, *_given(store, "c1", "c2", "c3")]
+    )
     assert evaluation.fulfils == ["c2"]
 
 
@@ -179,7 +196,9 @@ def test_a_task_without_claims_among_the_elements_and_elements_that_are_not_stor
     other = Task(id="t9", task_text="Not stored.", owned_by="a1")
     extractor = TaskClaimRelationExtractor(llm)
     assert extractor.extract(store, [store.get("t3").element, other, *_given(store, "c1")]) == []
-    assert extractor.extract(store, [TASK, *_given(store, "c4")]) == []  # c4 is produced by t2, not t1
+    assert (
+        extractor.extract(store, [TASK, *_given(store, "c4")]) == []
+    )  # c4 is produced by t2, not t1
     assert extractor.extract(store, [TASK]) == []
     assert llm.prompts == []
 
@@ -216,7 +235,9 @@ def _with(llm):
 
 def _llm_node(call, *claim_ids):
     return AnnotatedNode(
-        node_type="LLMCall", node={"id": call}, symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]}
+        node_type="LLMCall",
+        node={"id": call},
+        symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]},
     )
 
 
@@ -228,7 +249,9 @@ def test_the_claims_of_a_node_are_judged_against_their_task_and_annotated():
     usage = extractor._extract_node_relations(node, store)
 
     assert len(llm.prompts) == 1 and usage.calls == 1
-    assert "Searching hotels." not in llm.prompts[0]  # a claim of another LLM call of the same agent call
+    assert (
+        "Searching hotels." not in llm.prompts[0]
+    )  # a claim of another LLM call of the same agent call
     assert [(e.task_id, e.claim_ids, e.fulfils) for e in extractor.task_evaluations] == [
         ("t1", ["c2", "c3"], ["c2"])
     ]
@@ -244,7 +267,10 @@ def test_each_llm_call_of_an_agent_call_judges_its_own_claims():
     extractor._extract_node_relations(second, store)
 
     assert len(llm.prompts) == 2
-    assert [(e.task_id, e.claim_ids) for e in extractor.task_evaluations] == [("t1", ["c1"]), ("t1", ["c2", "c3"])]
+    assert [(e.task_id, e.claim_ids) for e in extractor.task_evaluations] == [
+        ("t1", ["c1"]),
+        ("t1", ["c2", "c3"]),
+    ]
     assert first.symbolic_state_elements["claims"][0]["fulfils_task"] == []
     assert [c["fulfils_task"] for c in second.symbolic_state_elements["claims"]] == [[], ["t1"]]
 

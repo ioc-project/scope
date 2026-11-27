@@ -45,7 +45,9 @@ def _client(headers, pricing=None, text="not json at all"):
     )
     raw = SimpleNamespace(headers=headers, parse=lambda: response)
     create = SimpleNamespace(create=lambda **kwargs: raw)
-    client._client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(with_raw_response=create)))
+    client._client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(with_raw_response=create))
+    )
     return client
 
 
@@ -60,7 +62,11 @@ def test_a_reply_that_is_not_json_raises_with_the_usage_of_the_request_that_was_
 
 
 def test_the_cost_of_the_endpoint_is_used_as_is():
-    usage = _client({"x-litellm-response-cost": "0.002"}, TokenPricing(2.5, 2.5), "{}").complete_json("s", "u").usage
+    usage = (
+        _client({"x-litellm-response-cost": "0.002"}, TokenPricing(2.5, 2.5), "{}")
+        .complete_json("s", "u")
+        .usage
+    )
     assert usage.cost_usd == pytest.approx(0.002)
     assert (usage.estimated_cost_calls, usage.unpriced_calls) == (0, 0)
 

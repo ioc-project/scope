@@ -126,7 +126,9 @@ def input_texts(raw: str | None) -> list[str]:
             return [_normalize_ws(raw)] if raw.strip() else []
         values.append(value)
 
-    messages = [m for value in values if isinstance(value, list) for m in value if isinstance(m, dict)]
+    messages = [
+        m for value in values if isinstance(value, list) for m in value if isinstance(m, dict)
+    ]
     if not any("role" in m or "parts" in m for m in messages):
         return [_normalize_ws(raw)] if raw.strip() else []
     return [
@@ -150,7 +152,9 @@ def route_decision(output_text: str | None) -> tuple[str, bool] | None:
     if isinstance(parsed, dict):
         for source in (parsed, parsed.get("update")):
             if isinstance(source, dict):
-                target = next((source[k] for k in _ROUTE_KEYS if isinstance(source.get(k), str)), None)
+                target = next(
+                    (source[k] for k in _ROUTE_KEYS if isinstance(source.get(k), str)), None
+                )
                 if target:
                     break
     else:  # truncated or non-JSON output
@@ -162,7 +166,9 @@ def route_decision(output_text: str | None) -> tuple[str, bool] | None:
     return target, target.casefold() in _TERMINAL_ROUTES
 
 
-def _handoff_transitions(agents: list[dict[str, Any]], handoffs: list[dict[str, Any]]) -> list[AgentTransition]:
+def _handoff_transitions(
+    agents: list[dict[str, Any]], handoffs: list[dict[str, Any]]
+) -> list[AgentTransition]:
     """The transitions the KG handoffs give (``via="handoff"``), each pair once.
 
     Only the explicit kinds count: ``handoff`` (the successor span names its predecessor) and
@@ -178,7 +184,12 @@ def _handoff_transitions(agents: list[dict[str, Any]], handoffs: list[dict[str, 
     backwards = 0
     for handoff in handoffs:
         src, dst = by_id.get(handoff.get("from_call")), by_id.get(handoff.get("to_call"))
-        if src is None or dst is None or src is dst or handoff.get("kind", "handoff") not in _EXPLICIT_HANDOFFS:
+        if (
+            src is None
+            or dst is None
+            or src is dst
+            or handoff.get("kind", "handoff") not in _EXPLICIT_HANDOFFS
+        ):
             continue
         pair = (src["call_id"], dst["call_id"])
         if pair in seen:
@@ -197,7 +208,9 @@ def _handoff_transitions(agents: list[dict[str, Any]], handoffs: list[dict[str, 
             )
         )
     if backwards:
-        logger.info("%d KG handoff(s) ignored: the source agent call starts after the target", backwards)
+        logger.info(
+            "%d KG handoff(s) ignored: the source agent call starts after the target", backwards
+        )
     return transitions
 
 
@@ -214,7 +227,9 @@ def build_transitions(
     transitions: list[AgentTransition] = []
     routed_to: set[str] = set()
 
-    def link(src: dict[str, Any], dst: dict[str, Any], via: Literal["route", "return", "sequence"]) -> None:
+    def link(
+        src: dict[str, Any], dst: dict[str, Any], via: Literal["route", "return", "sequence"]
+    ) -> None:
         transitions.append(
             AgentTransition(
                 from_call=src["call_id"],
@@ -234,12 +249,17 @@ def build_transitions(
             (
                 b
                 for b in agents[index + 1 :]
-                if (b.get("agent_id") or b.get("name")) == decision[0] and b["call_id"] not in routed_to
+                if (b.get("agent_id") or b.get("name")) == decision[0]
+                and b["call_id"] not in routed_to
             ),
             None,
         )
         if target is None:
-            logger.warning("goto %r of agent call %s matches no later agent call", decision[0], router["call_id"])
+            logger.warning(
+                "goto %r of agent call %s matches no later agent call",
+                decision[0],
+                router["call_id"],
+            )
             continue
         routed_to.add(target["call_id"])
         link(router, target, "route")
@@ -348,7 +368,10 @@ def track_symbolic_state(
     inputs = inputs or {}
     agents = [s for s in trajectory_steps if s.get("kind") == "agent"]
     llm_by_agent: dict[str, list[dict[str, Any]]] = {}
-    for step in sorted((s for s in trajectory_steps if s.get("kind") == "llm"), key=lambda s: s.get("start_time") or 0.0):
+    for step in sorted(
+        (s for s in trajectory_steps if s.get("kind") == "llm"),
+        key=lambda s: s.get("start_time") or 0.0,
+    ):
         llm_by_agent.setdefault(step.get("parent_id") or "", []).append(step)
 
     transitions = build_transitions(agents, handoffs)
@@ -363,7 +386,9 @@ def track_symbolic_state(
             snippets[stored.id] = _normalize_ws(snippet)
     skipped = len(store.by_kind("claims")) - len(snippets)
     if skipped:
-        logger.info("%d claims have no verbatim_source and cannot be followed across calls", skipped)
+        logger.info(
+            "%d claims have no verbatim_source and cannot be followed across calls", skipped
+        )
 
     trace = SymbolicStateTrace(transitions=transitions)
     trace.input_facts = track_input_facts(trajectory_steps, store, inputs, match_facts)
@@ -390,7 +415,11 @@ def track_symbolic_state(
                 candidates.update(inherited)
 
             texts = input_texts(inputs.get(call_id) or call.get("input_text"))
-            present = [cid for cid in candidates if cid in snippets and any(snippets[cid] in t for t in texts)]
+            present = [
+                cid
+                for cid in candidates
+                if cid in snippets and any(snippets[cid] in t for t in texts)
+            ]
             trace.input_claims[call_id] = present
 
             contribution = dict.fromkeys(present)
@@ -410,5 +439,7 @@ def track_symbolic_state(
     known = {s["call_id"] for s in agents}
     for owner, calls in llm_by_agent.items():
         if owner not in known:
-            logger.warning("%d LLM call(s) have no known AgentCall (%r); no input_claims", len(calls), owner)
+            logger.warning(
+                "%d LLM call(s) have no known AgentCall (%r); no input_claims", len(calls), owner
+            )
     return trace

@@ -122,20 +122,35 @@ def _input(*texts, tool_responses=()):
 
 
 def _llm(call_id, owner, start, input_text, duration_ms=100.0):
-    return {"call_id": call_id, "kind": "llm", "parent_id": owner, "start_time": start,
-            "duration_ms": duration_ms, "input_text": input_text}
+    return {
+        "call_id": call_id,
+        "kind": "llm",
+        "parent_id": owner,
+        "start_time": start,
+        "duration_ms": duration_ms,
+        "input_text": input_text,
+    }
 
 
 def _tool(call_id, owner, start, duration_ms=100.0):
-    return {"call_id": call_id, "kind": "tool", "parent_id": owner, "start_time": start,
-            "duration_ms": duration_ms}
+    return {
+        "call_id": call_id,
+        "kind": "tool",
+        "parent_id": owner,
+        "start_time": start,
+        "duration_ms": duration_ms,
+    }
 
 
 def _facts(**facts):
     """facts: fact_id=(tool_call_id, text)."""
     store = SymbolicSessionStore("s")
     for fid, (tool_id, text) in facts.items():
-        store.add("facts", Fact(id=fid, fact_text=text, verbatim_source=text, grounded_in=tool_id), tool_id)
+        store.add(
+            "facts",
+            Fact(id=fid, fact_text=text, verbatim_source=text, grounded_in=tool_id),
+            tool_id,
+        )
     return store
 
 
@@ -175,8 +190,9 @@ def test_fact_must_be_in_the_input_and_the_tool_call_must_have_ended():
 
 def test_fact_in_the_system_prompt_is_not_an_input_fact():
     steps = [_tool("t1", "a1", 1.0), _llm("l1", "a1", 2.0, _input("q"))]
-    steps[1]["input_text"] = f"{json.dumps([{'type': 'text', 'content': 'Fare: $75'}])}\n\n" + json.dumps(
-        [{"role": "user", "parts": [{"type": "text", "content": "q"}]}]
+    steps[1]["input_text"] = (
+        f"{json.dumps([{'type': 'text', 'content': 'Fare: $75'}])}\n\n"
+        + json.dumps([{"role": "user", "parts": [{"type": "text", "content": "q"}]}])
     )
     assert track_input_facts(steps, _facts(f1=("t1", "Fare: $75"))) == {"l1": []}
 
@@ -212,8 +228,12 @@ def test_pipeline_sets_input_facts_on_llm_calls():
         tool_spans=[{"id": "t1", "startTime": 2.0, "outputContent": json.dumps(response)}],
         llm_spans=[
             {"id": "l1", "startTime": 1.0, "completion": "x", "prompt": _input("q")},
-            {"id": "l2", "startTime": 3.0, "completion": "y",
-             "prompt": _input("q", tool_responses=[response])},
+            {
+                "id": "l2",
+                "startTime": 3.0,
+                "completion": "y",
+                "prompt": _input("q", tool_responses=[response]),
+            },
         ],
     )
     trajectory = SessionTrajectory(
@@ -247,7 +267,9 @@ def test_without_fact_match_every_finished_fact_of_the_agent_call_is_an_input_fa
     ]
     store = _facts(f1=("t1", "Fare: $75"))
     assert track_input_facts(steps, store, match_facts=False) == {
-        "early": [], "absent": ["f1"], "other": []
+        "early": [],
+        "absent": ["f1"],
+        "other": [],
     }
     assert track_input_facts(steps, store) == {"early": [], "absent": [], "other": []}
     assert track_symbolic_state(steps, store, match_facts=False).input_facts["absent"] == ["f1"]
@@ -269,7 +291,9 @@ def test_pipeline_match_input_facts_flag():
             _llm("l2", "a1", 3.0, _input("q")),
         ],
     )
-    default = SymbolicExtractor(extractors=[ToolResultFactExtractor()]).process(data, trajectory=trajectory)
+    default = SymbolicExtractor(extractors=[ToolResultFactExtractor()]).process(
+        data, trajectory=trajectory
+    )
     assert {n.node_id: n for n in default.nodes}["l2"].input_facts == []
 
     pipeline = SymbolicExtractor(extractors=[ToolResultFactExtractor()], match_input_facts=False)

@@ -29,14 +29,20 @@ class RelationLLM:
     def complete_json(self, system, user):
         self.systems.append(system)
         self.prompts.append(user)
-        return LLMReply(data=self.replies[len(self.prompts) - 1], usage=LLMUsage(calls=1, prompt_tokens=10))
+        return LLMReply(
+            data=self.replies[len(self.prompts) - 1], usage=LLMUsage(calls=1, prompt_tokens=10)
+        )
 
 
 def _store(*tasks, preceded_by=()):
     """A store with the goal, the tasks (id, text, call) and the ``preceded_by`` of the tasks of
     each (call, previous call) pair: the tasks of the call follow the tasks of the previous one."""
     store = SymbolicSessionStore("s1")
-    store.add("goals", Goal(id="g1", goal_text="Fix the outage.", success_criteria=["Service is up"]), "conversation:s1")
+    store.add(
+        "goals",
+        Goal(id="g1", goal_text="Fix the outage.", success_criteria=["Service is up"]),
+        "conversation:s1",
+    )
     for task_id, text, call in tasks:
         store.add("tasks", Task(id=task_id, task_text=text, owned_by=call), call)
     for call, previous in preceded_by:
@@ -64,7 +70,10 @@ def test_a_task_is_compared_with_the_tasks_of_the_preceding_call_only():
         ("t3", "Check the logs.", "a3"),
         preceded_by=[("a2", "a1"), ("a3", "a2")],
     )
-    assert [c.id for c in TaskRelationExtractor.candidates(store, _task(store, "t3"))] == ["t2", "t2b"]  # not t1
+    assert [c.id for c in TaskRelationExtractor.candidates(store, _task(store, "t3"))] == [
+        "t2",
+        "t2b",
+    ]  # not t1
 
 
 def test_a_task_without_preceded_by_is_compared_with_the_goal():
@@ -74,7 +83,9 @@ def test_a_task_without_preceded_by_is_compared_with_the_goal():
 
 
 def test_an_identical_task_of_the_predecessor_needs_no_request():
-    store = _store(("t1", "Check the logs.", "a1"), ("t2", "check the logs", "a2"), preceded_by=[("a2", "a1")])
+    store = _store(
+        ("t1", "Check the logs.", "a1"), ("t2", "check the logs", "a2"), preceded_by=[("a2", "a1")]
+    )
     store.link(SAME_AS, "t2", "t1")
     store.link(SAME_AS, "t1", "t2")
     assert TaskRelationExtractor.candidates(store, _task(store, "t2")) == []
@@ -114,7 +125,11 @@ def test_the_implemented_tasks_are_recorded_in_the_store():
     assert relation.relation == "implements"
     assert llm.systems == [SYSTEM_PROMPT]
     prompt = llm.prompts[0]
-    assert "Check the logs." in prompt and "C1. Check the database." in prompt and "C2. Write the report." in prompt
+    assert (
+        "Check the logs." in prompt
+        and "C1. Check the database." in prompt
+        and "C2. Write the report." in prompt
+    )
     assert "Find the cause." not in prompt  # only the tasks it is preceded_by
     assert extractor.last_usage.calls == 1
 
@@ -132,7 +147,10 @@ def test_a_top_level_task_that_achieves_the_goal():
 
 def test_a_task_that_achieves_nothing_has_no_relation():
     store = _store(("t1", "Find the cause.", "a1"))
-    assert TaskRelationExtractor(RelationLLM({"achieves": []})).extract(store, [_task(store, "t1")]) == []
+    assert (
+        TaskRelationExtractor(RelationLLM({"achieves": []})).extract(store, [_task(store, "t1")])
+        == []
+    )
     assert store.related(ACHIEVES, "t1") == [] and store.related(IMPLEMENTS, "t1") == []
 
 
@@ -141,7 +159,12 @@ def test_a_reply_without_the_list_is_asked_again_once():
     llm = RelationLLM({"answer": "yes"}, {"achieves": ["C1"]})
     extractor = TaskRelationExtractor(llm)
     assert len(extractor.extract(store, [_task(store, "t1")])) == 1
-    assert len(llm.prompts) == 2 and "not valid" in llm.prompts[1] and '"achieves"' in llm.prompts[1] and extractor.last_usage.calls == 2
+    assert (
+        len(llm.prompts) == 2
+        and "not valid" in llm.prompts[1]
+        and '"achieves"' in llm.prompts[1]
+        and extractor.last_usage.calls == 2
+    )
 
     with pytest.raises(ValueError):
         TaskRelationExtractor(RelationLLM({"x": 1}, {"x": 2})).extract(store, [_task(store, "t1")])
@@ -174,7 +197,11 @@ class ScriptedLLM:
 
     def complete_json(self, system, user):
         if "extract the GOAL" in system:
-            data = {"goals": [{"goal_text": "The outage is resolved.", "success_criteria": ["Service is up"]}]}
+            data = {
+                "goals": [
+                    {"goal_text": "The outage is resolved.", "success_criteria": ["Service is up"]}
+                ]
+            }
         elif "extract TASKS" in system:
             call = next(c for c in TASKS if f"Agent call id: {c}\n" in user)
             data = {"tasks": [] if call in self.no_task else [{"task_text": TASKS[call]}]}
@@ -186,7 +213,13 @@ class ScriptedLLM:
 
 def _session(calls=CALLS):
     spans = [
-        {"id": call, "agentName": call, "startTime": float(i), "inputContent": f"input:{call}:{TASKS[call]}", "outputContent": "output:x:ok"}
+        {
+            "id": call,
+            "agentName": call,
+            "startTime": float(i),
+            "inputContent": f"input:{call}:{TASKS[call]}",
+            "outputContent": "output:x:ok",
+        }
         for i, call in enumerate(calls, start=1)
     ]
     return SessionData(session_id="s1", input_text="Fix it", output_text="Fixed", agent_spans=spans)
@@ -194,7 +227,13 @@ def _session(calls=CALLS):
 
 def _trajectory(calls=CALLS):
     steps = [
-        {"call_id": call, "kind": "agent", "agent_id": call, "parent_id": "", "start_time": float(i)}
+        {
+            "call_id": call,
+            "kind": "agent",
+            "agent_id": call,
+            "parent_id": "",
+            "start_time": float(i),
+        }
         for i, call in enumerate(calls, start=1)
     ]
     return SessionTrajectory(session_id="s1", steps=steps)
@@ -202,7 +241,10 @@ def _trajectory(calls=CALLS):
 
 def _pipeline(llm):
     return SymbolicExtractor(
-        extractors=[ElementExtractor(llm, GoalExtractionPrompt()), ElementExtractor(llm, TaskExtractionPrompt())],
+        extractors=[
+            ElementExtractor(llm, GoalExtractionPrompt()),
+            ElementExtractor(llm, TaskExtractionPrompt()),
+        ],
         relation_extractors=[TaskRelationExtractor(llm)],
     )
 
@@ -249,7 +291,9 @@ def test_a_worker_is_preceded_by_the_worker_that_returned_to_the_task_less_route
     ]
     llm = ScriptedLLM(no_task=("m1", "m2", "m3"))
     extractor = _pipeline(llm)
-    result = extractor.process(_session(calls), trajectory=SessionTrajectory(session_id="s1", steps=steps))
+    result = extractor.process(
+        _session(calls), trajectory=SessionTrajectory(session_id="s1", steps=steps)
+    )
     tasks = _tasks_by_call(result)
 
     assert set(tasks) == {"w1", "w2"}
@@ -268,9 +312,13 @@ def test_implements_is_added_to_the_tasks_of_the_result_and_the_store():
     tasks = _tasks_by_call(result)
     (goal,) = [g for n in result.nodes for g in n.symbolic_state_elements.get("goals", [])]
 
-    assert tasks["a1"]["achieves"] == [goal["id"]] and tasks["a1"]["implements"] == []  # top level: the goal
+    assert (
+        tasks["a1"]["achieves"] == [goal["id"]] and tasks["a1"]["implements"] == []
+    )  # top level: the goal
     assert tasks["a1"]["preceded_by"] == []
-    assert tasks["a2"]["preceded_by"] == [tasks["a1"]["id"]] and tasks["a3"]["preceded_by"] == [tasks["a2"]["id"]]
+    assert tasks["a2"]["preceded_by"] == [tasks["a1"]["id"]] and tasks["a3"]["preceded_by"] == [
+        tasks["a2"]["id"]
+    ]
     assert extractor.store.related(PRECEDED_BY, tasks["a3"]["id"]) == [tasks["a2"]["id"]]  # not a1
     assert tasks["a2"]["implements"] == [tasks["a1"]["id"]]  # its predecessor's task
     # a3 repeats a2 (same_as, no request): nothing more is said
@@ -285,13 +333,20 @@ def test_without_a_trajectory_the_predecessors_are_unknown_and_no_task_relation_
     extractor = _pipeline(llm)
     result = extractor.process(_session())
     assert llm.relation_prompts == []
-    assert all("implements" not in t and "preceded_by" not in t for t in _tasks_by_call(result).values())
-    assert extractor.store.by_kind("tasks") and not any(extractor.store.related(PRECEDED_BY, s.id) for s in extractor.store.by_kind("tasks"))
+    assert all(
+        "implements" not in t and "preceded_by" not in t for t in _tasks_by_call(result).values()
+    )
+    assert extractor.store.by_kind("tasks") and not any(
+        extractor.store.related(PRECEDED_BY, s.id) for s in extractor.store.by_kind("tasks")
+    )
 
 
 def test_preceded_by_is_recorded_without_any_relation_extractor():
     extractor = SymbolicExtractor(
-        extractors=[ElementExtractor(ScriptedLLM(), GoalExtractionPrompt()), ElementExtractor(ScriptedLLM(), TaskExtractionPrompt())]
+        extractors=[
+            ElementExtractor(ScriptedLLM(), GoalExtractionPrompt()),
+            ElementExtractor(ScriptedLLM(), TaskExtractionPrompt()),
+        ]
     )
     tasks = _tasks_by_call(extractor.process(_session(), trajectory=_trajectory()))
     assert tasks["a2"]["preceded_by"] == [tasks["a1"]["id"]]

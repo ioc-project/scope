@@ -39,16 +39,46 @@ OUTPUT = _output(
 
 STEPS = [
     {"call_id": "agentcall:1", "kind": "agent", "parent_id": "", "start_time": "10"},
-    {"call_id": "llmcall:1", "kind": "llm", "parent_id": "agentcall:1", "start_time": "11", "output_text": OUTPUT},
+    {
+        "call_id": "llmcall:1",
+        "kind": "llm",
+        "parent_id": "agentcall:1",
+        "start_time": "11",
+        "output_text": OUTPUT,
+    },
     # run in the opposite order of the requests: the arguments tell them apart
-    {"call_id": "toolcall:5", "kind": "tool", "parent_id": "agentcall:1", "start_time": "12", "name": "calculate",
-     "input_text": _kwargs(expression="5")},
-    {"call_id": "toolcall:32", "kind": "tool", "parent_id": "agentcall:1", "start_time": "12.5", "name": "calculate",
-     "input_text": _kwargs(expression="3 + 2")},
-    {"call_id": "llmcall:2", "kind": "llm", "parent_id": "agentcall:1", "start_time": "13", "output_text": "done"},
+    {
+        "call_id": "toolcall:5",
+        "kind": "tool",
+        "parent_id": "agentcall:1",
+        "start_time": "12",
+        "name": "calculate",
+        "input_text": _kwargs(expression="5"),
+    },
+    {
+        "call_id": "toolcall:32",
+        "kind": "tool",
+        "parent_id": "agentcall:1",
+        "start_time": "12.5",
+        "name": "calculate",
+        "input_text": _kwargs(expression="3 + 2"),
+    },
+    {
+        "call_id": "llmcall:2",
+        "kind": "llm",
+        "parent_id": "agentcall:1",
+        "start_time": "13",
+        "output_text": "done",
+    },
     # a tool call of the next turn must not be taken by the first one
-    {"call_id": "toolcall:late", "kind": "tool", "parent_id": "agentcall:1", "start_time": "14", "name": "calculate",
-     "input_text": _kwargs(expression="5")},
+    {
+        "call_id": "toolcall:late",
+        "kind": "tool",
+        "parent_id": "agentcall:1",
+        "start_time": "14",
+        "name": "calculate",
+        "input_text": _kwargs(expression="5"),
+    },
 ]
 
 
@@ -63,35 +93,74 @@ def test_requested_tool_calls_are_read_from_the_output():
 
 
 def test_arguments_given_as_a_json_string_are_read():
-    (call,) = requested_tool_calls(_output("t", ("call_a", "read_document", '{"file_path": "a.txt"}')))
+    (call,) = requested_tool_calls(
+        _output("t", ("call_a", "read_document", '{"file_path": "a.txt"}'))
+    )
     assert call.arguments == {"file_path": "a.txt"}
 
 
 def test_tool_calls_are_matched_by_arguments_inside_the_turn():
     trajectory = SessionTrajectory(session_id="s", steps=STEPS)
-    assert match_tool_calls(trajectory, "llmcall:1") == {"call_a": "toolcall:32", "call_b": "toolcall:5"}
+    assert match_tool_calls(trajectory, "llmcall:1") == {
+        "call_a": "toolcall:32",
+        "call_b": "toolcall:5",
+    }
 
 
 def test_an_extended_tool_name_matches_and_a_missing_tool_does_not():
     steps = [
         {"call_id": "agentcall:1", "kind": "agent", "parent_id": ""},
-        {"call_id": "llmcall:1", "kind": "llm", "parent_id": "agentcall:1", "start_time": "1",
-         "output_text": _output("t", ("call_a", "list_documents", {}), ("call_b", "read_document", {"file_path": "x"}))},
-        {"call_id": "toolcall:1", "kind": "tool", "parent_id": "agentcall:1", "start_time": "2",
-         "name": "list_documents_schedule_agent", "input_text": _kwargs()},
+        {
+            "call_id": "llmcall:1",
+            "kind": "llm",
+            "parent_id": "agentcall:1",
+            "start_time": "1",
+            "output_text": _output(
+                "t",
+                ("call_a", "list_documents", {}),
+                ("call_b", "read_document", {"file_path": "x"}),
+            ),
+        },
+        {
+            "call_id": "toolcall:1",
+            "kind": "tool",
+            "parent_id": "agentcall:1",
+            "start_time": "2",
+            "name": "list_documents_schedule_agent",
+            "input_text": _kwargs(),
+        },
     ]
     # the read_document step has not run yet (session in progress): only the first request is matched
-    assert match_tool_calls(SessionTrajectory(session_id="s", steps=steps), "llmcall:1") == {"call_a": "toolcall:1"}
+    assert match_tool_calls(SessionTrajectory(session_id="s", steps=steps), "llmcall:1") == {
+        "call_a": "toolcall:1"
+    }
 
 
 def test_the_same_request_twice_gets_two_steps():
     steps = [
-        {"call_id": "llmcall:1", "kind": "llm", "parent_id": "agentcall:1", "start_time": "1",
-         "output_text": _output("t", ("call_a", "read", {"p": 1}), ("call_b", "read", {"p": 1}))},
-        {"call_id": "toolcall:1", "kind": "tool", "parent_id": "agentcall:1", "start_time": "2", "name": "read",
-         "input_text": _kwargs(p=1)},
-        {"call_id": "toolcall:2", "kind": "tool", "parent_id": "agentcall:1", "start_time": "3", "name": "read",
-         "input_text": _kwargs(p=1)},
+        {
+            "call_id": "llmcall:1",
+            "kind": "llm",
+            "parent_id": "agentcall:1",
+            "start_time": "1",
+            "output_text": _output("t", ("call_a", "read", {"p": 1}), ("call_b", "read", {"p": 1})),
+        },
+        {
+            "call_id": "toolcall:1",
+            "kind": "tool",
+            "parent_id": "agentcall:1",
+            "start_time": "2",
+            "name": "read",
+            "input_text": _kwargs(p=1),
+        },
+        {
+            "call_id": "toolcall:2",
+            "kind": "tool",
+            "parent_id": "agentcall:1",
+            "start_time": "3",
+            "name": "read",
+            "input_text": _kwargs(p=1),
+        },
     ]
     result = match_tool_calls(SessionTrajectory(session_id="s", steps=steps), "llmcall:1")
     assert result == {"call_a": "toolcall:1", "call_b": "toolcall:2"}
@@ -111,7 +180,10 @@ def test_the_tool_calls_are_shown_to_the_claim_extractor():
 
 def test_an_output_with_only_tool_calls_is_not_sent_to_the_llm():
     llm = FakeLLM({"claims": []})
-    node = KGNode(node_type="LLMCall", node={"id": "llmcall:1", "completion": _output("", ("call_a", "calculate", {}))})
+    node = KGNode(
+        node_type="LLMCall",
+        node={"id": "llmcall:1", "completion": _output("", ("call_a", "calculate", {}))},
+    )
     assert ElementExtractor(llm, ClaimExtractionPrompt()).extract(node) == []
     assert llm.calls == []
 
@@ -119,10 +191,17 @@ def test_an_output_with_only_tool_calls_is_not_sent_to_the_llm():
 def test_only_ids_of_the_requests_are_kept_and_only_for_commitments():
     reply = {
         "claims": [
-            {"claim_text": "The agent will calculate the travel time.", "claim_force": "committing",
-             "tool_call_ids": ["call_a", "call_zzz", "call_a"]},
-            {"claim_text": "The trip takes 5 hours.", "claim_force": "assertive", "claim_kind": "factual",
-             "tool_call_ids": ["call_b"]},
+            {
+                "claim_text": "The agent will calculate the travel time.",
+                "claim_force": "committing",
+                "tool_call_ids": ["call_a", "call_zzz", "call_a"],
+            },
+            {
+                "claim_text": "The trip takes 5 hours.",
+                "claim_force": "assertive",
+                "claim_kind": "factual",
+                "tool_call_ids": ["call_b"],
+            },
             {"claim_text": "Check it.", "claim_force": "directive", "tool_call_ids": None},
         ]
     }
@@ -143,11 +222,20 @@ def _setup():
     store = SymbolicSessionStore("s1")
     store.add(
         "claims",
-        Claim(id="c1", claim_text="I will calculate", claim_force="committing", generated_by="llmcall:1",
-              tool_call_ids=["call_a", "call_b"]),
+        Claim(
+            id="c1",
+            claim_text="I will calculate",
+            claim_force="committing",
+            generated_by="llmcall:1",
+            tool_call_ids=["call_a", "call_b"],
+        ),
         "llmcall:1",
     )
-    store.add("claims", Claim(id="c2", claim_text="other", claim_force="committing", generated_by="llmcall:2"), "llmcall:2")
+    store.add(
+        "claims",
+        Claim(id="c2", claim_text="other", claim_force="committing", generated_by="llmcall:2"),
+        "llmcall:2",
+    )
     extractor = SymbolicExtractor()
     extractor.store = store
     return extractor, store
@@ -168,7 +256,10 @@ def test_a_claim_announces_the_tool_calls_it_names():
         symbolic_state_elements={"claims": [{"id": "c1"}, {"id": "c2"}]},
     )
     extractor.annotate_announces([node])
-    assert [c["announces"] for c in node.symbolic_state_elements["claims"]] == [["toolcall:32", "toolcall:5"], []]
+    assert [c["announces"] for c in node.symbolic_state_elements["claims"]] == [
+        ["toolcall:32", "toolcall:5"],
+        [],
+    ]
 
 
 def test_a_tool_call_that_runs_later_is_linked_at_a_later_step():

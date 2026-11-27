@@ -21,7 +21,9 @@ def _client(headers, pricing):
     client = OpenAIChatClient(api_key="x", pricing=pricing)
     create = lambda **_: _RawResponse(headers)  # noqa: E731
     client._client = SimpleNamespace(
-        chat=SimpleNamespace(completions=SimpleNamespace(with_raw_response=SimpleNamespace(create=create)))
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(with_raw_response=SimpleNamespace(create=create))
+        )
     )
     return client
 

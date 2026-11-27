@@ -258,10 +258,7 @@ class SymbolicExtractor:
             node.node_id,
             node.node_type,
             session_id,
-            {
-                key: len(items)
-                for key, items in annotated.symbolic_state_elements.items()
-            },
+            {key: len(items) for key, items in annotated.symbolic_state_elements.items()},
             total.calls,
             total.total_tokens,
             total.cost_usd,
@@ -431,8 +428,7 @@ class SymbolicExtractor:
             "goals": [e.model_dump(mode="json") for e in self.goal_evaluations[goals:]],
             "tasks": [e.model_dump(mode="json") for e in self.task_evaluations[tasks:]],
             "capabilities": [
-                e.model_dump(mode="json")
-                for e in self.capability_evaluations[capabilities:]
+                e.model_dump(mode="json") for e in self.capability_evaluations[capabilities:]
             ],
             "argument_origins": [
                 e.model_dump(mode="json") for e in self.argument_evaluations[arguments:]
@@ -467,9 +463,7 @@ class SymbolicExtractor:
         if store is None:
             return []
         returned = self._returned
-        ids = {i for edge in new_edges for i in (edge.source_id, edge.target_id)} | set(
-            judged
-        )
+        ids = {i for edge in new_edges for i in (edge.source_id, edge.target_id)} | set(judged)
         touched: dict[str, AnnotatedNode] = {}
         for element_id in ids:
             stored = store.get(element_id)
@@ -479,18 +473,14 @@ class SymbolicExtractor:
         if goal_judged:
             for node_id, node in returned.items():
                 elements = node.symbolic_state_elements
-                if node_id != current.node_id and (
-                    elements.get("claims") or elements.get("goals")
-                ):
+                if node_id != current.node_id and (elements.get("claims") or elements.get("goals")):
                     touched[node_id] = node
         before = {node_id: _annotations(node) for node_id, node in touched.items()}
         if current.node_id:
             returned[current.node_id] = current
         self.annotate([current, *touched.values()])
         updated = [
-            node
-            for node_id, node in touched.items()
-            if _annotations(node) != before[node_id]
+            node for node_id, node in touched.items() if _annotations(node) != before[node_id]
         ]
         if updated:
             logger.info(
@@ -577,9 +567,7 @@ class SymbolicExtractor:
             if span.get("id")
         }
 
-    def _link_same_claims(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _link_same_claims(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Add ``same_claims`` to every claim (needs an embedder and the input claims)."""
         if self._embedder is None:
             return
@@ -587,21 +575,15 @@ class SymbolicExtractor:
             logger.info("No input claims: same_claims not computed")
             return
         self.embeddings = embed_result(result, self._embedder)
-        comparator = EmbeddingComparator(
-            self.embeddings, threshold=self._similarity_threshold
-        )
-        links = annotate_same_claims(
-            result, store, comparator, self._same_claim_threshold
-        )
+        comparator = EmbeddingComparator(self.embeddings, threshold=self._similarity_threshold)
+        links = annotate_same_claims(result, store, comparator, self._same_claim_threshold)
         logger.info(
             "same_claims: %d claim -> input claim links above %s",
             links,
             self._same_claim_threshold,
         )
 
-    def _link_same_claims_live(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _link_same_claims_live(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """``_link_same_claims`` for one new node: embed its claims, add them to the session's
         ``self.embeddings`` and annotate that node's claims against its input claims (whose
         embeddings come from the earlier calls)."""
@@ -623,21 +605,15 @@ class SymbolicExtractor:
         if result.symbolic_state is None:
             logger.info("No input claims: same_claims not computed")
             return
-        comparator = EmbeddingComparator(
-            self.embeddings, threshold=self._similarity_threshold
-        )
-        links = annotate_same_claims(
-            result, store, comparator, self._same_claim_threshold
-        )
+        comparator = EmbeddingComparator(self.embeddings, threshold=self._similarity_threshold)
+        links = annotate_same_claims(result, store, comparator, self._same_claim_threshold)
         logger.info(
             "same_claims: %d claim -> input claim links above %s",
             links,
             self._same_claim_threshold,
         )
 
-    def _link_same_task(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _link_same_task(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Link the tasks of the nodes of ``result`` that are identical to a task extracted before
         them in the session: same text once case, extra spaces and trailing punctuation are
         ignored (``same_task_key``, no embeddings). The criteria are not compared.
@@ -648,16 +624,12 @@ class SymbolicExtractor:
         tasks in the order they were extracted, so the same code serves ``process`` (all the
         tasks are there) and ``live_process`` (only the ones up to the current node).
         """
-        earlier: dict[
-            str, list[tuple[str, str]]
-        ] = {}  # key -> [(task id, node id)] seen so far
+        earlier: dict[str, list[tuple[str, str]]] = {}  # key -> [(task id, node id)] seen so far
         same: dict[str, list[str]] = {}  # task id -> ids of the earlier identical tasks
         for stored in store.by_kind("tasks"):
             key = same_task_key(stored.element)
             matches = [
-                task_id
-                for task_id, node_id in earlier.get(key, [])
-                if node_id != stored.node_id
+                task_id for task_id, node_id in earlier.get(key, []) if node_id != stored.node_id
             ]
             same[stored.id] = matches
             earlier.setdefault(key, []).append((stored.id, stored.node_id))
@@ -716,9 +688,7 @@ class SymbolicExtractor:
             for claim in node.symbolic_state_elements.get("claims", []):
                 claim["answers"] = store.related(ANSWERS, claim["id"])
 
-    def _evaluate_goals(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _evaluate_goals(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Run the ``GoalClaimRelationExtractor`` (if any): do the claims of the final answer satisfy
         the goal? Only for a goal that has such claims (``answers``, recorded by ``_link_answers``,
         which needs the final agent call), so nothing is asked before the final answer is extracted.
@@ -740,9 +710,7 @@ class SymbolicExtractor:
         not lose the extraction of the node. The goal is not asked again for the same claims.
         """
         extractors = [
-            e
-            for e in self._relation_extractors
-            if isinstance(e, GoalClaimRelationExtractor)
+            e for e in self._relation_extractors if isinstance(e, GoalClaimRelationExtractor)
         ]
         if not extractors:
             return
@@ -750,9 +718,7 @@ class SymbolicExtractor:
         for extractor in extractors:
             pending = []
             for stored in store.by_kind("goals"):
-                claim_ids = tuple(
-                    c.id for c in extractor.answer_claims(store, stored.element)
-                )
+                claim_ids = tuple(c.id for c in extractor.answer_claims(store, stored.element))
                 if claim_ids and self._evaluated.get(stored.id) != claim_ids:
                     self._evaluated[stored.id] = claim_ids
                     pending.append(stored.element)
@@ -810,9 +776,7 @@ class SymbolicExtractor:
                 if stored is not None:
                     goal["status"] = stored.element.status
 
-    def _evaluate_capabilities(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _evaluate_capabilities(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Run the ``CapabilityTaskRelationExtractor`` (if any): link each task to the capabilities of its
         agent that support it (``supports``, AgentCapability -> task). Every ``Task`` and ``SystemTask`` of the
         store is submitted once, as soon as the capabilities of its agent are known: the task of an agent
@@ -836,9 +800,7 @@ class SymbolicExtractor:
         again: it must not lose the extraction of the node. It ends with no link, like the others.
         """
         extractors = [
-            e
-            for e in self._relation_extractors
-            if isinstance(e, CapabilityTaskRelationExtractor)
+            e for e in self._relation_extractors if isinstance(e, CapabilityTaskRelationExtractor)
         ]
         if not extractors:
             return
@@ -886,16 +848,13 @@ class SymbolicExtractor:
         ``CapabilityTaskRelationExtractor`` is in the pipeline; otherwise the key stays unset."""
         store = self.store
         if store is None or not any(
-            isinstance(e, CapabilityTaskRelationExtractor)
-            for e in self._relation_extractors
+            isinstance(e, CapabilityTaskRelationExtractor) for e in self._relation_extractors
         ):
             return
         for node in nodes:
             for key in ("tasks", "system_tasks"):
                 for task in node.symbolic_state_elements.get(key, []):
-                    task["supported_by_capabilities"] = store.related_from(
-                        SUPPORTS, task["id"]
-                    )
+                    task["supported_by_capabilities"] = store.related_from(SUPPORTS, task["id"])
 
     def _link_produced_by(
         self, store: SymbolicSessionStore, trajectory: SessionTrajectory | None
@@ -977,9 +936,7 @@ class SymbolicExtractor:
             for claim in node.symbolic_state_elements.get("claims", []):
                 claim["announces"] = store.related(ANNOUNCES, claim["id"])
             for fact in node.symbolic_state_elements.get("facts", []):
-                fact["announced_by"] = store.related_from(
-                    ANNOUNCES, fact["grounded_in"]
-                )
+                fact["announced_by"] = store.related_from(ANNOUNCES, fact["grounded_in"])
 
     def _link_system_tasks(
         self, store: SymbolicSessionStore, trajectory: SessionTrajectory | None
@@ -1009,11 +966,7 @@ class SymbolicExtractor:
         """agent -> ids of its agent calls, from the trajectory."""
         calls: dict[str, list[str]] = {}
         for step in trajectory.steps:
-            if (
-                step.get("kind") == "agent"
-                and step.get("agent_id")
-                and step.get("call_id")
-            ):
+            if step.get("kind") == "agent" and step.get("agent_id") and step.get("call_id"):
                 calls.setdefault(step["agent_id"], []).append(step["call_id"])
         return calls
 
@@ -1121,9 +1074,7 @@ class SymbolicExtractor:
         In live mode only the node being processed is annotated: a task returned before the system prompt
         of its agent was read has no ids there, but the relation is in ``self.store``."""
         store = self.store
-        if store is None or not any(
-            e.element_key == "constraints" for e in self._extractors
-        ):
+        if store is None or not any(e.element_key == "constraints" for e in self._extractors):
             return
         for node in nodes:
             for goal in node.symbolic_state_elements.get("goals", []):
@@ -1173,11 +1124,7 @@ class SymbolicExtractor:
         links = 0
         for step in trajectory.steps:
             ids = by_call.get(step.get("parent_id") or "")
-            if (
-                step.get("kind") != "llm"
-                or not ids
-                or not store.claims_for_node(step["call_id"])
-            ):
+            if step.get("kind") != "llm" or not ids or not store.claims_for_node(step["call_id"]):
                 continue
             for claim_id in ids:
                 store.link("input_claim", step["call_id"], claim_id)
@@ -1213,9 +1160,7 @@ class SymbolicExtractor:
             claims = reply_claims(store, trajectory, call_id, reply)
             for claim in claims:
                 store.link(REPLY_CLAIM, call_id, claim.id)
-            receiver = (
-                reply_receiver(store, trajectory, call_id, caller) if claims else None
-            )
+            receiver = reply_receiver(store, trajectory, call_id, caller) if claims else None
             for claim in claims if receiver else []:
                 store.link("input_claim", receiver, claim.id)
                 links += 1
@@ -1267,9 +1212,7 @@ class SymbolicExtractor:
                     if i not in (node.input_claims or [])
                 ]
                 if extra:
-                    node.input_claims = list(
-                        dict.fromkeys([*(node.input_claims or []), *extra])
-                    )
+                    node.input_claims = list(dict.fromkeys([*(node.input_claims or []), *extra]))
 
     def _relate_delegation_claims(
         self, node: AnnotatedNode, store: SymbolicSessionStore
@@ -1280,11 +1223,7 @@ class SymbolicExtractor:
         extractor, no delegation claim, or nothing to compare (no source and a single claim)."""
         usage = LLMUsage()
         extractor = next(
-            (
-                e
-                for e in self._relation_extractors
-                if isinstance(e, ClaimRelationExtractor)
-            ),
+            (e for e in self._relation_extractors if isinstance(e, ClaimRelationExtractor)),
             None,
         )
         if extractor is None or not node.node_id:
@@ -1305,9 +1244,7 @@ class SymbolicExtractor:
         if len(stored) > 1 or store.related("input_claim", node.node_id):
             ids = {s.id for s in stored}
             for claim in node.symbolic_state_elements.get("delegation_claims", []):
-                claim["conflicts_with"] = self._partners(
-                    relations, claim["id"], ids, "conflict"
-                )
+                claim["conflicts_with"] = self._partners(relations, claim["id"], ids, "conflict")
                 claim["same_as"] = self._partners(relations, claim["id"], ids, "same")
                 claim["derived_from"] = [
                     r.other_id
@@ -1316,9 +1253,7 @@ class SymbolicExtractor:
                 ]
         return usage
 
-    def _link_preceding_tasks(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _link_preceding_tasks(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Record the raw order of the tasks: each task of an agent call is ``preceded_by`` the tasks
         of the closest agent call before it that has at least one task. The agent calls are walked
         up through ``call_preceded_by`` (from the trajectory) and the walk stops at the first one
@@ -1344,9 +1279,7 @@ class SymbolicExtractor:
                 task["preceded_by"] = store.related(PRECEDED_BY, task["id"])
                 links += len(task["preceded_by"])
         if links:
-            logger.info(
-                "preceded_by: %d task -> task of an earlier agent call links", links
-            )
+            logger.info("preceded_by: %d task -> task of an earlier agent call links", links)
 
     @staticmethod
     def _closest_tasks(store: SymbolicSessionStore, call_id: str) -> list[str]:
@@ -1376,9 +1309,7 @@ class SymbolicExtractor:
                 return found
         return []
 
-    def _extract_relations(
-        self, result: ExtractionResult, store: SymbolicSessionStore
-    ) -> None:
+    def _extract_relations(self, result: ExtractionResult, store: SymbolicSessionStore) -> None:
         """Run the semantic relation extractors on each node of ``result`` (one node in live mode,
         all of them in ``process``): on the claims generated by the node and the facts linked to
         them (``in_context``). The usage of their LLM requests is added to ``result.llm_usage``
@@ -1434,9 +1365,7 @@ class SymbolicExtractor:
             return usage
         claim_ids = {c.id for c in claims}
         facts = [
-            f
-            for f in store.by_kind("facts")
-            if claim_ids & set(store.related(IN_CONTEXT, f.id))
+            f for f in store.by_kind("facts") if claim_ids & set(store.related(IN_CONTEXT, f.id))
         ]
         elements: list[SymbolicStateElement] = [
             *(c.element for c in claims),
@@ -1444,9 +1373,7 @@ class SymbolicExtractor:
             *(t.element for t in tasks),
         ]
         linked = False  # a FactClaimLinker judged every (fact, claim) pair
-        claim_relations: list[ClaimRelation] | None = (
-            None  # set when a ClaimRelationExtractor ran
-        )
+        claim_relations: list[ClaimRelation] | None = None  # set when a ClaimRelationExtractor ran
         tasks_related = False  # a TaskRelationExtractor judged the tasks of the node
         for extractor in self._relation_extractors:
             if isinstance(extractor, GoalClaimRelationExtractor):
@@ -1478,9 +1405,7 @@ class SymbolicExtractor:
                 continue
             usage = usage + extractor.last_usage
             linked = linked or isinstance(extractor, FactClaimLinker)
-            tasks_related = tasks_related or isinstance(
-                extractor, TaskRelationExtractor
-            )
+            tasks_related = tasks_related or isinstance(extractor, TaskRelationExtractor)
             if isinstance(extractor, ClaimRelationExtractor):
                 claim_relations = [*(claim_relations or []), *relations]
             logger.info(
@@ -1501,9 +1426,7 @@ class SymbolicExtractor:
                 claim["conflicts_with"] = self._partners(
                     claim_relations, claim["id"], claim_ids, "conflict"
                 )
-                claim["same_as"] = self._partners(
-                    claim_relations, claim["id"], claim_ids, "same"
-                )
+                claim["same_as"] = self._partners(claim_relations, claim["id"], claim_ids, "same")
                 claim["derived_from"] = [
                     r.other_id
                     for r in claim_relations
@@ -1515,24 +1438,15 @@ class SymbolicExtractor:
                 task["achieves"] = store.related(ACHIEVES, task["id"])
         return usage
 
-    def _link_tool_arguments(
-        self, node: AnnotatedNode, store: SymbolicSessionStore
-    ) -> None:
+    def _link_tool_arguments(self, node: AnnotatedNode, store: SymbolicSessionStore) -> None:
         """Where do the arguments of the tool call ``node`` come from among the results of the earlier tool
         calls? With the ``ArgumentFactLinker`` (if any), on the fact of the tool call: ``supported_by``
         (fact -> earlier facts, attribute ``arguments``), by text matching and timestamps, no LLM. The earlier facts are in the store when
         the ToolCall node is processed (nodes come in start order). Nothing is done for a node that is not a
         tool call, or without a trajectory. A failing extractor is logged and skipped."""
         trajectory = self.trajectory
-        extractors = [
-            e for e in self._relation_extractors if isinstance(e, ArgumentFactLinker)
-        ]
-        if (
-            not extractors
-            or trajectory is None
-            or node.node_type != "ToolCall"
-            or not node.node_id
-        ):
+        extractors = [e for e in self._relation_extractors if isinstance(e, ArgumentFactLinker)]
+        if not extractors or trajectory is None or node.node_type != "ToolCall" or not node.node_id:
             return
         elements = [s.element for s in store.for_node(node.node_id, "facts")]
         for extractor in extractors:
@@ -1546,9 +1460,7 @@ class SymbolicExtractor:
                     exc_info=True,
                 )
 
-    def _judge_tool_arguments(
-        self, node: AnnotatedNode, store: SymbolicSessionStore
-    ) -> LLMUsage:
+    def _judge_tool_arguments(self, node: AnnotatedNode, store: SymbolicSessionStore) -> LLMUsage:
         """Where do the arguments of the tool call ``node`` come from? With the ``ArgumentOriginExtractor``
         (if any): the fact of the tool call (``grounded_in`` the node) is compared with the claims its agent
         call had made before the call (the claims of its earlier LLM calls, the one that requested it
@@ -1564,16 +1476,9 @@ class SymbolicExtractor:
         usage = LLMUsage()
         trajectory = self.trajectory
         extractors = [
-            e
-            for e in self._relation_extractors
-            if isinstance(e, ArgumentOriginExtractor)
+            e for e in self._relation_extractors if isinstance(e, ArgumentOriginExtractor)
         ]
-        if (
-            not extractors
-            or trajectory is None
-            or node.node_type != "ToolCall"
-            or not node.node_id
-        ):
+        if not extractors or trajectory is None or node.node_type != "ToolCall" or not node.node_id:
             return usage
         for extractor in extractors:
             for stored in store.for_node(node.node_id, "facts"):
@@ -1628,18 +1533,14 @@ class SymbolicExtractor:
         skipped without costing the others theirs. Returns the usage of the requests made.
         """
         usage = LLMUsage()
-        task_ids = list(
-            dict.fromkeys(t for c in claims for t in store.related(PRODUCED_BY, c.id))
-        )
+        task_ids = list(dict.fromkeys(t for c in claims for t in store.related(PRODUCED_BY, c.id)))
         judged: set[str] = set()
         for task_id in task_ids:
             task = store.get(task_id)
             if task is None:
                 continue
             try:
-                evaluations = extractor.extract(
-                    store, [task.element, *(c.element for c in claims)]
-                )
+                evaluations = extractor.extract(store, [task.element, *(c.element for c in claims)])
             except Exception:
                 logger.warning(
                     "%s failed on task %s, node %s",

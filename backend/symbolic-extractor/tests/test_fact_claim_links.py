@@ -81,7 +81,11 @@ def test_text_subject_uses_the_text_prompts_and_labels():
     FactClaimLinker(llm, subject="text").is_derived(FACT, CLAIM)
     system, user = llm.calls[0]
     assert system == TEXT_SYSTEM_PROMPT and system != SYSTEM_PROMPT
-    assert user == render_prompt(FACT, CLAIM, "text") and "=== TEXT ===" in user and "=== CLAIM ===" not in user
+    assert (
+        user == render_prompt(FACT, CLAIM, "text")
+        and "=== TEXT ===" in user
+        and "=== CLAIM ===" not in user
+    )
 
     batch = SequenceLLM("P1: YES")
     pair = FactClaimPair(id="a", fact_text=FACT, claim_text=CLAIM)
@@ -135,7 +139,10 @@ def test_extract_judges_every_fact_claim_pair_and_records_the_backed_ones_in_the
     assert isinstance(linker, SemanticRelationExtractor)
     links = linker.extract(store, [c1, fact, c2])
 
-    assert [(l.fact_id, l.claim_id, l.backed) for l in links] == [("f1", "c1", True), ("f1", "c2", False)]
+    assert [(k.fact_id, k.claim_id, k.backed) for k in links] == [
+        ("f1", "c1", True),
+        ("f1", "c2", False),
+    ]
     assert store.related(SUPPORTED_BY, "c1") == ["f1"]
     assert store.related(SUPPORTED_BY, "c2") == []
     assert linker.last_usage.calls == 2 and linker.last_usage.cost_usd == pytest.approx(0.002)
@@ -242,12 +249,21 @@ def test_batch_rejects_duplicate_ids_and_skips_the_request_for_no_pairs():
 
 def test_batch_link_returns_the_links_of_the_answered_pairs():
     fact = Fact(id="f1", fact_text="Fare: $75", verbatim_source="Fare: $75", grounded_in="t1")
-    c1 = Claim(id="c1", claim_text="The fare is $75.", claim_force="assertive", claim_kind="factual")
-    c2 = Claim(id="c2", claim_text="The fare is $95.", claim_force="assertive", claim_kind="factual")
-    c3 = Claim(id="c3", claim_text="Fares rise in July.", claim_force="assertive", claim_kind="factual")
+    c1 = Claim(
+        id="c1", claim_text="The fare is $75.", claim_force="assertive", claim_kind="factual"
+    )
+    c2 = Claim(
+        id="c2", claim_text="The fare is $95.", claim_force="assertive", claim_kind="factual"
+    )
+    c3 = Claim(
+        id="c3", claim_text="Fares rise in July.", claim_force="assertive", claim_kind="factual"
+    )
     llm = SequenceLLM("P1: YES\nP2: NO", "nothing useful")  # P3 never gets an answer
 
     links, result = BatchFactClaimLinker(llm).link([(fact, c1), (fact, c2), (fact, c3)])
 
-    assert [(l.fact_id, l.claim_id, l.backed) for l in links] == [("f1", "c1", True), ("f1", "c2", False)]
+    assert [(k.fact_id, k.claim_id, k.backed) for k in links] == [
+        ("f1", "c1", True),
+        ("f1", "c2", False),
+    ]
     assert result.missing == ["f1|c3"]

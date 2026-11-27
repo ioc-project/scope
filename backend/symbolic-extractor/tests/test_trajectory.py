@@ -12,8 +12,18 @@ TRAJECTORY = {
     "session_id": "s1",
     "steps": [
         {"call_id": "agentcall:a", "kind": "agent", "agent_id": "moderator", "parent_id": ""},
-        {"call_id": "llmcall:l1", "kind": "llm", "agent_id": "moderator", "parent_id": "agentcall:a"},
-        {"call_id": "toolcall:t1", "kind": "tool", "agent_id": "worker", "parent_id": "agentcall:b"},
+        {
+            "call_id": "llmcall:l1",
+            "kind": "llm",
+            "agent_id": "moderator",
+            "parent_id": "agentcall:a",
+        },
+        {
+            "call_id": "toolcall:t1",
+            "kind": "tool",
+            "agent_id": "worker",
+            "parent_id": "agentcall:b",
+        },
     ],
 }
 

@@ -21,8 +21,15 @@ def _claim(claim_id, call):
 
 def _setup(final_agent_call="agentcall:final"):
     store = SymbolicSessionStore("s1")
-    store.add("goals", Goal(id="g1", goal_text="Plan the trip", success_criteria=["a plan"]), "conv")
-    for claim_id, call in [("c1", "llmcall:early"), ("c2", "llmcall:answer"), ("c3", "llmcall:answer"), ("c4", "llmcall:late")]:
+    store.add(
+        "goals", Goal(id="g1", goal_text="Plan the trip", success_criteria=["a plan"]), "conv"
+    )
+    for claim_id, call in [
+        ("c1", "llmcall:early"),
+        ("c2", "llmcall:answer"),
+        ("c3", "llmcall:answer"),
+        ("c4", "llmcall:late"),
+    ]:
         store.add("claims", _claim(claim_id, call), call)
     trajectory = SessionTrajectory(session_id="s1", steps=STEPS, final_agent_call=final_agent_call)
     extractor = SymbolicExtractor()
@@ -39,14 +46,29 @@ def _node(*claim_ids):
 
 
 def test_final_llm_call_is_the_last_llm_call_of_the_final_agent_call():
-    assert SessionTrajectory(session_id="s", steps=STEPS, final_agent_call="agentcall:final").final_llm_call() == "llmcall:answer"
+    assert (
+        SessionTrajectory(
+            session_id="s", steps=STEPS, final_agent_call="agentcall:final"
+        ).final_llm_call()
+        == "llmcall:answer"
+    )
     # the call that starts last is not the one that delivers the answer
-    assert SessionTrajectory(session_id="s", steps=STEPS, final_agent_call="agentcall:entry").final_llm_call() == "llmcall:early"
+    assert (
+        SessionTrajectory(
+            session_id="s", steps=STEPS, final_agent_call="agentcall:entry"
+        ).final_llm_call()
+        == "llmcall:early"
+    )
 
 
 def test_final_llm_call_is_unknown_without_final_agent_call_or_llm_call():
     assert SessionTrajectory(session_id="s", steps=STEPS).final_llm_call() is None
-    assert SessionTrajectory(session_id="s", steps=STEPS, final_agent_call="agentcall:nope").final_llm_call() is None
+    assert (
+        SessionTrajectory(
+            session_id="s", steps=STEPS, final_agent_call="agentcall:nope"
+        ).final_llm_call()
+        is None
+    )
 
 
 def test_claims_of_the_final_llm_call_answer_the_goal():

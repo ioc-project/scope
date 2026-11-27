@@ -1,9 +1,9 @@
 import json
 
-from symbolic_extractor import SymbolicExtractor, SymbolicSessionStore, SessionData
-from symbolic_extractor.symbolic_state import track_symbolic_state, track_input_facts
+from symbolic_extractor import SessionData, SymbolicExtractor, SymbolicSessionStore
 from symbolic_extractor.extractors import Fact, ToolResultFactExtractor
 from symbolic_extractor.models import SessionTrajectory
+from symbolic_extractor.symbolic_state import track_input_facts, track_symbolic_state
 
 SYSTEM = json.dumps([{"type": "text", "content": "system prompt"}])
 

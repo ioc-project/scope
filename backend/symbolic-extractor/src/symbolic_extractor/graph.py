@@ -1,21 +1,21 @@
-"""Write an extraction result to the KG: the symbolic state elements as nodes linked to the original nodes.
+"""An extraction result as the nodes and edges of the neurosymbolic layer: symbolic state elements as nodes, linked to the original nodes of the execution KG.
 
-Two steps, so the first can be tested without a database:
+Two steps:
 
 * ``to_graph(result)`` turns an ``ExtractionResult`` into labelled nodes and typed edges, named as in the
   ontology (``mas:claimText`` -> ``claimText``, ``mas:supportedBy`` -> ``supportedBy``, ...).
-* ``KGWriter(db).write(result)`` MERGEs them with the Cypher of ``kg_queries``.
+* ``Graph.node_rows()`` / ``Graph.edge_rows()`` give them as plain dicts, ready to be written.
 
-Written to move into scope: ``kg_queries`` becomes a query builder module, ``KGWriter`` a client method that
-takes the ``Connector``. Both only need the two methods of ``GraphDB`` (``execute`` and ``execute_command``).
+Nothing here talks to the KG: the caller hands ``Graph.node_rows()`` and ``Graph.edge_rows()`` to whatever writes
+them (in SCOPE, ``scope.client.neurosymbolic.write_symbolic_state``).
 
 What is written
 ---------------
 Only what ``neurosymbolic-ontology.ttl`` describes, under its names; nothing else is created.
 
 * Labels: ``Claim``, ``Fact``, ``Goal``, ``Task``, ``Constraint``, ``AgentCapability``, ``SystemPrompt``.
-  Properties: the ontology's data properties (``claimText``, ``systemPromptText``, ...) plus ``sessionId`` (to
-  clean a session).
+  Properties: the ontology's data properties (``claimText``, ``systemPromptText``, ...), validated by the
+  generated models of ``scope_ontology`` (``sessionId``, to clean a session, is added by the writer).
 * System prompts: a ``SystemPrompt`` is linked to its ``Agent`` (``systemPromptOf``, the Agent node is matched
   by name). The standing tasks (written as ``Task``), capabilities and system constraints read from it are linked
   to it (``definedIn``) and carry ``source = 'system'``; user constraints carry ``source = 'user'``. So
@@ -28,24 +28,21 @@ Only what ``neurosymbolic-ontology.ttl`` describes, under its names; nothing els
 * The original nodes (``Agent``, ``AgentCall``, ``LLMCall``, ``ToolCall``) are never created or changed: they are
   only matched by id. An edge towards one that is not in the KG is not written and is reported.
 
-Idempotent: ids are deterministic, so writing the same result twice changes nothing. Extraction is not
-deterministic (a new run can word claims differently, so their ids differ): pass ``replace=True`` to delete
-the session's symbolic state before writing the new one.
+Ids are deterministic, so writing the same result twice changes nothing. Extraction is not deterministic (a new
+run can word claims differently, so their ids differ): the writer should replace the session's earlier symbolic
+state, not add to it.
 """
 
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any
 
-from symbolic_extractor import kg_queries as q
+from scope_ontology.models import edges as ontology_edges
+from scope_ontology.models import nodes as ontology_nodes
+
 from symbolic_extractor.models import ExtractionResult
-
-logger = logging.getLogger(__name__)
-
-BATCH_SIZE = 200
 
 #: Element key (``symbolic_state_elements``) -> KG label, for the elements the ontology has a class for.
 ELEMENT_LABELS = {
@@ -124,14 +121,6 @@ _POINTERS = {
 }
 
 
-class GraphDB(Protocol):
-    """The two methods of scope's ``Connector`` that the writer uses."""
-
-    def execute(self, query: Any, params: dict[str, Any] | None = None) -> Any: ...
-
-    def execute_command(self, command: str, params: dict[str, Any] | None = None) -> None: ...
-
-
 @dataclass(frozen=True)
 class GraphNode:
     label: str
@@ -158,41 +147,23 @@ class Graph:
     #: Relations the ontology does not describe (or between labels it does not allow), counted: not written.
     skipped: dict[str, int] = field(default_factory=dict)
 
+    def node_rows(self) -> list[dict[str, Any]]:
+        """The nodes as plain dicts: ``{"label", "id", "props"}``."""
+        return [{"label": n.label, "id": n.id, "props": n.props} for n in self.nodes]
 
-@dataclass
-class WriteReport:
-    """What a write did. ``missing_*`` is what was *not* written, so nothing is lost silently."""
-
-    session_id: str
-    nodes: dict[str, int] = field(default_factory=dict)  # label -> written
-    edges: dict[str, int] = field(default_factory=dict)  # relationship type -> written
-    missing_edges: dict[str, int] = field(default_factory=dict)  # relationship type -> not written
-    missing_nodes: dict[str, list[str]] = field(
-        default_factory=dict
-    )  # KG label -> ids not in the KG
-    dangling: list[tuple[str, str, str]] = field(default_factory=list)
-    skipped: dict[str, int] = field(default_factory=dict)  # not in the ontology: left out on purpose
-    deleted: int = 0
-
-    @property
-    def complete(self) -> bool:
-        return not self.missing_edges and not self.missing_nodes and not self.dangling
-
-    def summary(self) -> str:
-        parts = [
-            f"{sum(self.nodes.values())} nodes ({', '.join(f'{k} {v}' for k, v in sorted(self.nodes.items()))})",
-            f"{sum(self.edges.values())} edges",
+    def edge_rows(self) -> list[dict[str, Any]]:
+        """The edges as plain dicts: ``{"type", "from_id", "from_label", "to_id", "to_label", "props"}``."""
+        return [
+            {
+                "type": e.type,
+                "from_id": e.from_id,
+                "from_label": e.from_label,
+                "to_id": e.to_id,
+                "to_label": e.to_label,
+                "props": e.props,
+            }
+            for e in self.edges
         ]
-        if self.deleted:
-            parts.append(f"{self.deleted} replaced")
-        if self.skipped:
-            parts.append(f"{sum(self.skipped.values())} links outside the ontology left out")
-        if not self.complete:
-            missing = sum(self.missing_edges.values()) + len(self.dangling)
-            parts.append(
-                f"{missing} edges not written, {sum(map(len, self.missing_nodes.values()))} KG nodes missing"
-            )
-        return "; ".join(parts)
 
 
 def camel(name: str) -> str:
@@ -210,15 +181,25 @@ def _scalar(value: Any) -> Any:
     return json.dumps(value, ensure_ascii=False, default=str)
 
 
-def _props(element: dict[str, Any], session_id: str, kind: str) -> dict[str, Any]:
-    props: dict[str, Any] = {"sessionId": session_id}
+def _props(element: dict[str, Any], label: str, kind: str) -> dict[str, Any]:
+    """The properties of an element, as the ontology's node model of ``label`` has them (validated by it).
+
+    Only what the extraction set is kept (no empty defaults): ``claimKind`` must be absent on a committing
+    claim, for instance. ``sessionId`` is not a property of the ontology; the writer adds it.
+    """
+    props: dict[str, Any] = {}
     for key, name in PROPERTIES.items():
         if element.get(key) is not None:
             props[name] = _scalar(element[key])
-    source = CONSTRAINT_SOURCES.get(element.get("origin")) if kind == "constraints" else SOURCES.get(kind)
+    source = (
+        CONSTRAINT_SOURCES.get(element.get("origin"))
+        if kind == "constraints"
+        else SOURCES.get(kind)
+    )
     if source:
         props["source"] = source
-    return props
+    model = getattr(ontology_nodes, label)(id=element["id"], **props)
+    return model.model_dump(exclude_unset=True, exclude={"id"})
 
 
 def to_graph(result: ExtractionResult) -> Graph:
@@ -245,8 +226,12 @@ def to_graph(result: ExtractionResult) -> Graph:
             for element in elements:
                 if element["id"] not in labels:
                     labels[element["id"]] = label
-                    graph.nodes.append(GraphNode(label, element["id"], _props(element, result.session_id, kind)))
-                relations += [(r, element["id"], element[f]) for f, r in _POINTERS.items() if element.get(f)]
+                    graph.nodes.append(
+                        GraphNode(label, element["id"], _props(element, label, kind))
+                    )
+                relations += [
+                    (r, element["id"], element[f]) for f, r in _POINTERS.items() if element.get(f)
+                ]
                 if kind == "system_prompts" and element.get("agent_id"):
                     labels[element["agent_id"]] = "Agent"  # matched by name, not written
                     relations.append(("system_prompt_of", element["id"], element["agent_id"]))
@@ -270,98 +255,8 @@ def to_graph(result: ExtractionResult) -> Graph:
         if labels[source] not in sources or labels[target] not in targets:
             graph.skipped[relation] = graph.skipped.get(relation, 0) + 1
             continue
+        getattr(ontology_edges, name)(
+            source_id=source, target_id=target
+        )  # an edge the ontology has
         graph.edges.append(GraphEdge(name, source, labels[source], target, labels[target]))
     return graph
-
-
-def _chunks(rows: list[Any], size: int = BATCH_SIZE) -> list[list[Any]]:
-    return [rows[i : i + size] for i in range(0, len(rows), size)]
-
-
-def _written(rows: Any) -> int:
-    return int(rows[0]["written"]) if rows else 0
-
-
-class KGWriter:
-    """Writes extraction results with a scope ``Connector`` (or anything with ``execute``/``execute_command``)."""
-
-    def __init__(self, db: GraphDB, batch_size: int = BATCH_SIZE) -> None:
-        self._db = db
-        self._batch_size = batch_size
-        self._indexed: set[str] = set()
-
-    def write(self, result: ExtractionResult, *, replace: bool = False) -> WriteReport:
-        graph = to_graph(result)
-        report = WriteReport(session_id=result.session_id, dangling=graph.dangling, skipped=graph.skipped)
-        if replace:
-            report.deleted = self._clean(result.session_id)
-        by_label: dict[str, list[dict[str, Any]]] = {}
-        for node in graph.nodes:
-            by_label.setdefault(node.label, []).append({"id": node.id, "props": node.props})
-        for label, rows in by_label.items():
-            self._ensure_index(label)
-            for batch in _chunks(rows, self._batch_size):
-                query, params = q.merge_nodes_query(label, batch)
-                report.nodes[label] = report.nodes.get(label, 0) + _written(
-                    self._db.execute(query, params)
-                )
-
-        missing = self._missing_kg_nodes(graph)
-        report.missing_nodes = missing
-        by_key: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
-        for edge in graph.edges:
-            by_key.setdefault((edge.type, edge.from_label, edge.to_label), []).append(
-                {"from_id": edge.from_id, "to_id": edge.to_id, "props": edge.props}
-            )
-        for (edge_type, from_label, to_label), rows in by_key.items():
-            written = 0
-            for batch in _chunks(rows, self._batch_size):
-                query, params = q.merge_edges_query(edge_type, from_label, to_label, batch)
-                written += _written(self._db.execute(query, params))
-            report.edges[edge_type] = report.edges.get(edge_type, 0) + written
-            if written < len(rows):
-                report.missing_edges[edge_type] = (
-                    report.missing_edges.get(edge_type, 0) + len(rows) - written
-                )
-        if not report.complete:
-            logger.warning("Session %s written with gaps: %s", result.session_id, report.summary())
-        return report
-
-    def _ensure_index(self, label: str) -> None:
-        if label in self._indexed:
-            return
-        self._db.execute_command(q.ensure_index_query(label))
-        self._indexed.add(label)
-
-    def _clean(self, session_id: str) -> int:
-        labels = sorted(ELEMENT_LABELS.values())
-        query, params = q.clean_session_query(labels, session_id)
-        rows = self._db.execute(query, params)
-        return int(rows[0]["deleted"]) if rows else 0
-
-    def _missing_kg_nodes(self, graph: Graph) -> dict[str, list[str]]:
-        """Ids the edges point at, among the original KG nodes, that the KG does not have."""
-        wanted: dict[str, set[str]] = {}
-        for edge in graph.edges:
-            for node_id, label in ((edge.from_id, edge.from_label), (edge.to_id, edge.to_label)):
-                if label in KG_LABELS:
-                    wanted.setdefault(label, set()).add(node_id)
-        missing: dict[str, list[str]] = {}
-        for label, ids in wanted.items():
-            found: set[str] = set()
-            for batch in _chunks(sorted(ids), self._batch_size):
-                query, params = q.existing_ids_query(label, batch)
-                found |= {row["id"] for row in self._db.execute(query, params) or []}
-            if ids - found:
-                missing[label] = sorted(ids - found)
-        return missing
-
-
-def writer_from_env() -> KGWriter:
-    """A writer on the SCOPE API's shared Neo4j connector (same settings as ``KGSessionReader.from_env``)."""
-    from dotenv import find_dotenv, load_dotenv
-
-    load_dotenv(find_dotenv(usecwd=True))
-    from scope.dependencies import get_neo4j_connector
-
-    return KGWriter(get_neo4j_connector())

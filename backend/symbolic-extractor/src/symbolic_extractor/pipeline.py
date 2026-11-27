@@ -24,7 +24,6 @@ from symbolic_extractor.extractors import (
     ToolResultFactExtractor,
     UserConstraintPrompt,
 )
-from symbolic_extractor.kg_reader import KGSessionReader
 from symbolic_extractor.llm import OpenAIChatClient
 from symbolic_extractor.relations import (
     ArgumentFactLinker,
@@ -39,7 +38,6 @@ from symbolic_extractor.relations import (
 
 
 def build_pipeline(
-    reader: KGSessionReader | None,
     llm: OpenAIChatClient,
     *,
     embedder: TextEmbedder | None = None,
@@ -77,7 +75,6 @@ def build_pipeline(
         DelegationClaimExtractor(llm),
     ]
     return SymbolicExtractor(
-        reader,
         extractors,
         embedder=embedder,
         same_claim_threshold=same_claim_threshold,

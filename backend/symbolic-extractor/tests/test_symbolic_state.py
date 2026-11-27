@@ -4,14 +4,14 @@ from pathlib import Path
 import pytest
 
 from symbolic_extractor import SymbolicSessionStore
+from symbolic_extractor.extractors.claims import Claim
+from symbolic_extractor.output import read_trajectory_file
 from symbolic_extractor.symbolic_state import (
     build_transitions,
     input_texts,
     route_decision,
     track_symbolic_state,
 )
-from symbolic_extractor.extractors.claims import Claim
-from symbolic_extractor.output import read_trajectory_file
 
 SYSTEM = json.dumps([{"type": "text", "content": "You are a bot. Paris is nice."}])
 

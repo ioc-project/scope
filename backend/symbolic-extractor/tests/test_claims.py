@@ -1,13 +1,13 @@
 import json
 
-from symbolic_extractor import SymbolicExtractor, ExtractionRequest, KGSessionReader
+import pytest
+
+from symbolic_extractor import SessionData, SymbolicExtractor
 from symbolic_extractor.extractors import ClaimExtractionPrompt, ElementExtractor
 from symbolic_extractor.extractors.claims import is_verbatim, readable_output, recover_verbatim
 from symbolic_extractor.llm import LLMReply, parse_json_object
 from symbolic_extractor.models import KGNode, SessionData
 from symbolic_extractor.usage import LLMUsage, TokenPricing
-
-import pytest
 
 
 class FakeLLM:
@@ -21,14 +21,6 @@ class FakeLLM:
             data=self.reply,
             usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=20, cost_usd=0.001),
         )
-
-
-class FakeProvider:
-    def __init__(self, payload):
-        self.payload = payload
-
-    def fetch(self, resource_id, requirements):
-        return self.payload
 
 
 LLM_NODE = KGNode(
@@ -228,12 +220,9 @@ def test_pipeline_sorts_by_time_and_keeps_original_node():
         "tool_spans": [{"id": "t-notime"}],
     }
     llm = FakeLLM({"claims": [{"claim_text": "c", "claim_force": "assertive", "claim_kind": "factual"}]})
-    pipeline = SymbolicExtractor(
-        KGSessionReader(FakeProvider(payload)),
-        [ElementExtractor(llm, ClaimExtractionPrompt())],
-    )
+    pipeline = SymbolicExtractor([ElementExtractor(llm, ClaimExtractionPrompt())])
 
-    result = pipeline.run(ExtractionRequest(session_id="s1"))
+    result = pipeline.process(SessionData.from_payload(payload))
 
     assert [n.node["id"] for n in result.nodes] == ["a1", "l-early", "l-late", "t-notime"]
     by_id = {n.node["id"]: n for n in result.nodes}

@@ -1,14 +1,13 @@
-"""Functional test: fetch a set of traces from the KG, run the full extraction on each, and check
-that the output of every trace is correct (see ``CHECKS``).
+"""Functional test: read a set of traces from the KG, run the full extraction on each (the worker's, without
+writing), and check that the output of every trace is correct (see ``CHECKS``).
 
 It needs the KG and a real LLM (``.env``) and costs LLM calls, so the test is marked ``live``:
 
     uv run pytest --live tests/test_functional_traces.py            # the sessions of functional_sessions.txt
     uv run pytest --live tests/test_functional_traces.py --sessions <id>,<id>
 
-The traces are fetched and extracted exactly as ``symbolic-extractor <sid>`` does (embeddings off:
-no check needs ``same_claims``), into a temporary folder, so ``input/`` and ``output/`` are not
-touched. At the end a list of PASS / FAIL per trace and check is printed, headed by the name of the
+The traces are read and extracted exactly as the worker does (embeddings off: no check needs ``same_claims``);
+the outputs are saved in a temporary folder. At the end a list of PASS / FAIL per trace and check is printed, headed by the name of the
 MAS of the trace.
 
 The checks themselves are plain functions on the output JSON and are tested below without KG or
@@ -24,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from symbolic_extractor.extractors.claims import _first_text, is_verbatim
 from symbolic_extractor.extractors.facts import tool_output_text
 from symbolic_extractor.extractors.tasks import skip_reason
@@ -650,11 +648,15 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
 
 
 def _extract(session_id: str, workdir: Path) -> Result:
-    """Fetch the session from the KG and run the whole extraction, as the CLI does."""
-    from symbolic_extractor.__main__ import main
+    """Read the session from the KG and run the whole extraction (embeddings off), as the worker does, but
+    without writing to the KG. The output is also saved under ``workdir``."""
+    from symbolic_extractor_worker.worker import SymbolicExtractorWorker
 
+    worker = SymbolicExtractorWorker("amqp://unused", "unused", same_claims=False)
+    result = worker.extract_result(session_id)
     output = workdir / "output" / f"{session_id}.json"
-    main([session_id, "--input-dir", str(workdir / "input"), "-o", str(output), "--no-same-claims"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(result.model_dump_json(indent=2), encoding="utf-8")
     return json.loads(output.read_text(encoding="utf-8"))
 
 
@@ -663,11 +665,10 @@ def _mas_name(session_id: str) -> str:
         from dotenv import find_dotenv, load_dotenv
 
         load_dotenv(find_dotenv(usecwd=True))
+        from scope.client.neurosymbolic import get_mas_name
         from scope.dependencies import get_neo4j_connector
 
-        from symbolic_extractor.kg_reader import fetch_mas_name
-
-        return fetch_mas_name(get_neo4j_connector(), session_id) or "unknown MAS"
+        return get_mas_name(get_neo4j_connector(), session_id) or "unknown MAS"
     except Exception as exc:  # the name only labels the report
         logger.warning("MAS name of %s not available: %s", session_id, exc)
         return "unknown MAS"

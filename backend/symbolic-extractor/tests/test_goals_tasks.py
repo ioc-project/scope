@@ -8,8 +8,8 @@ from symbolic_extractor.extractors import (
     GoalExtractionPrompt,
     TaskExtractionPrompt,
 )
-from symbolic_extractor.llm import LLMReply
 from symbolic_extractor.extractors.tasks import skip_reason
+from symbolic_extractor.llm import LLMReply
 from symbolic_extractor.models import KGNode, SessionData
 from symbolic_extractor.usage import LLMUsage
 
@@ -412,7 +412,6 @@ def _agent_with_task(node_id, agent):
 
 
 def test_identical_tasks_of_different_agent_calls_are_linked_with_same_as():
-    from symbolic_extractor.store import SymbolicSessionStore
 
     texts = {"a": "Find the cheapest train.", "b": "find the cheapest  train", "c": "Book a hotel."}
 

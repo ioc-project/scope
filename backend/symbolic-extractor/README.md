@@ -1,20 +1,30 @@
-# Symbolic state element extractor works
+# Symbolic state element extractor
+
+A library that turns one session of a multi-agent system into its **symbolic state**: claims, facts, goals, tasks,
+constraints, capabilities and system prompts, and the relations between them. It works on Python objects and JSON
+only: it has **no knowledge of the KG**. Reading a session from the KG and writing the result back is the job of
+the [symbolic-extractor-worker](../workers/symbolic-extractor-worker), which uses this library together with the
+API library (`scope.client.neurosymbolic`).
+
+```
+session data + trajectory (dicts / JSON)      ExtractionResult             nodes and edges (dicts)
+  SessionData, SessionTrajectory   --process-->  nodes, edges, usage  --to_graph-->  Graph.node_rows() / edge_rows()
+```
 
 ## Usage
 
-Run everything from `backend/symbolic-extractor/` with [uv](https://docs.astral.sh/uv/). The SCOPE libraries and `dem` are members of the `backend/` uv workspace. `dem` is in the `embeddings` extra, so install it once:
+Run everything from `backend/symbolic-extractor/` with [uv](https://docs.astral.sh/uv/). `dem` is a member of the `backend/` uv workspace; it is in the `embeddings` extra, so install it once:
 
 ```bash
 uv sync --python 3.13 --extra embeddings --extra dev
 ```
 
-`--python 3.13` is needed because `gensim` (a dependency of `dem`) has no wheel for Python 3.14 yet. Then every command below is run with `uv run`.
+`--python 3.13` is needed because `gensim` (a dependency of `dem`) has no wheel for Python 3.14 yet.
 
-### Configuration (`.env` in this folder, or exported variables)
+### Configuration (`.env`, or exported variables)
 
 | Variable | Used for | Default |
 |---|---|---|
-| `NEO4J_HOST` / `NEO4J_URI`, `NEO4J_PORT`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE` | Reading the session from the SCOPE KG (not needed with `--from-file`) | SCOPE API settings |
 | `OPENAI_API_KEY` or `LLM_API_KEY` | LLM and embedding calls | required |
 | `LLM_BASE_URL` or `OPENAI_BASE_URL` | OpenAI-compatible endpoint (LiteLLM proxy) | OpenAI |
 | `LLM_MODEL_NAME` | Extraction model | `gpt-4o` |
@@ -23,55 +33,45 @@ uv sync --python 3.13 --extra embeddings --extra dev
 
 Variables already exported in the shell take precedence over `.env`.
 
-### 1. Extract the symbolic state elements: `symbolic-extractor`
+### 1. Extract the symbolic state elements
 
-```bash
-uv run symbolic-extractor <session_id> [options]
+```python
+from symbolic_extractor import SessionData, SessionTrajectory
+from symbolic_extractor.llm import OpenAIChatClient
+from symbolic_extractor.pipeline import build_pipeline
+
+data = SessionData.from_payload(session_payload)                 # the session, as a dict
+trajectory = SessionTrajectory.model_validate(trajectory_dict)   # its calls in execution order
+pipeline = build_pipeline(OpenAIChatClient.from_env(), embedder=None)   # one pipeline per session
+result = pipeline.process(data, trajectory=trajectory)           # ExtractionResult
 ```
 
-Pipeline: read the session (and its trajectory) from the KG, extract the claims of every LLM call with the LLM, work out which claims each LLM call received as input (`input_claims`), then compare each claim with those input claims by embedding distance (`same_claims`). Facts are also extracted from every tool call, without an LLM, and tracked into the LLM inputs (`input_facts`). The goal of the session is extracted from its user request (one LLM request), and the tasks from the input of the agent calls (one LLM request per call that carries an assignment). The system prompt and standing tasks of each agent are read from its first LLM call, its constraints are extracted from the same prompt (separate request), and the claims of the brief an agent writes when it delegates (`delegate_to_<agent>`) are extracted from the input of the receiving agent call. The constraints of the user request get their own request, apart from the goal, and the capabilities of each agent (what it is able to do) are extracted from the same system prompt, again in a separate request. How each element is extracted and linked is described in [Claims](#claims), [Facts](#facts), [Goals](#goals), [Tasks](#tasks), [Constraints](#constraints) and [Capabilities](#capabilities).
+`build_pipeline` (`pipeline.py`) holds the extractors and relation extractors in the order they run; pass a
+`TextEmbedder` as `embedder` to compute `same_claims`. A `SymbolicExtractor` can also be built by hand with only the
+extractors you need (the tests do).
 
-| Option | Meaning | Default |
+Pipeline: extract the claims of every LLM call with the LLM, work out which claims each LLM call received as input (`input_claims`), then compare each claim with those input claims by embedding similarity (`same_claims`), and extract and link the other elements. Without a trajectory, claims are still extracted but `input_claims` and `same_claims` are not computed. Claim extraction runs the LLM again on every run, so the claims (and their ids) vary a little between runs.
+
+Settings of `build_pipeline` and `SymbolicExtractor`:
+
+| Parameter | Meaning | Default |
 |---|---|---|
-| `session_id` | Session to process | required |
-| `-o`, `--output PATH` | Result JSON | `output/<session_id>.json` |
-| `--input-dir DIR` | Where the data fetched from the KG is saved and read back from | `input` |
-| `--from-file [PATH]` | Load the session from a saved input file instead of the KG (no database access). Without `PATH`, uses `<input-dir>/<session_id>.json`; the trajectory is read from `<input-dir>/trajectory_<session_id>.json` if present | read from the KG |
-| `--fetch-only` | Only fetch from the KG and save the input files, no LLM calls. Cannot be combined with `--from-file` | off |
-| `--live` | Process the session node by node with `live_process` (see [Live mode](#live-mode-symbolicextractorlive_process)); `same_claims` are computed one node at a time | off |
-| `--html` | After the extraction, run `scripts/claims_graph.py` on the result JSON; the page is written next to it as `<session_id>_claims.html` | off |
-| `--no-same-claims` | Skip the embeddings and `same_claims` | off |
-| `--no-fact-match` | Do not check that a fact occurs in the input of an LLM call: every fact of the tool calls of its agent call that finished before the call started is an `input_fact`. Use it when the stored inputs are cut (see [Cut LLM inputs](#cut-llm-inputs-and---no-fact-match)) | off |
-| `--same-claim-threshold P` | A claim lists an input claim in `same_claims` when their same-claim probability is above `P` | `0.7` |
-| `--similarity-threshold S` | Embedding similarity at which that probability is 0.5. Lower it to accept looser paraphrases | `0.85` |
+| `embedder` | A `TextEmbedder`; without one, `same_claims` is not computed | none |
+| `same_claim_threshold` | A claim lists an input claim in `same_claims` when their same-claim probability is above it | `0.7` |
+| `similarity_threshold` | Embedding similarity at which that probability is 0.5. Lower it to accept looser paraphrases | `0.85` |
+| `match_input_facts` | `False`: do not check that a fact occurs in the input of an LLM call, every fact of the tool calls of its agent call that finished before the call started is an `input_fact`. Use it when the stored inputs are cut (see below) | `True` |
 
-Typical sequence:
+`symbolic_extractor.output` has the file helpers to keep a session, its trajectory and a result as JSON
+(`session_file`, `trajectory_file`, `write_json`, `read_session_file`, `read_trajectory_file`, `read_result_file`).
 
-```bash
-# 1. fetch once from the KG (saves input/<sid>.json and input/trajectory_<sid>.json)
-uv run symbolic-extractor <sid> --fetch-only
-# 2. extract offline from the saved files, as many times as needed
-uv run symbolic-extractor <sid> --from-file --similarity-threshold 0.80
-# same, for a session whose LLM inputs are cut (SRE): input_facts without the text check, live replay, HTML page
-uv run symbolic-extractor <sid> --from-file --live --html --no-fact-match
-```
-
-Without a trajectory file, claims are still extracted but `input_claims` and `same_claims` are not computed. Claim extraction runs the LLM again on every run, so the claims (and their ids) vary a little between runs.
-
-Files written:
-
-| File | Content |
-|---|---|
-| `input/<sid>.json`, `input/trajectory_<sid>.json` | Session and trajectory fetched from the KG |
-| `output/<sid>.json` | Nodes with `symbolic_state_elements.claims` (each with `claim_text`, `claim_force`, `claim_kind`, `verbatim_source`, `id`, `generated_by`, `same_claims`) on LLM calls and `symbolic_state_elements.facts` (`fact_text`, `fact_source_type`, `verbatim_source`, `id`, `grounded_in`) on tool calls, `symbolic_state_elements.goals` (`goal_text`, `success_criteria`, `rationale`, `inferred`, `status`, `id`) on the first node, `tasks` and `delegation_claims` on `AgentCall` nodes (with `system_tasks` and `source_claims`, lists of ids), `system_prompts` and `system_tasks` on the LLM call where the agent prompt was read, `capabilities` (`capability_text`, `agent_id`, `system_prompt_id`, `read_from`, `truncated`, `id`) on that same LLM call (with `capabilities`, a list of ids, on the `AgentCall` nodes), `constraints` (`constraint_text`, `constraint_strength`, `origin`, ...) on the `Conversation` node (user) and on that LLM call (system), with `bounded_by` (ids of constraints) on the goals and tasks, `Conversation`, per-LLM-call `input_claims` (which also lists the delegation claims of the brief received by its agent call) and `input_facts`, `symbolic_state` (agent transitions), `edges` (every relation between two ids, see [Edges and late relations](#edges-and-late-relations)) and LLM usage |
-| `output/embeddings_<sid>.json` | Embedding vectors of `claim_text` and `verbatim_source` for each claim (large, kept apart) |
+The result has the nodes (the Conversation node and one per call) with `symbolic_state_elements` (`claims` with `claim_text`, `claim_force`, `claim_kind`, `verbatim_source`, `id`, `generated_by`, `same_claims` on LLM calls, `facts`, `goals`, `tasks`, ...), the `edges` between the elements, and the LLM usage. `to_graph(result)` turns it into the nodes and edges of the neurosymbolic ontology (see `graph.py`); that is what the worker writes to the KG.
 
 `same_claims` is only present on claims of LLM calls whose input claims were computed; it is `[]` when nothing matches, best match first.
 
 **The `LLM usage` line** adds up every request sent to the LLM endpoint, whatever element or relation it is for (`llm_usage_by_element` splits it: one key per element kind, and `relations` for all the semantic relations and the goal / task judgements). Checked by spying on every request of the client against the report, on the SRE session (55 requests) and a trip planner one (132, of which 85 fact-claim text requests): calls, prompt tokens, completion tokens and cost match exactly. What it counts and what it does not:
 
 - A request whose reply is not a JSON object (the relation extractors ask a second time) is counted: `UnusableReply` carries its usage.
-- The cost of a request is the one the proxy returns (`x-litellm-response-cost`, the price of the model in the proxy). Without that header the prices of `LLM_INPUT_COST_PER_1M` / `LLM_OUTPUT_COST_PER_1M` are used (a single price per direction, so an approximation), and without them the cost is unknown and left out of the sum. Both cases are counted in `estimated_cost_calls` and `unpriced_calls` of the usage and the CLI prints a `WARNING` line when either is not 0: the total is then an estimate or a lower bound. Seen once on the SRE session: the proxy sent no header for any of the 55 requests and the `.env` placeholder prices (2.5 / 2.5 USD per million) gave 10 times the real cost of the same run.
+- The cost of a request is the one the proxy returns (`x-litellm-response-cost`, the price of the model in the proxy). Without that header the prices of `LLM_INPUT_COST_PER_1M` / `LLM_OUTPUT_COST_PER_1M` are used (a single price per direction, so an approximation), and without them the cost is unknown and left out of the sum. Both cases are counted in `estimated_cost_calls` and `unpriced_calls` of the usage and a `WARNING` is logged when either is not 0: the total is then an estimate or a lower bound. Seen once on the SRE session: the proxy sent no header for any of the 55 requests and the `.env` placeholder prices (2.5 / 2.5 USD per million) gave 10 times the real cost of the same run.
 - **Not counted:** the embeddings of `same_claims` (the embedding backend returns no usage; their cost is tiny next to the chat requests, and the number of texts is `TextEmbedder.texts_embedded`), and the requests the OpenAI client repeats by itself after a network error (a failed request is normally not billed).
 
 `input_facts` (LLM calls, like `input_claims`; needs the trajectory) lists the facts present in the call's input. See [Facts](#facts) for the rules.
@@ -85,7 +85,7 @@ Files written:
 - with an embedder it embeds the claims of the node and adds them to `extractor.embeddings` (which accumulates over the session), then compares them to the node's input claims, whose embeddings come from the earlier calls: `same_claims` and the `same_claim` relations are set for this node only. Without a trajectory the claims are embedded but not compared;
 - an `AgentCall` node with delegation claims also gets its `source_claims`, and the brief claims are linked to the LLM calls of that agent call as in `process` (see [Delegation claims](#delegation-claims-claims-of-the-brief-an-agent-sends-when-it-delegates)); the receiver's LLM calls usually arrive after the `AgentCall`, so the link is made when they are processed; the reply claims of a delegated agent call are linked to the caller's next LLM call when that call is processed;
 - it returns an `ExtractionResult` with that node only, the usage of the call, the `symbolic_state` over the trajectory so far, the `edges` recorded in this step and `updated_nodes`, the earlier nodes this step brought up to date (see [Edges and late relations](#edges-and-late-relations));
-- at the end, it runs the `relation_extractors` given to `SymbolicExtractor` (for example `FactClaimLinker`, from `symbolic_extractor.relations`) on the claims the node generated plus the facts linked to them by `in_context`. `FactClaimLinker` records `supported_by` (claim -> fact) in the store for the backed pairs, and sets `supported_by` (the list of fact ids, `[]` if none) on each claim of the node in the result, like `same_claims` (claims with no fact in context are not judged and have no `supported_by` key), and its LLM requests are added to the usage (`llm_usage_by_element["relations"]`). A relation extractor that fails is logged and skipped. `process` runs them too, once the whole session is extracted (on every node), and the CLI sets up a `FactClaimLinker` and a `ClaimRelationExtractor` by default (conflict / same / derived from between the node's claims and its input claims, see Links).
+- at the end, it runs the `relation_extractors` given to `SymbolicExtractor` (for example `FactClaimLinker`, from `symbolic_extractor.relations`) on the claims the node generated plus the facts linked to them by `in_context`. `FactClaimLinker` records `supported_by` (claim -> fact) in the store for the backed pairs, and sets `supported_by` (the list of fact ids, `[]` if none) on each claim of the node in the result, like `same_claims` (claims with no fact in context are not judged and have no `supported_by` key), and its LLM requests are added to the usage (`llm_usage_by_element["relations"]`). A relation extractor that fails is logged and skipped. `process` runs them too, once the whole session is extracted (on every node), and `build_pipeline` sets up a `FactClaimLinker` and a `ClaimRelationExtractor` by default (conflict / same / derived from between the node's claims and its input claims, see Links).
 
 The tracking needs the session trajectory so far, with the step of the node (and so its AgentCall). Pass it as `trajectory`; if not given, the extractor reads it from the KG when its reader was built with a trajectory fetcher (`KGSessionReader.from_env()`). Without a trajectory the elements are still extracted and stored but `input_claims` stays `None`. Feed the nodes in the order they appear, since a node only sees the claims already in the store.
 
@@ -145,17 +145,13 @@ flowchart TD
     ST <-.-> S4
 ```
 
-From the CLI, `--live` replays a session through `live_process`: the session (and trajectory) is fetched or loaded from file as usual, then every node is processed in start time order. The output file has the same format as the per-session run, and the embeddings file is written too. Since a claim is only compared with claims already seen, the result matches the per-session one when the nodes arrive in order. The replay is not fully live for the order of the agent calls: every node gets the complete trajectory, with all the steps and all the KG handoffs, including those of calls that come later.
+`live_process` can replay a session node by node: the session (and trajectory) is fetched or loaded from file as usual, then every node is processed in start time order. The output file has the same format as the per-session run, and the embeddings file is written too. Since a claim is only compared with claims already seen, the result matches the per-session one when the nodes arrive in order. The replay is not fully live for the order of the agent calls: every node gets the complete trajectory, with all the steps and all the KG handoffs, including those of calls that come later.
 
 **Ordering of AgentCall and LLMCall nodes.** Some links go through the agent call that owns an LLM call (`produced_by`, hence the task judgement `fulfils_task`). They are computed on the store as it is: the task of an agent call, extracted from its AgentCall node, must be in the store when the claims of its LLM calls are processed. `process` does not care (everything is there); `--live` relies on the nodes arriving in start time order, an AgentCall before its LLM calls. Claims of an LLM node that arrives before its AgentCall get no `produced_by` at that moment and are not judged against the task.
 
-```bash
-uv run symbolic-extractor <session_id> --from-file --live
-```
-
 #### Edges and late relations
 
-The store keeps every relation as an `Edge` (`edge_type`, `source_id`, `target_id`, `attributes`; the shape of the `KGEdge` of the ontology, which has no attributes): `store.link(relation, source, target, **attributes)` records one (it returns `True` when the edge is new; linking again updates the attributes), `store.edges()` lists them in the order they were first recorded, `store.edge_count()` counts them and `store.edges_since(n)` lists those after the first `n`. The ids are the ones of the elements, or of an `AgentCall` for the relations of a call (`has_capability`, `has_system_task`, `input_claim`, ...). The `edges` of the result are the relations of the output: `process` returns all of them, `live_process` the ones recorded in that step, which can join elements of nodes returned earlier (a late relation), and the CLI writes them all in `output/<sid>.json`. **The edges are the source of truth.** The attributes the nodes carry for each relation (`produced_by`, `system_tasks`, `capabilities`, `bounded_by`, `answers`, `fulfils`, `supported_by_capabilities`, ...) are copies read from the store, kept for the consumers that read the node alone.
+The store keeps every relation as an `Edge` (`edge_type`, `source_id`, `target_id`, `attributes`; the shape of the `KGEdge` of the ontology, which has no attributes): `store.link(relation, source, target, **attributes)` records one (it returns `True` when the edge is new; linking again updates the attributes), `store.edges()` lists them in the order they were first recorded, `store.edge_count()` counts them and `store.edges_since(n)` lists those after the first `n`. The ids are the ones of the elements, or of an `AgentCall` for the relations of a call (`has_capability`, `has_system_task`, `input_claim`, ...). The `edges` of the result are the relations of the output: `process` returns all of them, `live_process` the ones recorded in that step, which can join elements of nodes returned earlier (a late relation), and `output.write_json` writes them all. **The edges are the source of truth.** The attributes the nodes carry for each relation (`produced_by`, `system_tasks`, `capabilities`, `bounded_by`, `answers`, `fulfils`, `supported_by_capabilities`, ...) are copies read from the store, kept for the consumers that read the node alone.
 
 In live mode a relation can arrive after the node it belongs to was returned: the capabilities and standing tasks of an agent are read from its first LLM call, which comes after the `AgentCall` node holding its first task, so that task is linked one node later. `live_process` keeps the nodes it returned (`extractor._returned`) and, at the end of a step, reads the store again (`annotate`, a plain read: no LLM request, the same result if called twice) for the earlier nodes the step touched:
 
@@ -167,15 +163,9 @@ The nodes are modified in place, and `ExtractionResult.updated_nodes` lists thos
 
 What the refresh does not cover: the relations judged when a node is processed (`supported_by`, `conflicts_with`, `implements`, `fulfils_task`, `same_claims`, ...) are set once, on that node. A symmetric relation recorded by a later node (`same_as` between two claims) is not copied to the attribute of the earlier claim, though its edge exists in both directions. Read the edges for the relations.
 
-### 2. Embeddings only: `symbolic-extractor-embeddings`
+### 2. Embeddings only
 
-Recompute the embeddings of an existing result without running the extraction:
-
-```bash
-uv run symbolic-extractor-embeddings output/<sid>.json [-o embeddings.json]
-```
-
-`-o` defaults to `embeddings_<sid>.json` next to the result file.
+`embeddings.embed_result(result, embedder)` embeds the text fields of the elements of an existing result, without running the extraction, and returns an `EmbeddingSet` (write it with `output.write_json`, `embeddings_file`).
 
 ### 3. Claims graph: `scripts/claims_graph.py`
 
@@ -225,12 +215,7 @@ uv run pytest -p no:cacheprovider -q          # the real-LLM test is skipped
 uv run pytest -p no:cacheprovider -q --live   # includes the real-LLM test
 ```
 
-**Functional test** (`tests/test_functional_traces.py`, needs the KG and the LLM, so `--live` only): fetches a set of traces, runs the full extraction on each (as the CLI does, in a temporary folder, embeddings off) and checks the output of every trace. The traces are listed in `tests/functional_sessions.txt` (or `--sessions id1,id2`). The checks: something is extracted (goal, tasks, claims); every task is connected (`same_as`, `preceded_by` or `achieves`); every goal is achieved by at least one task; every relation points to an element of the output (delegation claims included) and no task order has a cycle; every goal is answered by at least one claim (`answers` of a claim, see the Claims section; a trace whose KG has no final State fails it). Checks that need no ground truth, only the output and the KG data it carries: a claim's `verbatim_source` occurs in the output of the LLM call that generated it (compared like the extractor does, `is_verbatim`, so the extractor already drops quotes it cannot find: this guards against regressions rather than finding invented quotes); every claim's `generated_by` is a node of the output; `preceded_by`, `same_as` and `implements` of a task and `derived_from`, `same_as` and `supported_by` of a claim point to an element that does not start after it (the time of a task is the start of the agent call that owns it, the one of a claim the start of the LLM call that generated it, the one of a fact the start of its tool call); the task relation rules (`implements` within `preceded_by`, `achieves` only without predecessor, no `implements` of a `same_as` task, every task without predecessor has an `achieves` list, i.e. was judged against the goal); every agent call has a task or a `skip_reason` (empty input, resume marker, routing command), so an agent call for which the LLM returned no task is reported as lost; every tool call with a result has exactly one fact, grounded in it. At the end it prints PASS / FAIL per check, headed by the name of the MAS of each trace (read from the KG with `kg_reader.fetch_mas_name`). The checks are plain functions on the output JSON, tested without KG or LLM in the normal run.
-
-```bash
-uv run pytest -p no:cacheprovider --live tests/test_functional_traces.py
-uv run pytest -p no:cacheprovider --live tests/test_functional_traces.py --sessions <sid>,<sid>
-```
+**Functional test:** it needs the KG and the LLM, so it lives with the worker (`workers/symbolic-extractor-worker/tests/test_functional_traces.py`, `--live` only), together with the checks it runs on the output.
 
 ## System prompts
 
@@ -256,7 +241,7 @@ A system prompt also holds the duties of the agent ("investigate the incident, d
 - **Fields:** `task_text`, `acceptance_criteria` (only those the prompt states), `agent_id`, `system_prompt_id`, `read_from` (the LLM call), `truncated` (the prompt was cut by the KG, so duties after the cut are missing) and `id` (deterministic).
 - **What counts:** the role statement (the kind of work the agent does) and the duties, merged per procedure. Persona, tool lists, style and working rules are not tasks (rules that constrain a deliverable become its criteria). The LLM still sometimes turns a working rule into a task (the `sre` agent gets one for "state uncertainty explicitly"), and the result varies a little between runs.
 - **Link to the agent calls:** `has_system_task` (AgentCall -> SystemTask) in the store, made deterministically from the trajectory for every agent call of the agent, the ones before the prompt was read included (no request). Each `AgentCall` node of the output has `system_tasks`, the ids of those tasks (`[]` for an agent without any; the key is null when there is no trajectory or no `SystemTaskExtractor`). In `--live` mode the node is returned when it is processed: an agent call that comes before the first LLM call of its agent (where the prompt is read) is returned with `[]`, and updated in place when the prompt is read, one node later (see `updated_nodes` in [Edges and late relations](#edges-and-late-relations)).
-- **Not embedded**, ontology: a `mas:Task` with `source = 'system'`, `definedIn` -> `mas:SystemPrompt`, no `ownedBy`. CLI line: `System tasks: N standing tasks of M agents, linked to K agent calls`.
+- **Not embedded**, ontology: a `mas:Task` with `source = 'system'`, `definedIn` -> `mas:SystemPrompt`, no `ownedBy`.
 - **Checked on the saved sessions:** trip planner: one task per agent (the moderator also gets two criteria: route to each agent at least once, put the answer in `final_answer`); SRE: one per specialist (from the cut prompts), five for `sre`. Cost: one small request per agent (about $0.0005 for the trip planner).
 
 ## Constraints
@@ -272,7 +257,7 @@ A constraint is a limit on how a goal or a task may be reached ("do not restart 
 - **Fields:** the user ones have `read_from` (the `Conversation` node); the system ones also have `agent_id`, `system_prompt_id` and `truncated` (the KG cut the prompt, so constraints after the cut are missing). A system constraint without `agent_id` is rejected. `id` is deterministic.
 - **Links:** `bounded_by` (Goal -> Constraint, Task -> Constraint, SystemTask -> Constraint; `mas:boundedBy`), deterministic, no request. A user constraint is linked to every goal of its `Conversation` node. A system constraint is linked to every `SystemTask` of its agent (no trajectory needed) and to the `Task` of every agent call of that agent, the ones before the prompt was read included (this needs the trajectory). Goals, system tasks and tasks of the output carry `bounded_by` (`[]` when none; tasks only with a trajectory). The constraints of an agent are not split between its standing tasks: each one bounds all of them.
 - **Live mode:** a task returned before the prompt of its agent was read has no `bounded_by` when it is returned; the node is updated in place when the constraint is linked (see [Edges and late relations](#edges-and-late-relations)).
-- **Not embedded.** Ontology: `mas:Constraint` (`constraintText`, `constraintStrength`, `definedIn`, `source`). CLI line: `Constraints: N from the user (bound X of Y goals), M from the system prompt of K agents (bound T tasks)`.
+- **Not embedded.** Ontology: `mas:Constraint` (`constraintText`, `constraintStrength`, `definedIn`, `source`).
 
 ## Capabilities (what an agent is able to do)
 
@@ -281,18 +266,18 @@ A capability is something an agent is able to do, read from its system prompt: "
 - **Where:** `SystemCapabilityExtractor` (one LLM request, own prompt) follows the same pattern as the system constraints: it runs once per agent, on the LLM call where `AgentSystemPromptExtractor` read the prompt (it must come after it in the list), and its elements are stored on that LLM node (`symbolic_state_elements.capabilities`). It is a separate request from the system tasks and the constraints.
 - **What counts:** the kinds of work the agent can do, with the means the prompt names (tools, data it reads), one capability per distinct kind of work. Duties ("you must..."), rules, persona and style, the generic abilities of any LLM ("write text", "reason") and statements of what the agent cannot do are not extracted.
 - **Link:** `has_capability` (AgentCall -> Capability) in the store, deterministic, for every agent call of the agent, the ones before the prompt was read included (needs the trajectory, no request). Each `AgentCall` node of the output has `capabilities` (ids; null without a trajectory or a capability extractor). In `--live` mode the first call of an agent is returned with `[]` and updated in place when the prompt is read, as for the system tasks.
-- **Not embedded.** Ontology: `mas:AgentCapability` (`agentCapabilityText`, `definedIn` -> `mas:SystemPrompt`, whose `systemPromptOf` is the `mas:Agent`; `source = 'system'`). The relation to the tasks is `supports`, see below. CLI line: `Capabilities: N capabilities of M agents, linked to K agent calls`.
+- **Not embedded.** Ontology: `mas:AgentCapability` (`agentCapabilityText`, `definedIn` -> `mas:SystemPrompt`, whose `systemPromptOf` is the `mas:Agent`; `source = 'system'`). The relation to the tasks is `supports`, see below.
 - **Checked on the trip planner:** `itinerary_agent`: routes and travel times; `schedule_agent`: train and airplane schedules, and attractions per city; `concierge_agent`: train fares; `moderator`: coordinating the specialists. Cost: one small request per agent. A capability is the model's reading of the prompt, an approximation of what the agent can really do (its tools are not read from the trace).
 
 ### `supports` (Capability -> Task)
 
-Link each task to the capabilities of its agent that support it. `CapabilityTaskRelationExtractor` (an LLM relation extractor, always on in the CLI, `relations/task_capability_relations.py`) takes a task (text and acceptance criteria) and the numbered capabilities of its agent; one request returns the labels of the capabilities that support it (the work of the task is the kind of work the capability describes), or `[]`, with a one-sentence reasoning. A capability does not support a task for sharing its subject only; a task partly covered is linked to the capabilities of the covered part. A reply that is not usable is asked again once, then the task is skipped (logged, not asked again).
+Link each task to the capabilities of its agent that support it. `CapabilityTaskRelationExtractor` (an LLM relation extractor, always on in `build_pipeline`, `relations/task_capability_relations.py`) takes a task (text and acceptance criteria) and the numbered capabilities of its agent; one request returns the labels of the capabilities that support it (the work of the task is the kind of work the capability describes), or `[]`, with a one-sentence reasoning. A capability does not support a task for sharing its subject only; a task partly covered is linked to the capabilities of the covered part. A reply that is not usable is asked again once, then the task is skipped (logged, not asked again).
 
 A task has **zero, one or several** `supports` links, and that is all the relation says. A task with no link is either one that no capability of its agent supports, or one whose agent has no capability (no request is made then), or one whose request failed: the output does not tell them apart, and what to do with an unlinked task is outside this relation.
 
 - **Which tasks:** every `Task` (candidates: the capabilities of its agent call, through `has_capability`, so a trajectory is needed) and every `SystemTask` (candidates: the capabilities with the same `agent_id`). A standing task is shared by all the calls of its agent, so it is linked **once**, not once per call.
 - **When:** as soon as the task and the capabilities of its agent are both in the store (`SymbolicExtractor._evaluate_capabilities`, after the relations of the node). The capabilities of an agent are read from its first LLM call, after the `AgentCall` node that holds its first task: `process` has everything, and in `--live` the first task of an agent is linked when its capabilities arrive, one node after the task.
-- **Output:** `supports` (capability -> task) in the store; every `Task` and `SystemTask` has `supported_by_capabilities`, the ids of the capabilities linked to it (`[]` when none; no key without a `CapabilityTaskRelationExtractor`). In `--live` a task linked after its node was returned has `[]` until its agent's capabilities arrive, then the node is updated in place (`updated_nodes`); the key is `[]` before the judgement too, so a task not judged yet looks like one no capability supports. The answers (with the reasoning) are in `pipeline.capability_evaluations`, the requests are counted under `relations` in the LLM usage. CLI lines: `Supports: X of Y tasks are linked to a capability of their agent`, and the same for the system tasks.
+- **Output:** `supports` (capability -> task) in the store; every `Task` and `SystemTask` has `supported_by_capabilities`, the ids of the capabilities linked to it (`[]` when none; no key without a `CapabilityTaskRelationExtractor`). In `--live` a task linked after its node was returned has `[]` until its agent's capabilities arrive, then the node is updated in place (`updated_nodes`); the key is `[]` before the judgement too, so a task not judged yet looks like one no capability supports. The answers (with the reasoning) are in `pipeline.capability_evaluations`, the requests are counted under `relations` in the LLM usage.
 - **HTML:** the side panel of a task lists the capabilities linked to it (or says that there is none); in the system tab a standing task lists them under it and a capability chip says how many tasks it supports. No arrows.
 - **Checked on the trip planner:** all 4 tasks and 4 standing tasks are linked to a capability of their agent (the schedule agent to its two capabilities). The task of every agent in this session is the full user request ("Plan a 5-day trip..."); an agent given something outside its capabilities (a task with no link) has not been observed yet. Cost: 8 small requests.
 - **Ontology:** `mas:supports` (Capability -> Task). The standing tasks (`SystemTask`) have no class in the ontology yet, so their links are not covered by its range.
@@ -311,7 +296,7 @@ When an agent delegates work (`delegate_to_<agent>`), the brief it writes for th
 - **In the context of the receiver's LLM calls:** the brief is in the context of every LLM call of the agent call that received it, even when its text cannot be read in the (cut) input of the call. So each delegation claim is recorded as `input_claim` of every LLM call of that agent call that generated claims (a call with no claim is skipped), and added to the `input_claims` of that LLM node. The `ClaimRelationExtractor` then compares the claims of those calls with the brief claims (`same_as`, `derived_from`, `conflicts_with`). They are not embedded, so `same_claims` (embedding comparison) does not see them. On d88018ed the `risk_assessment` call that makes 13 claims has 4 input claims, and "v2.18.2 was stable for 5+ days ... positive signal" is `same_as` the brief claim "The rollback target (v2.18.2) was stable for 5+ days"; its first LLM call (no claim) costs no request.
 - **The way back: the claims of the reply** (`reply` on a claim, `reply_claim` and `input_claim` relations). The brief goes from the caller A to the delegated agent B; the reply goes back. The reply of B is the output of its agent call (`delegated_reply`: B has a caller by `find_caller`, is not a resumed call of A's own agent, and its output is not itself a delegation command). A claim of one of B's LLM calls whose `verbatim_source` occurs in that output (`reply_claims`, same `is_verbatim` rule as for the other quotes) travels back to A; the others stay in B. Every claim of an agent call that was delegated to gets `reply: true | false`; claims of other calls have no key. The reply claims are recorded as `input_claim` of the next LLM call of A that started after B ended and generated claims (`reply_receiver`: a call with no claim has nothing to relate and is skipped; later calls of A see the reply through the history, which is not recorded), and added to the `input_claims` of that LLM node, so the `ClaimRelationExtractor` compares its claims with them. On d88018ed the final `sre` claim now has 24 input claims (telemetry, backend, db and 7 of the 10 `risk_assessment` claims) where it had 0, and is `same_as` / `derived_from` some of them. The check is on the output of the agent call, not on the cut LLM input, so it does not depend on what the caller's LLM input shows. Limit: the KG keeps about 2000 characters of an agent call output (observed on every agent call of the SRE session), so a claim quoted after that point counts as staying, and a claim with no `verbatim_source` can never be recognised. In `--live` the `reply` flag is set when the node is processed and again if the node is refreshed (a claim returned before its agent call ended can still lack it), and the `input_claim` link appears when the receiving call is processed.
 - **Relations:** with a `ClaimRelationExtractor`, the delegation claims are related to the source claims and to each other like the claims of an LLM call (one request per brief): each gets `conflicts_with`, `same_as`, `derived_from`. The prompt wording ("generated in one LLM call") is unchanged.
-- **Kept apart from `claims`** on purpose: the `verbatim_source` is an excerpt of the brief, not of the output of the `LLMCall` in `generated_by`, so the functional check on quotes, the content-based input tracking (`verbatim_source` searched in the LLM inputs) and the embeddings do not see them. Not embedded, no ontology class yet. CLI line: `Delegation claims: N from M briefs (callers: ...); K related to another claim`.
+- **Kept apart from `claims`** on purpose: the `verbatim_source` is an excerpt of the brief, not of the output of the `LLMCall` in `generated_by`, so the functional check on quotes, the content-based input tracking (`verbatim_source` searched in the LLM inputs) and the embeddings do not see them. Not embedded, no ontology class yet.
 - **Checked on the SRE session d88018ed:** the `risk_assessment` brief gives 4 claims (root cause, upstream dependencies healthy, rollback target stable, current impact), all attributed to the `sre` LLM call that delegated, quotes found, 3 related to a source claim (`same_as`, `derived_from`, `conflicts_with`); the `telemetry`, `backend` and `db` briefs are pure instructions and give none. Cost about $0.0006.
 - **TODO:** the heuristic for the caller assumes the `delegate_to_` / `transfer_to_` / `handoff_to_` convention (the trip planner moderator outputs `{"next": ...}`, so it has no caller and nothing is extracted there).
 - **Limits:** the claims of a brief are only compared with earlier claims (so a claim in a first brief has nothing to restate); the reply of B is only linked to the next LLM call of A with claims, not to every later one; the relation judge varies from one run to the next; `same_claims` (embeddings) does not include brief claims; a brief that holds hypotheses or plans is not captured as claims; sessions with long transcripts as briefs (webex, consensus) cost about 40 requests.
@@ -418,7 +403,7 @@ In the in-memory store these are the relations `input_claim` (LLM call to claim)
 **`fulfils`: do the claims of the final answer satisfy the goal?** (`mas:fulfils` of the ontology, Claim -> Goal; `GoalClaimRelationExtractor` in `relations/goal_claim_relations.py`). An LLM judges the claims that `answers` the goal, **together** (a criterion can be met by several claims), against the goal's success criteria: one request per goal, JSON reply `{"satisfied": true|false, "status": "achieved|abandoned|set", "fulfils": ["C1", ...], "reasoning": "..."}`. Only the claims of the final answer and the criteria are given; the LLM must not use outside knowledge nor judge whether the claims are true.
 
 - *When:* only once the claims of the final answer are extracted, i.e. when they have an `answers` relation: `SymbolicExtractor._evaluate_goals` runs after `_link_answers` (at the end of `process`; in `--live`, when the node of the final LLM call is processed). It is not run on the claims of each node, and a goal is not judged again for the same set of claims. Without a final agent call (KG without final State) nothing is asked.
-- *Result:* when the set satisfies the goal, the claims it names are linked to the goal (`fulfils`); when it does not, nothing is linked. The verdict (`satisfied`, the claims judged, the reasoning) is in `SymbolicExtractor.goal_evaluations`, logged, and printed by the CLI (`Fulfils: the final answer satisfies / does not satisfy the goal ...`). After the judgement every claim of the returned nodes has a `fulfils` list (`[]` when none); before it (or when the request failed) there is no key. A "satisfied" reply that names no claim is not usable (asked again once, then skipped and logged, like the other relation extractors).
+- *Result:* when the set satisfies the goal, the claims it names are linked to the goal (`fulfils`); when it does not, nothing is linked. The verdict (`satisfied`, the claims judged, the reasoning) is in `SymbolicExtractor.goal_evaluations`, and logged. After the judgement every claim of the returned nodes has a `fulfils` list (`[]` when none); before it (or when the request failed) there is no key. A "satisfied" reply that names no claim is not usable (asked again once, then skipped and logged, like the other relation extractors).
 - *Cost:* one LLM request per session (per goal), counted in `llm_usage_by_element["relations"]`.
 - It is a judgement on the text of the claims, so it is only as reliable as the final answer found by `answers` (see the note on the final State in Goals, Status). In the graph the goal card has a status badge (`set` / `achieved` / `abandoned`) and the number of claims that satisfy it, and each of those claims carries a green "satisfies the goal" line (an attribute: no arrow); the side panels say whether the final answer was judged and the verdict. Store relation `fulfils` (claim -> goal).
 - *Status of the goal:* the same request also gives the status of the goal, with the values of the ontology (`mas:GoalStatusShape`): `achieved` when the claims satisfy it, `abandoned` when they state that the goal is dropped or cannot be met, `set` when it is not met but not given up. `achieved` is forced when `satisfied` is true; when it is false, anything other than `abandoned` is read as `set` (logged). The extractor replaces the goal in the store with the new status, so this overrides the one the goal extractor guessed from the final response alone (see Goals, Status). In `process` the goal in the result is updated too. In `--live` the goal was returned with an earlier node and is not modified: the new status is in the store and in `goal_evaluations` (`status`, `previous_status`). The CLI prints `goal status <before> -> <after>`.
@@ -429,7 +414,7 @@ In the in-memory store these are the relations `input_claim` (LLM call to claim)
 
 - *When:* per node, like the other relation extractors (`SymbolicExtractor._judge_node_tasks`, called from `_extract_node_relations`, after `_link_produced_by`): for every LLM node that generated at least one claim, its claims are judged against each task they are `produced_by` (found through the store), one request per task. A failing task is logged and skipped without costing the others theirs.
 - *Ordering (important):* the `produced_by` link needs the task of the agent call to be in the store, so the **AgentCall node must be processed before the LLM calls it owns**. In `process` the whole session is in the store before the relations are extracted, so the order does not matter. In `--live` the nodes are processed in start time order and an agent call starts before its LLM calls, so the replay is fine. With a real stream, if the AgentCall node is only written to the KG when the call ends, its LLM nodes arrive first: their claims have no `produced_by` yet, are never judged (the node is not redone later) and have no `fulfils_task` key. Check this on the instrumentation before relying on live task judgements.
-- *Result:* the claims named are linked to the task. Each claim of the returned nodes that was judged has a `fulfils_task` list (the task ids, `[]` when it does not fulfil it); a claim that was not judged (no task, or task not yet in the store) has no such key. It is a separate key from `fulfils` (goals) because the target differs, but both are the ontology property `mas:fulfils`. The verdicts are in `SymbolicExtractor.task_evaluations` (one per LLM call and task) and the CLI prints `Fulfils (tasks): N of M claims fulfil the task they were produced by`. Store relation `fulfils_task` (claim -> task).
+- *Result:* the claims named are linked to the task. Each claim of the returned nodes that was judged has a `fulfils_task` list (the task ids, `[]` when it does not fulfil it); a claim that was not judged (no task, or task not yet in the store) has no such key. It is a separate key from `fulfils` (goals) because the target differs, but both are the ontology property `mas:fulfils`. The verdicts are in `SymbolicExtractor.task_evaluations` (one per LLM call and task) and logged. Store relation `fulfils_task` (claim -> task).
 - *Cost:* one LLM request per task that has claims, counted in `llm_usage_by_element["relations"]`.
 - In the graph a solid amber arrow goes from the claim to the task chip (checkbox "fulfils task"), the claim card says "fulfils the task", the task chip shows "k of n claims fulfil it", and the side panels list the produced and the fulfilling claims.
 
@@ -460,7 +445,7 @@ A fact is a proposition grounded in something outside agent generation (`mas:Fac
 
 In the store this is the relation `input_fact` (LLM call to fact).
 
-#### Cut LLM inputs and `--no-fact-match`
+#### Cut LLM inputs and `match_input_facts=False`
 
 The match needs the full input of the call. When the input stored in the KG is truncated, the tool results are not in it and no candidate matches: `input_facts` is `[]` for every call, and so are the `input_fact` and `in_context` edges, with no error. On the SRE session `42f3430a` all 42 candidate facts (18 LLM calls) were rejected for this reason, not because of the text format:
 
@@ -468,9 +453,9 @@ The match needs the full input of the call. When the input stored in the KG is t
 - The real inputs are larger: `promptTokenCount` goes from 2203 to 8606 and grows from call to call as tool results are added. The tool results were in the real input; the trace kept only its first 4000 characters.
 - No fact has its start or its end in the stored text, in plain or JSON-escaped form, so a difference of format (whitespace, escaping) is ruled out. The code already normalises whitespace and decodes the messages one by one.
 
-`--no-fact-match` (`match_input_facts=False`) skips the check: every candidate (a fact of the tool calls of the same agent call that finished before the LLM call started) is an input fact. This is an approximation: "was available to the call", not "is in its input". A tool result the agent never received, because the framework dropped it from the context, would be listed anyway. Without a way to see the full input there is nothing better; the cap has to be lifted where the spans are exported or normalised (outside this package). To check a session, compare the length of its `prompt` fields with `promptTokenCount`: a constant length (here 4000) and no closing `]` mean the inputs are cut.
+`match_input_facts=False` skips the check: every candidate (a fact of the tool calls of the same agent call that finished before the LLM call started) is an input fact. This is an approximation: "was available to the call", not "is in its input". A tool result the agent never received, because the framework dropped it from the context, would be listed anyway. Without a way to see the full input there is nothing better; the cap has to be lifted where the spans are exported or normalised (outside this package). To check a session, compare the length of its `prompt` fields with `promptTokenCount`: a constant length (here 4000) and no closing `]` mean the inputs are cut.
 
-**`supported_by` (fact -> fact): which earlier tool result did an argument come from?** An agent often calls a tool with a value it just read in the result of another one (`list_services` returns `profile-cache`, then `get_metrics(service="profile-cache")`). The fact that is the result of the second call is `supported_by` the fact(s) of the earlier results that hold its input values. The reasoning of the LLM is not recorded, so this is a deterministic heuristic on text and timestamps (`ArgumentFactLinker` in `relations/argument_fact_links.py`, a relation extractor like the others: no LLM, listed in `relation_extractors` (the CLI does), run on the fact of each `ToolCall` node when it is processed, in `process` and in `live_process`; `ArgumentFactLinker().extract(store, facts, trajectory)` also works on its own). For each string argument of a tool call (at least 3 characters: numbers and flags would match anything):
+**`supported_by` (fact -> fact): which earlier tool result did an argument come from?** An agent often calls a tool with a value it just read in the result of another one (`list_services` returns `profile-cache`, then `get_metrics(service="profile-cache")`). The fact that is the result of the second call is `supported_by` the fact(s) of the earlier results that hold its input values. The reasoning of the LLM is not recorded, so this is a deterministic heuristic on text and timestamps (`ArgumentFactLinker` in `relations/argument_fact_links.py`, a relation extractor like the others: no LLM, listed in `relation_extractors` (`build_pipeline` does), run on the fact of each `ToolCall` node when it is processed, in `process` and in `live_process`; `ArgumentFactLinker().extract(store, facts, trajectory)` also works on its own). For each string argument of a tool call (at least 3 characters: numbers and flags would match anything):
 
 1. *Visible results:* the tool call was requested by the last LLM call of its agent call that ended before it started; only the results of tool calls of the same agent call that had finished before that LLM call **started** are candidates (tool calls running in parallel with it, or later, were not visible).
 2. *Match:* a candidate matches when the value occurs in its text (`verbatim_source` of the fact). Without an LLM call before the tool call, the results finished before the tool call started are used.
@@ -521,7 +506,7 @@ links, result = linker.link([(fact, claim), ...])   # FactClaimLink for the answ
 | `contributes` | the first claim is something the second was built on | `derived_from`, from the claim built on another one to the claim it is built on (the Python kind is `derived_from`; the prompt still asks for the label `contributes`, which is mapped to it). A new claim can derive from an input claim, never the other way; between two new claims the reply gives the direction, and two opposite `contributes` on a pair are dropped |
 | nothing | any other pair (it is not listed in the reply) | |
 
-`same_as` is the LLM judgement; `same_claim` (from `same_claims`) is the embedding-based one, and the two are separate. In the result, each claim of the node gets `conflicts_with`, `same_as` and `derived_from` (lists of claim ids, input claims or other claims of the node, `[]` when none; `derived_from` lists the claims it is built on); a node with no input claims and a single claim, or whose comparison failed, has none of these keys. A reply without a relations list raises `ValueError`; unknown labels or relations are ignored, and a pair given with two different relations is dropped. The prompt lists every claim, so it grows with the number of claims, and the pairs to judge with its square. It is on by default in the CLI (one more request per node that has input claims or several claims); to use it elsewhere, add `ClaimRelationExtractor(llm)` to `relation_extractors`.
+`same_as` is the LLM judgement; `same_claim` (from `same_claims`) is the embedding-based one, and the two are separate. In the result, each claim of the node gets `conflicts_with`, `same_as` and `derived_from` (lists of claim ids, input claims or other claims of the node, `[]` when none; `derived_from` lists the claims it is built on); a node with no input claims and a single claim, or whose comparison failed, has none of these keys. A reply without a relations list raises `ValueError`; unknown labels or relations are ignored, and a pair given with two different relations is dropped. The prompt lists every claim, so it grows with the number of claims, and the pairs to judge with its square. It is on by default in `build_pipeline` (one more request per node that has input claims or several claims); to use it elsewhere, add `ClaimRelationExtractor(llm)` to `relation_extractors`.
 
 ## Relation extractors
 
@@ -572,7 +557,7 @@ The method of each is described in [Facts, Links](#links-1) (fact-claim) and [Cl
 4. catches any exception of an extractor, logs it and goes on: a failing extractor never loses the extraction of the node, it only leaves its keys out of the claims;
 5. copies the relations of the known extractors onto the claims of the result (`supported_by`, `conflicts_with`, `same_as`, `derived_from`).
 
-The CLI always enables `FactClaimLinker` and `ClaimRelationExtractor` (see `__main__.py`), in per-session and `--live` mode.
+`build_pipeline` (`pipeline.py`) always enables `FactClaimLinker` and `ClaimRelationExtractor`, in per-session and live mode.
 
 ### Adding a relation extractor
 
@@ -610,7 +595,7 @@ class ClaimSupportExtractor(SemanticRelationExtractor):
 ```
 
 2. Export it (and the relation name constant) in `relations/__init__.py`.
-3. Add an instance to the list: `SymbolicExtractor(..., relation_extractors=[FactClaimLinker(llm), ClaimRelationExtractor(llm), ClaimSupportExtractor(llm)])`. For the CLI, edit the `relation_extractors=[...]` argument in `__main__.py`.
+3. Add an instance to the list: `SymbolicExtractor(..., relation_extractors=[FactClaimLinker(llm), ClaimRelationExtractor(llm), ClaimSupportExtractor(llm)])`. For the pipeline, edit the `relation_extractors=[...]` argument in `pipeline.py`.
 4. Optional, to expose the relation in the output JSON: `_extract_node_relations` in `extractor.py` copies the relations of the two known extractors onto the claims of the result by `isinstance` check; add the same for yours (reading it back with `store.related(SUPPORTS, claim_id)`). Without that step the relation lives in the store only.
 5. Optional, to show it in the page: read the new key in `scripts/claims_graph.py`.
 6. Add a test next to `tests/test_claim_claim_relations.py` (fake LLM client).

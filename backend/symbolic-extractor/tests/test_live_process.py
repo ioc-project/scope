@@ -5,12 +5,21 @@ import logging
 
 import pytest
 
-from symbolic_extractor import SymbolicExtractor, SymbolicSessionStore, ExtractionRequest, KGSessionReader
+from symbolic_extractor import ExtractionRequest, SymbolicExtractor, SymbolicSessionStore
 from symbolic_extractor.embeddings import TextEmbedder
-from symbolic_extractor.extractors import ClaimExtractionPrompt, ElementExtractor, ToolResultFactExtractor
+from symbolic_extractor.extractors import (
+    ClaimExtractionPrompt,
+    ElementExtractor,
+    ToolResultFactExtractor,
+)
 from symbolic_extractor.llm import LLMReply, TextReply
 from symbolic_extractor.models import KGNode, SessionData, SessionTrajectory
-from symbolic_extractor.relations import DERIVED_FROM, SUPPORTED_BY, ClaimRelationExtractor, FactClaimLinker
+from symbolic_extractor.relations import (
+    DERIVED_FROM,
+    SUPPORTED_BY,
+    ClaimRelationExtractor,
+    FactClaimLinker,
+)
 from symbolic_extractor.store import IN_CONTEXT
 from symbolic_extractor.usage import LLMUsage
 
@@ -66,10 +75,9 @@ def trajectory(steps=STEPS):
     return SessionTrajectory(session_id="s1", steps=steps)
 
 
-def pipeline(reader=None, embedder=None, relation_extractors=()):
+def pipeline(embedder=None, relation_extractors=()):
     llm = EchoLLM()
     extractor = SymbolicExtractor(
-        reader,
         [ElementExtractor(llm, ClaimExtractionPrompt()), ToolResultFactExtractor()],
         embedder=embedder,
         relation_extractors=relation_extractors,
@@ -371,32 +379,8 @@ def test_without_a_trajectory_the_elements_are_extracted_but_the_inputs_are_not_
     assert len(extractor.store) == 1  # still kept for later
 
 
-def test_a_reader_that_can_fetch_the_trajectory_is_used_when_none_is_given():
-    fetched = []
-
-    def fetch(session_id):
-        fetched.append(session_id)
-        return trajectory().model_dump()
-
-    class NoSession:
-        def fetch(self, *_):
-            raise AssertionError("live_process must not read the whole session")
-
-    extractor, _ = pipeline(KGSessionReader(NoSession(), trajectory_fetcher=fetch))
-    result = extractor.live_process(L1, REQUEST)
-    assert fetched == ["s1"] and result.nodes[0].input_claims == []
-    assert extractor.trajectory is not None
-
-    extractor.live_process(T1, REQUEST, trajectory())  # an explicit trajectory wins: no new fetch
-    assert fetched == ["s1"]
-
-
-def test_a_reader_without_trajectory_fetcher_is_not_asked_for_one():
-    class NoSession:
-        def fetch(self, *_):
-            raise AssertionError("not expected")
-
-    extractor, _ = pipeline(KGSessionReader(NoSession()))
+def test_a_node_without_a_trajectory_has_no_input_claims():
+    extractor, _ = pipeline()
     assert extractor.live_process(L1, REQUEST).nodes[0].input_claims is None
 
 

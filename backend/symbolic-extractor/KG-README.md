@@ -23,18 +23,18 @@ Everything here was taken from the code (`src/symbolic_extractor/`), and the cou
 
 ```mermaid
 flowchart LR
-    KG[("KG<br/>(SCOPE API)")] -->|"KGSessionReader.fetch"| SD["SessionData<br/>session, agent/llm/tool spans,<br/>input_text, output_text"]
-    KG -->|"HANDOFFS_QUERY<br/>FINAL_AGENT_CALL_QUERY"| TR["SessionTrajectory<br/>steps, handoffs, final_agent_call"]
+    IN[("session + trajectory<br/>(dicts, JSON; in SCOPE read by the worker<br/>with scope.client.neurosymbolic)")] --> SD["SessionData<br/>session, agent/llm/tool spans,<br/>input_text, output_text"]
+    IN --> TR["SessionTrajectory<br/>steps, handoffs, final_agent_call"]
     SD --> NODES["KGNode list<br/>(sorted by startTime,<br/>Conversation first)"]
     TR --> EX
     NODES --> EX["SymbolicExtractor<br/>process / live_process"]
     EX --> ST[("SymbolicSessionStore<br/>elements + edges")]
     ST --> OUT["ExtractionResult<br/>nodes (annotated) + edges"]
-    OUT --> JSON["output/&lt;sid&gt;.json"]
-    OUT -->|"KGWriter (--write-kg)"| KGW[("symbolic state nodes in the KG")]
+    OUT --> JSON["JSON (output.write_json)"]
+    OUT -->|"to_graph"| GR["Graph: node rows + edge rows<br/>(the worker writes them with<br/>scope.client.neurosymbolic)"]
 ```
 
-- **Read, then write.** The KG is read through `KGSessionReader` (`kg_reader.py`, SCOPE API). The result is JSON (`output/<sid>.json`), the in-memory `SymbolicSessionStore`, and, with `--write-kg`, nodes and edges in the KG (`kg_writer.py`, section 13). The original nodes are only matched, never changed.
+- **No KG in the library.** The library takes the session and its trajectory as Python objects (`SessionData`, `SessionTrajectory`, from dicts or JSON) and returns an `ExtractionResult`; `to_graph` (`graph.py`) turns it into node and edge rows. Reading the session and writing the rows is the worker's job, through the API library (`scope.client.neurosymbolic`, section 13). The original nodes are only matched, never changed.
 - **Two inputs.** The spans of the session (`SessionData`: `agent_spans`, `llm_spans`, `tool_spans`, `input_text`, `output_text`) become the nodes that elements are extracted from. The **trajectory** (`SessionTrajectory`) is the structure of the run: for every call its `call_id`, `kind` (`agent` / `llm` / `tool`), `name`, `agent_id`, `parent_id`, `start_time`, `duration_ms`, `input_text`, `output_text`, plus the `handoffs` between agent calls and the `final_agent_call`. Elements that need the structure (who the agent of an LLM call is, who delegated to whom, which call gave the final answer) are skipped without a trajectory.
 - **Two modes.** `process(nodes)` extracts the whole session, nodes sorted by `startTime`, then `annotate()` once. `live_process(node)` handles one node at a time, keeping the store, and returns the edges recorded in this step and the earlier nodes it updated (`updated_nodes`). Both run the same steps per node (section 6).
 
@@ -52,7 +52,7 @@ The **node id** is what the store keeps as the anchor of an element (`store.add(
 
 ## 3. Elements: where each one comes from
 
-Order of the extractors in the pipeline (`__main__.py`): `claims`, `facts`, `system_prompts`, `system_tasks`, system `constraints`, `capabilities`, `goals`, user `constraints`, `tasks`, `delegation_claims`. The order matters where one element reads another (the system tasks, constraints and capabilities of an agent need its prompt first).
+Order of the extractors in the pipeline (`pipeline.py`): `claims`, `facts`, `system_prompts`, `system_tasks`, system `constraints`, `capabilities`, `goals`, user `constraints`, `tasks`, `delegation_claims`. The order matters where one element reads another (the system tasks, constraints and capabilities of an agent need its prompt first).
 
 | Key (`symbolic_state_elements.*`) | Class | Extractor | Source node | Reads | LLM | Uses trajectory | Once per |
 |---|---|---|---|---|---|---|---|
@@ -456,7 +456,7 @@ Four sessions have edges today (`4493f565`, `7454b5fa`, `d88018ed`, `eeec0920`);
 
 | Topic | Location |
 |---|---|
-| KG read, trajectory, handoffs, final agent call | `kg_reader.py` (`KGSessionReader`, `SessionData`, `SessionTrajectory`, `HANDOFFS_QUERY`, `FINAL_AGENT_CALL_QUERY`) |
+| Session and trajectory (input) | `models.py` (`SessionData`, `SessionTrajectory`); read from the KG by `scope.client.neurosymbolic.get_symbolic_extraction_input` |
 | Elements and edges | `models.py`, `store.py` (`SymbolicSessionStore`, `Edge`, `link`, `edges_since`) |
 | Per-node pipeline, annotations, live | `extractor.py` (`process`, `live_process`, `annotate`, `_refresh`, the `_link_*` methods) |
 | Extractors | `extractors/` (`claims`, `facts`, `system_prompts`, `system_tasks`, `constraints`, `capabilities`, `goals`, `tasks`, `delegation_claims`) |
@@ -465,11 +465,11 @@ Four sessions have edges today (`4493f565`, `7454b5fa`, `d88018ed`, `eeec0920`);
 | Tool calls: matching with the claims that announce them | `tool_calls.py` (`match_tool_calls`) |
 | Context tracking | `symbolic_state.py` (`track_symbolic_state`) |
 | Same claims by embedding | `comparison.py` (`annotate_same_claims`) |
-| Pipeline order | `__main__.py` |
+| Pipeline order | `pipeline.py` (`build_pipeline`) |
 
 ## 13. Writing to the KG
 
-`--write-kg` (or `uv run python scripts/write_kg.py output/*.json` for saved outputs) writes the result with `KGWriter` (`kg_writer.py`) using the Cypher of `kg_queries.py`. Both follow the layout of scope (`query_builders` returning `(query, params)`, a writer taking the `Connector`) so they can move there as they are.
+The worker (`workers/symbolic-extractor-worker`) writes the result: `graph.to_graph` (`graph.py`) maps it to nodes and edges, and `scope.client.neurosymbolic.write_symbolic_state` (Cypher in `scope.query_builders.neurosymbolic`) writes them. The library never talks to Neo4j itself, and what the worker reads (the session, its trajectory, the handoffs, the final call) also comes from `scope.client.neurosymbolic`.
 
 It writes **only what `neurosymbolic-ontology.ttl` describes**, under its names:
 

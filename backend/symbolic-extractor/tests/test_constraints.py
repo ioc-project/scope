@@ -23,7 +23,13 @@ from symbolic_extractor.extractors.constraints import (
     render_system_constraint_prompt,
 )
 from symbolic_extractor.llm import LLMReply
-from symbolic_extractor.models import AgentSystemPrompt, ExtractionRequest, KGNode, SessionData, SessionTrajectory
+from symbolic_extractor.models import (
+    AgentSystemPrompt,
+    ExtractionRequest,
+    KGNode,
+    SessionData,
+    SessionTrajectory,
+)
 from symbolic_extractor.store import BOUNDED_BY, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

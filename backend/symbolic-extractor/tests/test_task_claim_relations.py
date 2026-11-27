@@ -4,7 +4,13 @@ import pytest
 
 from symbolic_extractor import SymbolicExtractor, SymbolicSessionStore
 from symbolic_extractor.llm import LLMReply
-from symbolic_extractor.models import AnnotatedNode, Claim, ExtractionResult, SessionTrajectory, Task
+from symbolic_extractor.models import (
+    AnnotatedNode,
+    Claim,
+    ExtractionResult,
+    SessionTrajectory,
+    Task,
+)
 from symbolic_extractor.relations import FULFILS_TASK, TaskClaimRelationExtractor
 from symbolic_extractor.relations.task_claim_relations import SYSTEM_PROMPT, render_prompt
 from symbolic_extractor.store import PRODUCED_BY

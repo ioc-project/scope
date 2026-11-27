@@ -106,8 +106,8 @@ def test_facts_are_not_embedded_and_do_not_warn(caplog):
 # ---- input_facts -------------------------------------------------------------------------
 
 from symbolic_extractor import SymbolicSessionStore  # noqa: E402
-from symbolic_extractor.symbolic_state import track_symbolic_state, track_input_facts  # noqa: E402
 from symbolic_extractor.extractors import Fact  # noqa: E402
+from symbolic_extractor.symbolic_state import track_input_facts, track_symbolic_state  # noqa: E402
 
 _SYSTEM = json.dumps([{"type": "text", "content": "system prompt"}])
 

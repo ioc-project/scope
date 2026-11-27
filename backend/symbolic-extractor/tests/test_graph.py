@@ -1,13 +1,10 @@
-"""The KG writer: result -> labelled nodes and edges, and the Cypher it sends (fake database)."""
+"""The graph of the neurosymbolic layer: result -> labelled nodes and edges."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
-from symbolic_extractor import kg_queries as q
-from symbolic_extractor.kg_writer import KGWriter, camel, to_graph
+from symbolic_extractor.graph import camel, to_graph
 from symbolic_extractor.models import AnnotatedNode, ExtractionResult
 from symbolic_extractor.store import Edge
 
@@ -129,6 +126,7 @@ def _result() -> ExtractionResult:
                     {
                         "id": "f1",
                         "fact_text": "5",
+                        "fact_source_type": "tool_result",
                         "grounded_in": "toolcall:x1",
                         "tool_name": "calc",
                         "tool_arguments": {"expression": "2+3"},
@@ -145,32 +143,6 @@ def _result() -> ExtractionResult:
     )
 
 
-class FakeDB:
-    """Records the queries; ``missing`` ids are not in the KG, so they match nothing."""
-
-    def __init__(self, missing: set[str] = frozenset()) -> None:
-        self.queries: list[tuple[str, dict[str, Any]]] = []
-        self.commands: list[str] = []
-        self.missing = set(missing)
-
-    def execute(self, query: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        params = params or {}
-        self.queries.append((query, params))
-        if "RETURN n.id AS id" in query:
-            return [{"id": i} for i in params["ids"] if i not in self.missing]
-        rows = params.get("rows")
-        if rows is not None and "row.from_id" in query:
-            return [
-                {"written": sum(1 for r in rows if not {r["from_id"], r["to_id"]} & self.missing)}
-            ]
-        if rows is not None:
-            return [{"written": len(rows)}]
-        return [{"deleted": 7}]
-
-    def execute_command(self, command: str, params: dict[str, Any] | None = None) -> None:
-        self.commands.append(command)
-
-
 def test_names_follow_the_ontology():
     assert camel("claim_text") == "claimText"
     assert camel("call_preceded_by") == "callPrecededBy"
@@ -180,17 +152,17 @@ def test_elements_become_labelled_nodes_with_ontology_properties_only():
     nodes = {n.id: n for n in to_graph(_result()).nodes}
     assert nodes["c1"].label == "Claim"
     assert nodes["c1"].props == {
-        "sessionId": "s1", "claimText": "fare 5", "claimForce": "assertive", "claimKind": "factual",
+        "claimText": "fare 5", "claimForce": "assertive", "claimKind": "factual",
     }  # fmt: skip
-    assert nodes["cap1"].props == {"sessionId": "s1", "agentCapabilityText": "price", "source": "system"}
-    assert nodes["f1"].props == {"sessionId": "s1", "factText": "5"}  # tool name and arguments are not ontology
+    assert nodes["cap1"].props == {"agentCapabilityText": "price", "source": "system"}
+    assert nodes["f1"].props == {"factText": "5", "factSourceType": "tool_result"}  # tool name and arguments are not ontology
 
 
 def test_a_system_prompt_is_a_node_attached_to_its_agent():
     graph = to_graph(_result())
     prompt = next(n for n in graph.nodes if n.id == "sp1")
     assert prompt.label == "SystemPrompt"
-    assert prompt.props == {"sessionId": "s1", "systemPromptText": "You price things"}
+    assert prompt.props == {"systemPromptText": "You price things"}
     edges = {(e.type, e.from_id, e.to_id, e.to_label) for e in graph.edges}
     assert ("systemPromptOf", "sp1", "concierge", "Agent") in edges
     assert "concierge" not in {n.id for n in graph.nodes}  # the Agent node is matched, never written
@@ -210,7 +182,7 @@ def test_what_comes_from_a_system_prompt_is_attached_to_it_and_marked():
 def test_delegation_claims_are_written_as_claims():
     nodes = {n.id: n for n in to_graph(_result()).nodes}
     assert nodes["dc1"].label == "Claim"
-    assert set(nodes["dc1"].props) == {"sessionId", "claimText", "claimForce", "claimKind"}
+    assert set(nodes["dc1"].props) == {"claimText", "claimForce", "claimKind"}
 
 
 def test_original_nodes_are_not_written():
@@ -246,41 +218,13 @@ def test_pointer_fields_become_edges_to_the_original_nodes():
     assert not any(e[0] in ("goalOf",) for e in edges)  # its target is a MASCall
 
 
-def test_write_merges_nodes_then_edges_and_indexes_each_label_once():
-    db = FakeDB()
-    report = KGWriter(db).write(_result())
-    # + the delegation claim and the standing task
-    assert report.nodes["Claim"] == 2 and report.nodes["Task"] == 2
-    assert report.edges["generatedBy"] == 1 and report.edges["supportedBy"] == 1
-    assert sorted(db.commands) == sorted(set(db.commands))
-    merges = [query for query, _ in db.queries if "MERGE (n:" in query]
-    edges = [query for query, _ in db.queries if "MERGE (a)-" in query]
-    first_edge = next(i for i, (query, _) in enumerate(db.queries) if "MERGE (a)-" in query)
-    assert merges and edges
-    assert all("MERGE (n:" not in query for query, _ in db.queries[first_edge:])
-    assert not report.complete  # the dangling produced_by
-    assert report.skipped == {"has_capability": 1}
+def test_rows_are_plain_dicts_ready_to_write():
+    graph = to_graph(_result())
 
-
-def test_a_missing_kg_node_is_reported_and_its_edge_not_counted():
-    db = FakeDB(missing={"llmcall:l1"})
-    report = KGWriter(db).write(_result())
-    assert report.missing_nodes == {"LLMCall": ["llmcall:l1"]}
-    assert report.missing_edges["generatedBy"] == 1
-    assert report.edges["generatedBy"] == 0
-
-
-def test_replace_cleans_only_symbolic_labels_of_the_session():
-    db = FakeDB()
-    report = KGWriter(db).write(_result(), replace=True)
-    clean, params = db.queries[0]
-    assert "DETACH DELETE" in clean and params == {"session_id": "s1"}
-    assert report.deleted == 7
-    for original in ("AgentCall", "LLMCall", "ToolCall"):
-        assert original not in clean
-
-
-def test_labels_cannot_be_injected():
-    with pytest.raises(ValueError):
-        q.merge_nodes_query("Claim) DETACH DELETE (n", [])
-    assert q.is_safe_identifier("supportedBy")
+    nodes, edges = graph.node_rows(), graph.edge_rows()
+    assert {n["label"] for n in nodes} >= {"Claim", "Task", "Goal"}
+    assert all(set(n) == {"label", "id", "props"} for n in nodes)
+    assert all(
+        set(e) == {"type", "from_id", "from_label", "to_id", "to_label", "props"} for e in edges
+    )
+    assert any(e["type"] == "generatedBy" and e["to_label"] == "LLMCall" for e in edges)

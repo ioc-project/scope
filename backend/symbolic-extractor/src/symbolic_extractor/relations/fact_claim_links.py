@@ -19,7 +19,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from symbolic_extractor.llm import TextLLMClient
-from symbolic_extractor.models import Claim, SymbolicStateElement, Fact
+from symbolic_extractor.models import Claim, Fact, SymbolicStateElement
 from symbolic_extractor.relations.semantic_relations import SemanticRelationExtractor
 from symbolic_extractor.store import ANNOUNCES, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage

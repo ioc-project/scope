@@ -23,7 +23,12 @@ from pydantic import ValidationError
 
 from symbolic_extractor.extractors.claims import _clip
 from symbolic_extractor.llm import LLMClient
-from symbolic_extractor.models import AgentSystemPrompt, AgentCapability, AgentCapabilityItem, KGNode
+from symbolic_extractor.models import (
+    AgentCapability,
+    AgentCapabilityItem,
+    AgentSystemPrompt,
+    KGNode,
+)
 from symbolic_extractor.store import SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

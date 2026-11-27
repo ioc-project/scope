@@ -17,7 +17,11 @@ from symbolic_extractor.models import (
     Task,
 )
 from symbolic_extractor.relations import SUPPORTS, CapabilityTaskRelationExtractor
-from symbolic_extractor.relations.task_capability_relations import SYSTEM_PROMPT, parse_evaluation, render_prompt
+from symbolic_extractor.relations.task_capability_relations import (
+    SYSTEM_PROMPT,
+    parse_evaluation,
+    render_prompt,
+)
 from symbolic_extractor.store import HAS_CAPABILITY, SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

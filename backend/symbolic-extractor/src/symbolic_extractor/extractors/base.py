@@ -19,7 +19,7 @@ from typing import Any, Generic, Protocol, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from symbolic_extractor.llm import LLMClient
-from symbolic_extractor.models import SymbolicStateElement, KGNode
+from symbolic_extractor.models import KGNode, SymbolicStateElement
 from symbolic_extractor.store import SymbolicSessionStore
 from symbolic_extractor.usage import LLMUsage
 

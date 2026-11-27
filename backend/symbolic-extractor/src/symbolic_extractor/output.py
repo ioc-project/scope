@@ -2,7 +2,7 @@
 
 Only a local JSON file for now.
 
-The KG writer is ``kg_writer.py`` (queries in ``kg_queries.py``); the notes below are the design it follows.
+The KG writer is ``kg_writer.py`` (the writes are ``scope.client.neurosymbolic.write_symbolic_state``); the notes below are the design it follows.
 
 Design notes for the KG writer (modelled on how SCOPE writes metrics, see
 ``scope.query_builders.metric_graph.write_metric_result_query``):

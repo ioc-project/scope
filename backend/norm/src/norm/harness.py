@@ -23,7 +23,15 @@ from .ioa_observe.fields import get_start_time
 CLAUDE, CODEX = "claude-code", "codex"
 INTERACTION, LLM, TOOL = ("claude_code." + name for name in ("interaction", "llm_request", "tool"))
 EXECUTION, PERMISSION = f"{TOOL}.execution", f"{TOOL}.blocked_on_user"
-SEND, RECEIVE = "a2a_slimrpc_send.task", "a2a_slimrpc_receive.task"
+# Hop spans: ioa_observe SLIMRPC names and agntcy/shadi agentbridge names.
+BRIDGES = {
+    "ioa_observe": ("a2a_slimrpc_send.task", "a2a_slimrpc_receive.task"),
+    "agentbridge": ("shadi.a2a.send", "shadi.a2a.receive"),
+}
+SENDS = frozenset(send for send, _ in BRIDGES.values())
+RECEIVES = frozenset(receive for _, receive in BRIDGES.values())
+BRIDGE_SPANS = SENDS | RECEIVES
+BRIDGE_PROTOCOL = {name: proto for proto, names in BRIDGES.items() for name in names}
 CODEX_EVENTS = {
     "conversation_starts",
     "startup_phase",
@@ -883,17 +891,20 @@ class _Replay:
             by_span[owner.signal].append(owner.id)
         received_by: dict[Signal, list[str]] = defaultdict(list)
         for owner in owners:
-            nearest = next((s for s in self.lineage(owner.signal) if s.name == RECEIVE), None)
+            nearest = next((s for s in self.lineage(owner.signal) if s.name in RECEIVES), None)
             if nearest is not None and (
                 not nearest.shared or owner.signal.scope == ("shared", nearest.shared)
             ):
                 received_by[nearest].append(owner.id)
         hops = []
         matched_sends = set()
-        for receive in (s for s in self.spans.values() if s.name == RECEIVE):
-            send = next((s for s in self.lineage(receive) if s.name in {SEND, RECEIVE}), None)
-            if send is None or send.name != SEND:
+        for receive in (s for s in self.spans.values() if s.name in RECEIVES):
+            send = next((s for s in self.lineage(receive) if s.name in BRIDGE_SPANS), None)
+            if send is None or send.name not in SENDS:
                 self.counts["missing_bridge_send"] += 1
+                continue
+            if BRIDGE_PROTOCOL[send.name] != BRIDGE_PROTOCOL[receive.name]:
+                self.counts["mixed_bridge_protocol"] += 1
                 continue
             if receive.shared and send.shared and receive.shared != send.shared:
                 self.counts["conflicting_bridge_sessions"] += 1
@@ -929,7 +940,13 @@ class _Replay:
                     _text(s.attrs.get("peer.did"), s.resource.get("peer.did"))
                     for s in (send, receive)
                 ),
+                "task_id_observed": any(_text(s.attrs.get("a2a.task_id")) for s in (send, receive)),
+                "bridge": BRIDGE_PROTOCOL[receive.name],
             }
+            # agentbridge records the peer's reply state (send) and admission result (receive).
+            for side, span in (("send", send), ("receive", receive)):
+                if outcome := _label(span.attrs.get("a2a.outcome")):
+                    hop[f"{side}_outcome"] = outcome
             if len(callers) == 1:
                 hop["caller_call_id"] = callers[0]
             if len(callees) == 1:
@@ -938,7 +955,7 @@ class _Replay:
                 self.counts["ambiguous_bridge_attribution"] += 1
             hops.append(hop)
         self.counts["missing_bridge_receive"] += sum(
-            s.name == SEND and s not in matched_sends for s in self.spans.values()
+            s.name in SENDS and s not in matched_sends for s in self.spans.values()
         )
         return sorted(hops, key=lambda h: h["id"])
 
@@ -949,7 +966,7 @@ class _Replay:
         self.emit(owners, claude_calls + codex_calls)
         hops = self.bridge(owners)
         for row in self.rows:
-            if not row.source and not (row.kind == "trace" and row.name in {SEND, RECEIVE}):
+            if not row.source and not (row.kind == "trace" and row.name in BRIDGE_SPANS):
                 self.counts["unsupported_source"] += 1
             elif row.source == CLAUDE:
                 supported = (

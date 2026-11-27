@@ -170,3 +170,43 @@ def test_unknown_service_cannot_claim_a_harness_event():
     replay = normalize_harness("test", logs=[row])
     assert replay.nodes == []
     assert replay.coverage["counts"]["unsupported_source"] == 1
+
+
+def _agentbridge_replay(*, callee_under_receive):
+    traces = [*fixture("claude_traces"), *fixture("agentbridge_traces")]
+    logs = fixture("codex_logs")
+    if callee_under_receive:
+        # What a TRACEPARENT handed from `agentbridge register` to Codex would produce.
+        for row in logs:
+            if row["TraceId"] == "trace-codex":
+                row.update(TraceId="trace-claude", SpanId="ab-receive")
+    return normalize_harness("test", traces=traces, logs=logs)
+
+
+def test_agentbridge_hop_spans_are_bridge_evidence():
+    replay = _agentbridge_replay(callee_under_receive=True)
+    (hop,) = replay.coverage["hops"]
+    assert hop["bridge"] == "agentbridge"
+    assert hop["classification"] == "end_to_end"
+    assert hop["caller_call_id"] != hop["callee_call_id"]
+    assert hop["task_id_observed"] and hop["peer_did_observed"]
+    assert not hop["context_id_observed"]
+    assert (hop["send_outcome"], hop["receive_outcome"]) == ("completed", "completed")
+    assert "unsupported_source" not in replay.coverage["counts"]
+
+
+def test_agentbridge_hop_without_harness_context_is_bridge_only():
+    (hop,) = _agentbridge_replay(callee_under_receive=False).coverage["hops"]
+    assert hop["classification"] == "bridge_only"
+    assert "caller_call_id" in hop and "callee_call_id" not in hop
+
+
+def test_agentbridge_send_without_receive_and_mixed_protocols():
+    send, receive = fixture("agentbridge_traces")
+    replay = normalize_harness("test", traces=[*fixture("claude_traces"), send])
+    assert replay.coverage["hops"] == []
+    assert replay.coverage["counts"]["missing_bridge_receive"] == 1
+    receive["SpanName"] = "a2a_slimrpc_receive.task"
+    replay = normalize_harness("test", traces=[*fixture("claude_traces"), send, receive])
+    assert replay.coverage["hops"] == []
+    assert replay.coverage["counts"]["mixed_bridge_protocol"] == 1

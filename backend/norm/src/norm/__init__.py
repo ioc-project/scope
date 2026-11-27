@@ -1,6 +1,7 @@
 #  Copyright (c) 2026 Cisco Systems, Inc. and its affiliates
 #  SPDX-License-Identifier: Apache-2.0
 from .compare import KGCompareResult, compare_kg, read_kg_json, write_kg_json
+from .harness import HarnessReplay, normalize_harness
 from .ioa_observe import build_kg
 from .ioa_observe.otel_io import infer_run_id, load_otel_export
 from .normalizer import Normalizer, dump_jsonld, normalize
@@ -17,6 +18,7 @@ from .verifier import (
 )
 
 __all__ = [
+    "HarnessReplay",
     "KGCheckSkipped",
     "KGCompareResult",
     "Normalizer",
@@ -31,6 +33,7 @@ __all__ = [
     "load_otel_export",
     "nodes_edges_to_jsonld",
     "normalize",
+    "normalize_harness",
     "read_jsonld",
     "read_kg_json",
     "verify_kg",

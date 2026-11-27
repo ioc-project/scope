@@ -65,6 +65,7 @@ class ExtractionPrompt(ABC, Generic[ItemT, ElementT]):
     #: Key of the list in the LLM reply when it is not ``element_key`` (a second prompt that extracts
     #: claims under another element key still asks for ``"claims"``).
     reply_key: str | None = None
+
     def applies_to(self, node: KGNode) -> bool:
         return node.node_type in self.node_types
 

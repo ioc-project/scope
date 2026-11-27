@@ -50,7 +50,9 @@ def requested_tool_calls(output: str) -> list[ToolCallRequest]:
         for message in messages
         if isinstance(message, dict)
         for part in message.get("parts") or []
-        if isinstance(part, dict) and part.get("type") == "tool_call" and isinstance(part.get("id"), str)
+        if isinstance(part, dict)
+        and part.get("type") == "tool_call"
+        and isinstance(part.get("id"), str)
     ]
 
 
@@ -77,7 +79,9 @@ def _step_arguments(step: dict[str, Any]) -> dict[str, Any] | None:
 def _same_tool(requested: str, ran: str) -> bool:
     """The name an LLM used and the name of the tool step: equal, or one extends the other (the span of
     ``list_documents`` of an agent may be named ``list_documents_schedule_agent``)."""
-    return bool(requested) and bool(ran) and (ran.startswith(requested) or requested.startswith(ran))
+    return (
+        bool(requested) and bool(ran) and (ran.startswith(requested) or requested.startswith(ran))
+    )
 
 
 def match_tool_calls(trajectory: SessionTrajectory, llm_call_id: str) -> dict[str, str]:
@@ -119,7 +123,10 @@ def match_tool_calls(trajectory: SessionTrajectory, llm_call_id: str) -> dict[st
             call_id = step.get("call_id")
             if call_id in taken or not call_id:
                 continue
-            if _same_tool(request.name, str(step.get("name") or "")) and _step_arguments(step) == request.arguments:
+            if (
+                _same_tool(request.name, str(step.get("name") or ""))
+                and _step_arguments(step) == request.arguments
+            ):
                 taken.add(call_id)
                 matched[request.id] = call_id
                 break

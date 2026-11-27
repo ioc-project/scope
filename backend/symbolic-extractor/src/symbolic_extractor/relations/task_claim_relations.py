@@ -85,7 +85,9 @@ class TaskEvaluation(BaseModel):
 
 def render_prompt(task: Task, claims: Sequence[Claim]) -> str:
     criteria = (
-        "\n".join(f"- {c}" for c in task.acceptance_criteria) if task.acceptance_criteria else "(none stated)"
+        "\n".join(f"- {c}" for c in task.acceptance_criteria)
+        if task.acceptance_criteria
+        else "(none stated)"
     )
     listed = "\n".join(f"C{i}. {c.claim_text}" for i, c in enumerate(claims, start=1))
     return (
@@ -157,7 +159,9 @@ class TaskClaimRelationExtractor(SemanticRelationExtractor):
         prompt = render_prompt(task, claims)
         for attempt in (1, 2):
             try:
-                reply = self._llm.complete_json(SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder())
+                reply = self._llm.complete_json(
+                    SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder()
+                )
             except ValueError as exc:
                 self.last_usage = self.last_usage + usage_of(exc)
                 if attempt == 2:

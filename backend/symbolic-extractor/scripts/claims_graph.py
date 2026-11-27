@@ -119,9 +119,18 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="HTML view of the claims and their flow between LLM calls")
-    parser.add_argument("output", type=Path, help="Extraction output JSON (output/<session_id>.json)")
-    parser.add_argument("-o", "--out", type=Path, help="HTML path (default: next to the output, <session_id>_claims.html)")
+    parser = argparse.ArgumentParser(
+        description="HTML view of the claims and their flow between LLM calls"
+    )
+    parser.add_argument(
+        "output", type=Path, help="Extraction output JSON (output/<session_id>.json)"
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        help="HTML path (default: next to the output, <session_id>_claims.html)",
+    )
     parser.add_argument(
         "--trajectory",
         type=Path,
@@ -131,12 +140,18 @@ def main(argv: list[str] | None = None) -> None:
 
     output = _load_json(args.output)
     session_id = output.get("session_id", args.output.stem)
-    trajectory_path = args.trajectory or args.output.resolve().parent.parent / "input" / f"trajectory_{session_id}.json"
+    trajectory_path = (
+        args.trajectory
+        or args.output.resolve().parent.parent / "input" / f"trajectory_{session_id}.json"
+    )
     trajectory = None
     if trajectory_path.exists():
         trajectory = _load_json(trajectory_path)
     else:
-        print(f"warning: no trajectory at {trajectory_path}; agents and agent calls are unknown", file=sys.stderr)
+        print(
+            f"warning: no trajectory at {trajectory_path}; agents and agent calls are unknown",
+            file=sys.stderr,
+        )
 
     try:
         payload = build_payload(output, trajectory)
@@ -145,9 +160,10 @@ def main(argv: list[str] | None = None) -> None:
     out = args.out or args.output.with_name(f"{session_id}_claims.html")
     out.write_text(render_html(payload), encoding="utf-8")
     n_claims = sum(len(c["claims"]) for c in payload["calls"])
-    print(f"Wrote {out} ({len(payload['calls'])} LLM calls, {n_claims} claims, agents: {', '.join(payload['agents'])})")
+    print(
+        f"Wrote {out} ({len(payload['calls'])} LLM calls, {n_claims} claims, agents: {', '.join(payload['agents'])})"
+    )
 
 
 if __name__ == "__main__":
     main()
-

@@ -57,7 +57,11 @@ def _short(text: Any, size: int = 60) -> str:
 
 def check_extracted(result: Result) -> list[str]:
     """The extraction found something of each kind: a goal, tasks and claims."""
-    return [f"no {kind} extracted" for kind in ("goals", "tasks", "claims") if not _elements(result, kind)]
+    return [
+        f"no {kind} extracted"
+        for kind in ("goals", "tasks", "claims")
+        if not _elements(result, kind)
+    ]
 
 
 def check_tasks_connected(result: Result) -> list[str]:
@@ -120,14 +124,21 @@ _LINKS = {
         "fulfils_task": "tasks",
     },
     # a delegation claim relates to the claims it restates (``ids`` below holds claims and delegation claims)
-    "delegation_claims": {"derived_from": "claims", "conflicts_with": "claims", "same_as": "claims"},
+    "delegation_claims": {
+        "derived_from": "claims",
+        "conflicts_with": "claims",
+        "same_as": "claims",
+    },
 }
 
 
 def check_relations_resolve(result: Result) -> list[str]:
     """Every relation points to an element of the output, and none to the element itself: the ids of
     the task and claim relations, and the ``input_claims`` / ``input_facts`` of the LLM calls."""
-    ids = {kind: {e["id"] for e in _elements(result, kind)} for kind in ("goals", "tasks", "claims", "facts", "constraints")}
+    ids = {
+        kind: {e["id"] for e in _elements(result, kind)}
+        for kind in ("goals", "tasks", "claims", "facts", "constraints")
+    }
     ids["claims"] |= {e["id"] for e in _elements(result, "delegation_claims")}
     problems: list[str] = []
     for kind, links in _LINKS.items():
@@ -141,10 +152,16 @@ def check_relations_resolve(result: Result) -> list[str]:
                             f"{kind[:-1]} {element['id'][:8]}: {key} {target[:8]} is not a {target_kind[:-1]} of the output"
                         )
     for node in result.get("nodes", []):
-        for key, kind in (("input_claims", "claims"), ("input_facts", "facts"), ("source_claims", "claims")):
+        for key, kind in (
+            ("input_claims", "claims"),
+            ("input_facts", "facts"),
+            ("source_claims", "claims"),
+        ):
             for target in node.get(key) or []:
                 if target not in ids[kind]:
-                    problems.append(f"call {str(node['node'].get('id'))[:8]}: {key} {target[:8]} is not in the output")
+                    problems.append(
+                        f"call {str(node['node'].get('id'))[:8]}: {key} {target[:8]} is not in the output"
+                    )
     return problems
 
 
@@ -182,7 +199,9 @@ def check_claims_generated_by_a_node(result: Result) -> list[str]:
         if not generated_by:
             problems.append(f"claim {claim['id'][:8]} has no generated_by")
         elif generated_by not in nodes:
-            problems.append(f"claim {claim['id'][:8]}: generated_by {generated_by[:8]} is not a node of the output")
+            problems.append(
+                f"claim {claim['id'][:8]}: generated_by {generated_by[:8]} is not a node of the output"
+            )
     return problems
 
 
@@ -201,7 +220,9 @@ def check_claim_quotes_in_source(result: Result) -> list[str]:
         if not quote or source is None:
             continue
         if not is_verbatim(quote, _first_text(source["node"], "completion", "outputContent")):
-            problems.append(f"claim {claim['id'][:8]}: the quote {_short(quote)!r} is not in the output of its LLM call")
+            problems.append(
+                f"claim {claim['id'][:8]}: the quote {_short(quote)!r} is not in the output of its LLM call"
+            )
     return problems
 
 
@@ -222,12 +243,17 @@ def check_relations_point_back_in_time(result: Result) -> list[str]:
     no ``startTime`` is reported once per node. Dangling ids are left to ``check_relations_resolve``.
     """
     nodes = _nodes_by_id(result)
-    start: dict[str, tuple[float | None, str]] = {}  # element id -> (start of its node, id of its node)
+    start: dict[
+        str, tuple[float | None, str]
+    ] = {}  # element id -> (start of its node, id of its node)
     for kind, (owner_key, _) in _EARLIER_LINKS.items():
         for element in _elements(result, kind):
             owner = element.get(owner_key)
             node = nodes.get(owner)
-            start[element["id"]] = (_epoch(node["node"].get("startTime")) if node else None, str(owner))
+            start[element["id"]] = (
+                _epoch(node["node"].get("startTime")) if node else None,
+                str(owner),
+            )
     problems: list[str] = []
     undated: set[str] = set()
     for kind, (_, keys) in _EARLIER_LINKS.items():
@@ -239,12 +265,19 @@ def check_relations_point_back_in_time(result: Result) -> list[str]:
                         continue
                     target_time, target_owner = start[target]
                     if own_time is None or target_time is None:
-                        undated.update(o for o, t in ((own_owner, own_time), (target_owner, target_time)) if t is None)
+                        undated.update(
+                            o
+                            for o, t in ((own_owner, own_time), (target_owner, target_time))
+                            if t is None
+                        )
                     elif target_time > own_time:
                         problems.append(
                             f"{kind[:-1]} {element['id'][:8]}: {key} {target[:8]} starts {target_time - own_time:.2f}s after it"
                         )
-    problems += [f"cannot compare times: node {o[:8]} is not in the output or has no startTime" for o in sorted(undated)]
+    problems += [
+        f"cannot compare times: node {o[:8]} is not in the output or has no startTime"
+        for o in sorted(undated)
+    ]
     return problems
 
 
@@ -266,17 +299,29 @@ def check_task_relation_rules(result: Result) -> list[str]:
             problems.append(f"{label} has no preceded_by (the order of the agent calls is unknown)")
             continue
         implements, same = task.get("implements") or [], task.get("same_as") or []
-        problems += [f"{label} implements {t[:8]} but is not preceded_by it" for t in implements if t not in previous]
-        problems += [f"{label} implements {t[:8]}, the task it is also the same as" for t in implements if t in same]
+        problems += [
+            f"{label} implements {t[:8]} but is not preceded_by it"
+            for t in implements
+            if t not in previous
+        ]
+        problems += [
+            f"{label} implements {t[:8]}, the task it is also the same as"
+            for t in implements
+            if t in same
+        ]
         if task.get("achieves") and previous:
             problems.append(
                 f"{label} achieves a goal but is preceded_by {len(previous)} task(s): only a task with no predecessor is compared with the goal"
             )
         if not previous:
             if not has_goal:
-                problems.append(f"{label} has no predecessor but there is no goal to judge it against")
+                problems.append(
+                    f"{label} has no predecessor but there is no goal to judge it against"
+                )
             elif not isinstance(task.get("achieves"), list):
-                problems.append(f"{label} has no predecessor and was not judged against the goal (no achieves)")
+                problems.append(
+                    f"{label} has no predecessor and was not judged against the goal (no achieves)"
+                )
     return problems
 
 
@@ -285,12 +330,16 @@ def check_agent_calls_not_lost(result: Result) -> list[str]:
     a bare resume marker or a routing command. A call that is neither has silently lost its task."""
     problems = []
     for node in result.get("nodes", []):
-        if node.get("node_type") != "AgentCall" or node.get("symbolic_state_elements", {}).get("tasks"):
+        if node.get("node_type") != "AgentCall" or node.get("symbolic_state_elements", {}).get(
+            "tasks"
+        ):
             continue
         if skip_reason(KGNode(node_type="AgentCall", node=node["node"])) is None:
             raw = node["node"]
             name = raw.get("agentName") or raw.get("name") or "agent call"
-            problems.append(f"{name} ({str(raw.get('id'))[:8]}) has no task and no reason to skip it")
+            problems.append(
+                f"{name} ({str(raw.get('id'))[:8]}) has no task and no reason to skip it"
+            )
     return problems
 
 
@@ -375,8 +424,14 @@ CHECKS: dict[str, Check] = {
 # --------------------------------------------------------------------------------------------
 
 
-def _node(node_type: str, node_id: str, start: float | None, elements: dict | None = None,
-          input_claims: list[str] | None = None, **raw: Any) -> dict[str, Any]:
+def _node(
+    node_type: str,
+    node_id: str,
+    start: float | None,
+    elements: dict | None = None,
+    input_claims: list[str] | None = None,
+    **raw: Any,
+) -> dict[str, Any]:
     """A node of the output: the KG node (``id``, ``startTime`` and ``raw``) plus its elements."""
     kg_node = {"id": node_id, **({"startTime": start} if start is not None else {}), **raw}
     return {
@@ -391,31 +446,74 @@ def _node(node_type: str, node_id: str, start: float | None, elements: dict | No
 COMPLETION = "Fare is 75. It is cheap."
 
 
-def _result(tasks: list[dict], goals: list[dict] | None = None, claims: list[dict] | None = None,
-            facts: list[dict] | None = None, input_claims: list[str] | None = None) -> Result:
+def _result(
+    tasks: list[dict],
+    goals: list[dict] | None = None,
+    claims: list[dict] | None = None,
+    facts: list[dict] | None = None,
+    input_claims: list[str] | None = None,
+) -> Result:
     """A well-formed output: a Conversation node with the goals; one AgentCall node per task owner
     (start 1, 2, ...) with its tasks and the standing tasks of its agent (``system_tasks``); a ToolCall
     (start 5) with the facts; an LLMCall ``llm1`` (start 10) with the claims and the system prompt of
     every agent."""
     goals = [{"id": "g1", "goal_text": "Know the fastest trip"}] if goals is None else goals
-    claims = [
-        {"id": "c1", "generated_by": "llm1", "verbatim_source": "Fare is 75.", "supported_by": ["f1"]},
-        {"id": "c2", "generated_by": "llm1", "verbatim_source": "It is cheap.", "derived_from": ["c1"], "answers": ["g1"]},
-    ] if claims is None else claims
+    claims = (
+        [
+            {
+                "id": "c1",
+                "generated_by": "llm1",
+                "verbatim_source": "Fare is 75.",
+                "supported_by": ["f1"],
+            },
+            {
+                "id": "c2",
+                "generated_by": "llm1",
+                "verbatim_source": "It is cheap.",
+                "derived_from": ["c1"],
+                "answers": ["g1"],
+            },
+        ]
+        if claims is None
+        else claims
+    )
     facts = [{"id": "f1", "grounded_in": "tool1"}] if facts is None else facts
     owners = list(dict.fromkeys(t.get("owned_by") or "a0" for t in tasks))
     nodes = [_node("Conversation", "conv", None, {"goals": goals})]
     for index, owner in enumerate(owners, start=1):
         owned = [t for t in tasks if (t.get("owned_by") or "a0") == owner]
-        nodes.append(_node("AgentCall", owner, float(index), {"tasks": owned}, agentName=owner,
-                           inputContent="input:a:Do the work", outputContent="output:a:done"))
+        nodes.append(
+            _node(
+                "AgentCall",
+                owner,
+                float(index),
+                {"tasks": owned},
+                agentName=owner,
+                inputContent="input:a:Do the work",
+                outputContent="output:a:done",
+            )
+        )
     for tool_id in dict.fromkeys(f.get("grounded_in", "tool1") for f in facts):
-        nodes.append(_node("ToolCall", tool_id, 5.0,
-                           {"facts": [f for f in facts if f.get("grounded_in", "tool1") == tool_id]},
-                           toolOutput="Fare: $75"))
+        nodes.append(
+            _node(
+                "ToolCall",
+                tool_id,
+                5.0,
+                {"facts": [f for f in facts if f.get("grounded_in", "tool1") == tool_id]},
+                toolOutput="Fare: $75",
+            )
+        )
     prompts = [{"id": f"sp_{owner}", "agent_id": owner} for owner in owners]
-    nodes.append(_node("LLMCall", "llm1", 10.0, {"claims": claims, "system_prompts": prompts}, input_claims or [],
-                       completion=COMPLETION))
+    nodes.append(
+        _node(
+            "LLMCall",
+            "llm1",
+            10.0,
+            {"claims": claims, "system_prompts": prompts},
+            input_claims or [],
+            completion=COMPLETION,
+        )
+    )
     return {"nodes": nodes}
 
 
@@ -424,9 +522,33 @@ def _node_of(result: Result, node_id: str) -> dict[str, Any]:
 
 
 GOOD_TASKS = [
-    {"id": "t1", "owned_by": "a1", "task_text": "Find the route", "achieves": ["g1"], "preceded_by": [], "same_as": [], "implements": []},
-    {"id": "t2", "owned_by": "a2", "task_text": "Find the route", "achieves": [], "preceded_by": ["t1"], "same_as": ["t1"], "implements": []},
-    {"id": "t3", "owned_by": "a3", "task_text": "Check fares", "achieves": [], "preceded_by": ["t2"], "same_as": [], "implements": ["t2"]},
+    {
+        "id": "t1",
+        "owned_by": "a1",
+        "task_text": "Find the route",
+        "achieves": ["g1"],
+        "preceded_by": [],
+        "same_as": [],
+        "implements": [],
+    },
+    {
+        "id": "t2",
+        "owned_by": "a2",
+        "task_text": "Find the route",
+        "achieves": [],
+        "preceded_by": ["t1"],
+        "same_as": ["t1"],
+        "implements": [],
+    },
+    {
+        "id": "t3",
+        "owned_by": "a3",
+        "task_text": "Check fares",
+        "achieves": [],
+        "preceded_by": ["t2"],
+        "same_as": [],
+        "implements": ["t2"],
+    },
 ]
 
 
@@ -439,10 +561,19 @@ def test_a_complete_output_passes_every_check():
 
 
 def test_goal_answered_by_no_claim_fails_and_a_dangling_answers_is_reported():
-    claims = [{"id": "c1", "generated_by": "llm1", "verbatim_source": "Fare is 75.", "supported_by": ["f1"]}]
+    claims = [
+        {
+            "id": "c1",
+            "generated_by": "llm1",
+            "verbatim_source": "Fare is 75.",
+            "supported_by": ["f1"],
+        }
+    ]
     assert _failing(_result(GOOD_TASKS, claims=claims)) == ["goal_answered_by_claims"]
     claims[0]["answers"] = ["nope"]
-    assert "not a goal of the output" in check_relations_resolve(_result(GOOD_TASKS, claims=claims))[0]
+    assert (
+        "not a goal of the output" in check_relations_resolve(_result(GOOD_TASKS, claims=claims))[0]
+    )
 
 
 def test_a_dangling_bounded_by_is_reported():
@@ -452,7 +583,9 @@ def test_a_dangling_bounded_by_is_reported():
 
 
 def test_task_without_same_as_preceded_by_or_achieves_is_not_connected():
-    tasks = GOOD_TASKS + [{"id": "t4", "task_text": "Alone", "achieves": [], "preceded_by": [], "same_as": []}]
+    tasks = GOOD_TASKS + [
+        {"id": "t4", "task_text": "Alone", "achieves": [], "preceded_by": [], "same_as": []}
+    ]
     assert [p[:7] for p in check_tasks_connected(_result(tasks))] == ["task t4"]
     # only implements does not connect it
     tasks[-1]["implements"] = ["t1"]
@@ -474,8 +607,14 @@ def test_empty_extraction_is_reported():
 
 
 def test_dangling_and_self_relations_are_reported():
-    tasks = [dict(GOOD_TASKS[0]), dict(GOOD_TASKS[1], preceded_by=["t1", "ghost"]), dict(GOOD_TASKS[2], implements=["t3"])]
-    problems = check_relations_resolve(_result(tasks, claims=[{"id": "c1", "supported_by": ["f9"]}], input_claims=["c7"]))
+    tasks = [
+        dict(GOOD_TASKS[0]),
+        dict(GOOD_TASKS[1], preceded_by=["t1", "ghost"]),
+        dict(GOOD_TASKS[2], implements=["t3"]),
+    ]
+    problems = check_relations_resolve(
+        _result(tasks, claims=[{"id": "c1", "supported_by": ["f9"]}], input_claims=["c7"])
+    )
     assert len(problems) == 4
     assert any("ghost" in p for p in problems)
     assert any("points to itself" in p for p in problems)
@@ -497,15 +636,24 @@ def test_claim_quote_must_be_in_the_output_of_the_generating_call():
     quoted = [{"id": "c1", "generated_by": "llm1", "verbatim_source": 'He said "ok". Next line.'}]
     result = _result(GOOD_TASKS, claims=quoted)
     parts = [{"type": "text", "content": 'He said "ok".\nNext   line.'}]
-    _node_of(result, "llm1")["node"]["completion"] = json.dumps([{"role": "assistant", "parts": parts}])
+    _node_of(result, "llm1")["node"]["completion"] = json.dumps(
+        [{"role": "assistant", "parts": parts}]
+    )
     assert check_claim_quotes_in_source(result) == []
     # no quote (the extractor drops the ones it cannot find), or a call that is not in the output
-    unchecked = [{"id": "c1", "generated_by": "llm1"}, {"id": "c2", "generated_by": "ghost", "verbatim_source": "x"}]
+    unchecked = [
+        {"id": "c1", "generated_by": "llm1"},
+        {"id": "c2", "generated_by": "ghost", "verbatim_source": "x"},
+    ]
     assert check_claim_quotes_in_source(_result(GOOD_TASKS, claims=unchecked)) == []
 
 
 def test_claim_generated_by_must_be_a_node_of_the_output():
-    claims = [{"id": "c1", "generated_by": "ghost"}, {"id": "c2"}, {"id": "c3", "generated_by": "llm1"}]
+    claims = [
+        {"id": "c1", "generated_by": "ghost"},
+        {"id": "c2"},
+        {"id": "c3", "generated_by": "llm1"},
+    ]
     assert check_claims_generated_by_a_node(_result(GOOD_TASKS, claims=claims)) == [
         "claim c1: generated_by ghost is not a node of the output",
         "claim c2 has no generated_by",
@@ -564,29 +712,64 @@ def test_agent_call_without_task_needs_a_skip_reason():
     result = _result(GOOD_TASKS)
     assert check_agent_calls_not_lost(result) == []
     skipped = [
-        _node("AgentCall", "m1", 20.0, inputContent="input:moderator:", outputContent="output:moderator:ok"),
-        _node("AgentCall", "m2", 21.0, inputContent="input:moderator:sre-u1-exec-resume-2", outputContent="x"),
-        _node("AgentCall", "m3", 22.0, inputContent="input:moderator:Go on",
-              outputContent='output:moderator:{"next": "worker"}'),
+        _node(
+            "AgentCall",
+            "m1",
+            20.0,
+            inputContent="input:moderator:",
+            outputContent="output:moderator:ok",
+        ),
+        _node(
+            "AgentCall",
+            "m2",
+            21.0,
+            inputContent="input:moderator:sre-u1-exec-resume-2",
+            outputContent="x",
+        ),
+        _node(
+            "AgentCall",
+            "m3",
+            22.0,
+            inputContent="input:moderator:Go on",
+            outputContent='output:moderator:{"next": "worker"}',
+        ),
     ]
     result["nodes"] += skipped
     assert check_agent_calls_not_lost(result) == []
     result["nodes"].append(
-        _node("AgentCall", "w9", 23.0, agentName="worker", inputContent="input:worker:Check the fares",
-              outputContent="output:worker:Fare is 75.")
+        _node(
+            "AgentCall",
+            "w9",
+            23.0,
+            agentName="worker",
+            inputContent="input:worker:Check the fares",
+            outputContent="output:worker:Fare is 75.",
+        )
     )
-    assert check_agent_calls_not_lost(result) == ["worker (w9) has no task and no reason to skip it"]
+    assert check_agent_calls_not_lost(result) == [
+        "worker (w9) has no task and no reason to skip it"
+    ]
 
 
 def test_agent_call_needs_a_task_or_a_system_task():
     result = _result(GOOD_TASKS)
     assert check_agent_calls_have_a_task(result) == []
     # a routing turn: no task (skipped), but the standing task of its agent covers it
-    router = _node("AgentCall", "m1", 20.0, agentName="moderator", inputContent="input:moderator:Go on",
-                   outputContent='output:moderator:{"next": "worker"}')
+    router = _node(
+        "AgentCall",
+        "m1",
+        20.0,
+        agentName="moderator",
+        inputContent="input:moderator:Go on",
+        outputContent='output:moderator:{"next": "worker"}',
+    )
     result["nodes"].append(router)
-    assert check_agent_calls_have_a_task(result) == ["moderator (m1) has no task and no system task"]
-    router["system_tasks"] = []  # an agent without any (no readable system prompt) is still a failure
+    assert check_agent_calls_have_a_task(result) == [
+        "moderator (m1) has no task and no system task"
+    ]
+    router[
+        "system_tasks"
+    ] = []  # an agent without any (no readable system prompt) is still a failure
     assert len(check_agent_calls_have_a_task(result)) == 1
     router["system_tasks"] = ["st1"]
     assert check_agent_calls_have_a_task(result) == []
@@ -615,11 +798,24 @@ def test_every_tool_result_gives_one_fact_grounded_in_it():
     result["nodes"] += [
         _node("ToolCall", "t_lost", 6.0, toolOutput="Fare: $80"),
         _node("ToolCall", "t_empty", 6.0, toolOutput=""),
-        _node("ToolCall", "t_other", 6.0, {"facts": [{"id": "f2", "grounded_in": "tool1"}]}, toolOutput="x"),
-        _node("ToolCall", "t_two", 6.0, {"facts": [{"id": "f3", "grounded_in": "t_two"}, {"id": "f4", "grounded_in": "t_two"}]},
-              toolOutput="y"),
+        _node(
+            "ToolCall",
+            "t_other",
+            6.0,
+            {"facts": [{"id": "f2", "grounded_in": "tool1"}]},
+            toolOutput="x",
+        ),
+        _node(
+            "ToolCall",
+            "t_two",
+            6.0,
+            {"facts": [{"id": "f3", "grounded_in": "t_two"}, {"id": "f4", "grounded_in": "t_two"}]},
+            toolOutput="y",
+        ),
     ]
-    _node_of(result, "llm1")["symbolic_state_elements"]["facts"] = [{"id": "f5", "grounded_in": "tool1"}]
+    _node_of(result, "llm1")["symbolic_state_elements"]["facts"] = [
+        {"id": "f5", "grounded_in": "tool1"}
+    ]
     assert check_tool_results_give_facts(result) == [
         "LLMCall llm1 has 1 fact(s) but is not a tool call",
         "ToolCall t_lost has 0 fact(s), expected 1",
@@ -637,14 +833,19 @@ def _session_ids(config: pytest.Config) -> list[str]:
     option = config.getoption("--sessions")
     if option:
         return [s.strip() for s in option.split(",") if s.strip()]
-    lines = (line.split("#")[0].strip() for line in SESSIONS_FILE.read_text(encoding="utf-8").splitlines())
+    lines = (
+        line.split("#")[0].strip()
+        for line in SESSIONS_FILE.read_text(encoding="utf-8").splitlines()
+    )
     return [line for line in lines if line]
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if {"session_id", "check_name"} <= set(metafunc.fixturenames):
         pairs = [(sid, check) for sid in _session_ids(metafunc.config) for check in CHECKS]
-        metafunc.parametrize(("session_id", "check_name"), pairs, ids=[f"{s[:8]}-{c}" for s, c in pairs])
+        metafunc.parametrize(
+            ("session_id", "check_name"), pairs, ids=[f"{s[:8]}-{c}" for s, c in pairs]
+        )
 
 
 def _extract(session_id: str, workdir: Path) -> Result:
@@ -705,9 +906,13 @@ class FunctionalRun:
         reporter.write_line(f"outputs in {self.workdir}")
         for session_id, rows in self.rows.items():
             reporter.write_line("")
-            reporter.write_line(f"{self.mas.get(session_id, 'unknown MAS')}  ({session_id})", bold=True)
+            reporter.write_line(
+                f"{self.mas.get(session_id, 'unknown MAS')}  ({session_id})", bold=True
+            )
             for check, status, problems in rows:
-                colour = {"PASS": {"green": True}, "FAIL": {"red": True}}.get(status, {"red": True, "bold": True})
+                colour = {"PASS": {"green": True}, "FAIL": {"red": True}}.get(
+                    status, {"red": True, "bold": True}
+                )
                 reporter.write_line(f"  [{status}] {check}", **colour)
                 for problem in problems[:3]:
                     reporter.write_line(f"           {problem}")

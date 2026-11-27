@@ -156,8 +156,14 @@ def _earlier_block(earlier: list[Task]) -> str:
     for number, task in enumerate(earlier, 1):
         lines.append(f"{number}. task_text: {task.task_text}")
         if task.acceptance_criteria:
-            lines.append(f"   acceptance_criteria: {json.dumps(task.acceptance_criteria, ensure_ascii=False)}")
-    return "\n=== TASKS ALREADY EXTRACTED IN THIS SESSION (only to reuse their exact wording) ===\n" + "\n".join(lines) + "\n"
+            lines.append(
+                f"   acceptance_criteria: {json.dumps(task.acceptance_criteria, ensure_ascii=False)}"
+            )
+    return (
+        "\n=== TASKS ALREADY EXTRACTED IN THIS SESSION (only to reuse their exact wording) ===\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 SYSTEM_PROMPT = """\

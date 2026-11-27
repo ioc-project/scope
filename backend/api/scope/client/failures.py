@@ -45,6 +45,9 @@ def write_cognitive_failure_reports(
             detection["reasoning"],
             call_id,
             detection.get("name"),
+            level=detection.get("level"),
+            rule=detection.get("rule"),
+            key=detection.get("key"),
         )
         if props["id"] not in seen:  # the same failure twice in one place is one report
             seen.add(props["id"])

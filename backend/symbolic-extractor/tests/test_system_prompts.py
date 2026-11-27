@@ -12,7 +12,10 @@ from symbolic_extractor.extractors import (
 from symbolic_extractor.models import KGNode, SessionData, SessionTrajectory
 
 ROLE = "You are an itinerary specialist."
-LONG = "[role] You are an autonomous SRE incident-response agent.\n\n## Using skills\n" + "Skills help. " * 400
+LONG = (
+    "[role] You are an autonomous SRE incident-response agent.\n\n## Using skills\n"
+    + "Skills help. " * 400
+)
 
 
 def otel(system=ROLE, *messages):
@@ -39,7 +42,9 @@ def test_otel_system_parts_are_read_and_the_conversation_is_not():
 
 
 def test_several_otel_system_parts_are_joined_by_a_newline():
-    parts = json.dumps([{"type": "text", "content": "Part one."}, {"type": "text", "content": "Part two."}])
+    parts = json.dumps(
+        [{"type": "text", "content": "Part one."}, {"type": "text", "content": "Part two."}]
+    )
     assert split_system_prompt(f"{parts}\n\n{json.dumps([{'role': 'user', 'parts': []}])}") == (
         "Part one.\nPart two.",
         False,
@@ -79,9 +84,13 @@ def test_a_cut_in_the_middle_of_an_escape_sequence_is_still_decoded():
 def test_inputs_with_nothing_to_read_give_none():
     assert split_system_prompt(None) is None
     assert split_system_prompt("") is None
-    assert split_system_prompt("llm-input:moderator:f12ac8ce-0fcf-4022-a00e-88bfdc695d7d") is None  # webex reference
+    assert (
+        split_system_prompt("llm-input:moderator:f12ac8ce-0fcf-4022-a00e-88bfdc695d7d") is None
+    )  # webex reference
     assert split_system_prompt("just some text that is not JSON") is None
-    assert split_system_prompt(json.dumps([{"role": "user", "content": "no system message"}])) is None
+    assert (
+        split_system_prompt(json.dumps([{"role": "user", "content": "no system message"}])) is None
+    )
     assert split_system_prompt(json.dumps({"args": [{"messages": []}]})) is None
     assert split_system_prompt('[{"role": "user", "content": "cut before any system') is None
     assert split_system_prompt(openai("   ")) is None
@@ -104,22 +113,38 @@ def trajectory():
 
 
 def llm(call_id, prompt, start):
-    return KGNode(node_type="LLMCall", node={"id": call_id, "startTime": start, "prompt": prompt, "completion": "x"})
+    return KGNode(
+        node_type="LLMCall",
+        node={"id": call_id, "startTime": start, "prompt": prompt, "completion": "x"},
+    )
 
 
 def test_the_system_prompt_is_extracted_for_the_agent_of_the_call():
     extractor = AgentSystemPromptExtractor()
-    (prompt,) = extractor.extract(llm("l1", otel(ROLE), 1.0), SymbolicSessionStore("s1"), trajectory=trajectory())
+    (prompt,) = extractor.extract(
+        llm("l1", otel(ROLE), 1.0), SymbolicSessionStore("s1"), trajectory=trajectory()
+    )
 
     assert isinstance(prompt, AgentSystemPrompt)
-    assert (prompt.agent_id, prompt.system_prompt, prompt.truncated, prompt.read_from) == ("itinerary", ROLE, False, "l1")
+    assert (prompt.agent_id, prompt.system_prompt, prompt.truncated, prompt.read_from) == (
+        "itinerary",
+        ROLE,
+        False,
+        "l1",
+    )
     assert extractor.last_usage.calls == 0
 
 
 def test_the_id_is_deterministic_and_depends_on_the_call_and_the_text():
-    first = AgentSystemPromptExtractor().extract(llm("l1", otel(ROLE), 1.0), None, trajectory=trajectory())[0]
-    again = AgentSystemPromptExtractor().extract(llm("l1", otel(ROLE), 1.0), None, trajectory=trajectory())[0]
-    other = AgentSystemPromptExtractor().extract(llm("l1", otel("Another role."), 1.0), None, trajectory=trajectory())[0]
+    first = AgentSystemPromptExtractor().extract(
+        llm("l1", otel(ROLE), 1.0), None, trajectory=trajectory()
+    )[0]
+    again = AgentSystemPromptExtractor().extract(
+        llm("l1", otel(ROLE), 1.0), None, trajectory=trajectory()
+    )[0]
+    other = AgentSystemPromptExtractor().extract(
+        llm("l1", otel("Another role."), 1.0), None, trajectory=trajectory()
+    )[0]
     assert first.id == again.id != other.id
 
 
@@ -129,14 +154,26 @@ def test_an_agent_that_has_a_system_prompt_in_the_store_gets_no_second_one():
     store.add("system_prompts", first, "l1")
 
     assert extractor.extract(llm("l2", otel(ROLE), 2.0), store, trajectory=trajectory()) == []
-    (moderator,) = extractor.extract(llm("l3", otel("You are a moderator."), 3.5), store, trajectory=trajectory())
+    (moderator,) = extractor.extract(
+        llm("l3", otel("You are a moderator."), 3.5), store, trajectory=trajectory()
+    )
     assert moderator.agent_id == "moderator"
-    assert agent_system_prompt(store, "itinerary") is first and agent_system_prompt(store, "moderator") is None
+    assert (
+        agent_system_prompt(store, "itinerary") is first
+        and agent_system_prompt(store, "moderator") is None
+    )
 
 
 def test_a_call_without_a_readable_prompt_leaves_the_agent_open_for_its_next_call():
     extractor, store = AgentSystemPromptExtractor(), SymbolicSessionStore("s1")
-    assert extractor.extract(llm("l1", "llm-input:itinerary:f12ac8ce-0fcf-4022-a00e-88bfdc695d7d", 1.0), store, trajectory=trajectory()) == []
+    assert (
+        extractor.extract(
+            llm("l1", "llm-input:itinerary:f12ac8ce-0fcf-4022-a00e-88bfdc695d7d", 1.0),
+            store,
+            trajectory=trajectory(),
+        )
+        == []
+    )
     (prompt,) = extractor.extract(llm("l2", otel(ROLE), 2.0), store, trajectory=trajectory())
     assert prompt.read_from == "l2"
 
@@ -144,9 +181,18 @@ def test_a_call_without_a_readable_prompt_leaves_the_agent_open_for_its_next_cal
 def test_nothing_is_extracted_when_the_agent_is_unknown():
     extractor = AgentSystemPromptExtractor()
     assert extractor.extract(llm("l1", otel(ROLE), 1.0), None, trajectory=None) == []
-    assert extractor.extract(llm("l9", otel(ROLE), 1.0), None, trajectory=trajectory()) == []  # not in the trajectory
-    assert extractor.extract(llm("l4", otel(ROLE), 4.0), None, trajectory=trajectory()) == []  # step without agent
-    assert extractor.extract(KGNode(node_type="LLMCall", node={"prompt": otel(ROLE)}), None, trajectory=trajectory()) == []
+    assert (
+        extractor.extract(llm("l9", otel(ROLE), 1.0), None, trajectory=trajectory()) == []
+    )  # not in the trajectory
+    assert (
+        extractor.extract(llm("l4", otel(ROLE), 4.0), None, trajectory=trajectory()) == []
+    )  # step without agent
+    assert (
+        extractor.extract(
+            KGNode(node_type="LLMCall", node={"prompt": otel(ROLE)}), None, trajectory=trajectory()
+        )
+        == []
+    )
 
 
 def test_it_applies_to_llm_calls_only():
@@ -171,7 +217,12 @@ def session():
         llm_spans=[
             {"id": "l1", "startTime": 1.0, "prompt": otel(ROLE), "completion": "a"},
             {"id": "l2", "startTime": 2.0, "prompt": otel(ROLE, "q", "more"), "completion": "b"},
-            {"id": "l3", "startTime": 3.5, "prompt": otel("You are a moderator."), "completion": "c"},
+            {
+                "id": "l3",
+                "startTime": 3.5,
+                "prompt": otel("You are a moderator."),
+                "completion": "c",
+            },
         ],
     )
 
@@ -182,7 +233,9 @@ def test_process_stores_one_system_prompt_per_agent_on_the_first_call_that_has_i
     result = pipeline.process(session(), trajectory=trajectory())
 
     by_id = {n.node_id: n for n in result.nodes}
-    assert [p["system_prompt"] for p in by_id["l1"].symbolic_state_elements["system_prompts"]] == [ROLE]
+    assert [p["system_prompt"] for p in by_id["l1"].symbolic_state_elements["system_prompts"]] == [
+        ROLE
+    ]
     assert by_id["l2"].symbolic_state_elements["system_prompts"] == []  # itinerary already has one
     assert by_id["l3"].symbolic_state_elements["system_prompts"][0]["agent_id"] == "moderator"
     stored = {s.element.agent_id: s.element for s in pipeline.store.by_kind("system_prompts")}
@@ -198,11 +251,19 @@ def test_process_without_a_trajectory_extracts_nothing():
 def test_live_process_gives_the_same_prompts_node_by_node():
     live = SymbolicExtractor(extractors=[AgentSystemPromptExtractor()])
     for span in session().llm_spans:
-        live.live_process(KGNode(node_type="LLMCall", node=span), ExtractionRequest(session_id="s1"), trajectory())
+        live.live_process(
+            KGNode(node_type="LLMCall", node=span), ExtractionRequest(session_id="s1"), trajectory()
+        )
 
     whole = SymbolicExtractor(extractors=[AgentSystemPromptExtractor()])
     whole.process(session(), trajectory=trajectory())
-    prompts = lambda p: {s.element.agent_id: (s.element.system_prompt, s.element.read_from, s.element.id) for s in p.store.by_kind("system_prompts")}  # noqa: E731
+
+    def prompts(p):
+        return {
+            s.element.agent_id: (s.element.system_prompt, s.element.read_from, s.element.id)
+            for s in p.store.by_kind("system_prompts")
+        }
+
     assert prompts(live) == prompts(whole) and len(prompts(live)) == 2
 
 
@@ -224,5 +285,7 @@ def test_other_extractors_still_run_without_a_trajectory_argument():
             return []
 
     plain = Plain()
-    SymbolicExtractor(extractors=[plain, AgentSystemPromptExtractor()]).process(session(), trajectory=trajectory())
+    SymbolicExtractor(extractors=[plain, AgentSystemPromptExtractor()]).process(
+        session(), trajectory=trajectory()
+    )
     assert plain.args is not None

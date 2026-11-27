@@ -12,7 +12,11 @@ from pydantic import JsonValue, TypeAdapter
 
 from scope.connectors.base import Connector
 from scope.core.exceptions import NotFoundError, ValidationError
-from scope.models.realtime_events import EventScope, RealtimeEventPage, RealtimeEventQuery
+from scope.models.realtime_events import (
+    EventScope,
+    RealtimeEventPage,
+    RealtimeEventQuery,
+)
 from scope.query_builders import realtime_events as queries
 
 _event_adapter = TypeAdapter(dict[str, JsonValue])

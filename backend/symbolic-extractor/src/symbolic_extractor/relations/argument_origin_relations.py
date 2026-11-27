@@ -134,7 +134,11 @@ def candidate_claims(
         return []
     parent, start = step["parent_id"], _time(step)
     llm_calls = sorted(
-        (s for s in trajectory.steps if s.get("kind") == "llm" and s.get("parent_id") == parent and _time(s) <= start),
+        (
+            s
+            for s in trajectory.steps
+            if s.get("kind") == "llm" and s.get("parent_id") == parent and _time(s) <= start
+        ),
         key=_time,
     )
     claims = [s.element for s in store.for_node(parent, "delegation_claims")]
@@ -149,12 +153,17 @@ def _show(value: Any) -> str:
 
 
 def render_prompt(
-    fact: Fact, claims: Sequence[Claim], announcing: set[str] = frozenset(), brief: set[str] = frozenset()
+    fact: Fact,
+    claims: Sequence[Claim],
+    announcing: set[str] = frozenset(),
+    brief: set[str] = frozenset(),
 ) -> str:
     """The request: the tool, its arguments and the numbered claims. ``announcing`` are the ids of the claims
     that announce this call, ``brief`` those of the delegation claims (marked as such). The tool output is not
     in it."""
-    arguments = "\n".join(f"- {name} = {_show(value)}" for name, value in fact.tool_arguments.items())
+    arguments = "\n".join(
+        f"- {name} = {_show(value)}" for name, value in fact.tool_arguments.items()
+    )
     lines = []
     for i, claim in enumerate(claims, start=1):
         marks = ""
@@ -163,7 +172,11 @@ def render_prompt(
         if claim.id in announcing:
             marks += " [announces this call]"
         lines.append(f"C{i}. {claim.claim_text}{marks}")
-    return f"=== TOOL ===\n{fact.tool_name or 'unknown'}\n\n=== ARGUMENTS ===\n{arguments}\n\n=== CLAIMS ===\n" + "\n".join(lines) + "\n"
+    return (
+        f"=== TOOL ===\n{fact.tool_name or 'unknown'}\n\n=== ARGUMENTS ===\n{arguments}\n\n=== CLAIMS ===\n"
+        + "\n".join(lines)
+        + "\n"
+    )
 
 
 def _argument_named(raw: Any, fact: Fact) -> str | None:
@@ -191,7 +204,9 @@ def parse_origins(data: dict, fact: Fact, claims: Sequence[Claim]) -> list[Argum
         if name is not None:
             said.setdefault(name, item)
         else:
-            logger.warning("Argument %r of the reply is not an argument of the tool call, ignored", item)
+            logger.warning(
+                "Argument %r of the reply is not an argument of the tool call, ignored", item
+            )
     origins = []
     for name, value in fact.tool_arguments.items():
         item = said.get(name, {})
@@ -248,7 +263,11 @@ class ArgumentOriginExtractor(SemanticRelationExtractor):
         if trajectory is None:
             return evaluations
         for element in elements:
-            if not isinstance(element, Fact) or not element.tool_arguments or store.get(element.id) is None:
+            if (
+                not isinstance(element, Fact)
+                or not element.tool_arguments
+                or store.get(element.id) is None
+            ):
                 continue
             claims = candidate_claims(store, trajectory, element.grounded_in)
             if not claims:
@@ -263,11 +282,17 @@ class ArgumentOriginExtractor(SemanticRelationExtractor):
             evaluations.append(evaluation)
         return evaluations
 
-    def has_candidates(self, store: SymbolicSessionStore, trajectory: SessionTrajectory, fact: Fact) -> bool:
+    def has_candidates(
+        self, store: SymbolicSessionStore, trajectory: SessionTrajectory, fact: Fact
+    ) -> bool:
         """Whether ``fact`` is ready to be judged: it has arguments and its tool call has candidate claims."""
-        return bool(fact.tool_arguments) and bool(candidate_claims(store, trajectory, fact.grounded_in, limit=1))
+        return bool(fact.tool_arguments) and bool(
+            candidate_claims(store, trajectory, fact.grounded_in, limit=1)
+        )
 
-    def evaluate(self, store: SymbolicSessionStore, fact: Fact, claims: Sequence[Claim]) -> ArgumentOriginEvaluation:
+    def evaluate(
+        self, store: SymbolicSessionStore, fact: Fact, claims: Sequence[Claim]
+    ) -> ArgumentOriginEvaluation:
         """Where the arguments of ``fact`` come from, among ``claims``: one request, and one more when the reply
         is not usable (not JSON at all, the client raises ``ValueError``, or JSON that ``parse_origins``
         rejects). The usage of every request that returned is added to ``last_usage``. API errors are not
@@ -277,7 +302,9 @@ class ArgumentOriginExtractor(SemanticRelationExtractor):
         prompt = render_prompt(fact, claims, announcing, brief)
         for attempt in (1, 2):
             try:
-                reply = self._llm.complete_json(SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder())
+                reply = self._llm.complete_json(
+                    SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder()
+                )
             except ValueError as exc:
                 self.last_usage = self.last_usage + usage_of(exc)
                 if attempt == 2:

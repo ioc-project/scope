@@ -21,7 +21,9 @@ class FakeLLM:
 
     def complete_json(self, system, user):
         self.calls.append((system, user))
-        return LLMReply(data=self.reply, usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=20))
+        return LLMReply(
+            data=self.reply, usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=20)
+        )
 
 
 AGENT_NODE = KGNode(
@@ -37,9 +39,23 @@ AGENT_NODE = KGNode(
 )
 
 HUMAN_INPUT = json.dumps(
-    {"args": [{"messages": [{"type": "HumanMessage", "content": "Plan a weekend in Lisbon for 2, max 800 EUR."}]}], "kwargs": {}}
+    {
+        "args": [
+            {
+                "messages": [
+                    {
+                        "type": "HumanMessage",
+                        "content": "Plan a weekend in Lisbon for 2, max 800 EUR.",
+                    }
+                ]
+            }
+        ],
+        "kwargs": {},
+    }
 )
-FINAL_RESPONSE = json.dumps({"next": "FINISH", "final_answer": "Here is your Lisbon itinerary: ..."})
+FINAL_RESPONSE = json.dumps(
+    {"next": "FINISH", "final_answer": "Here is your Lisbon itinerary: ..."}
+)
 
 CONVERSATION_NODE = KGNode(
     node_type="Conversation",
@@ -50,7 +66,12 @@ GOAL_REPLY = {
     "goals": [
         {
             "goal_text": "A complete weekend itinerary for 2 in Lisbon, with transport and lodging.",
-            "success_criteria": ["Includes transport", "Includes lodging", "  ", "Total cost is at most 800 EUR"],
+            "success_criteria": [
+                "Includes transport",
+                "Includes lodging",
+                "  ",
+                "Total cost is at most 800 EUR",
+            ],
             "rationale": None,
             "inferred": False,
             "status": "achieved",
@@ -75,7 +96,11 @@ def test_goal_is_extracted_from_the_conversation():
 
     assert goal.goal_text.startswith("A complete weekend itinerary")
     # blank criteria are dropped
-    assert goal.success_criteria == ["Includes transport", "Includes lodging", "Total cost is at most 800 EUR"]
+    assert goal.success_criteria == [
+        "Includes transport",
+        "Includes lodging",
+        "Total cost is at most 800 EUR",
+    ]
     assert goal.inferred is False and goal.status == "achieved"
     # the human message and the final answer are unwrapped from their JSON envelopes
     user = llm.calls[0][1]
@@ -85,7 +110,12 @@ def test_goal_is_extracted_from_the_conversation():
 
 
 def test_goal_prompt_passes_the_full_text_when_it_cannot_be_unwrapped():
-    for query in ("input:sre:Restart the cache.", '{"args": []}', '{"args": [{"messages": [{"type": "AIMessage", "content": "x"}]}]}', "[1, 2]"):
+    for query in (
+        "input:sre:Restart the cache.",
+        '{"args": []}',
+        '{"args": [{"messages": [{"type": "AIMessage", "content": "x"}]}]}',
+        "[1, 2]",
+    ):
         node = KGNode(
             node_type="Conversation",
             node={"id": "c", "query": query, "response": '{"type": "Command", "goto": "__end__"}'},
@@ -97,7 +127,9 @@ def test_goal_prompt_passes_the_full_text_when_it_cannot_be_unwrapped():
 
 def test_goal_prompt_needs_a_query():
     prompt = GoalExtractionPrompt()
-    assert prompt.render(KGNode(node_type="Conversation", node={"id": "c", "response": "x"})) is None
+    assert (
+        prompt.render(KGNode(node_type="Conversation", node={"id": "c", "response": "x"})) is None
+    )
     no_response = prompt.render(KGNode(node_type="Conversation", node={"id": "c", "query": "Do x"}))
     assert "(empty)" in no_response
 
@@ -156,7 +188,10 @@ def test_task_inferred_flag_defaults_to_false_and_is_kept_when_set():
     assert inferred.inferred is True
     assert stated.inferred is False
     # the id does not depend on the flag
-    assert inferred.id == ElementExtractor(FakeLLM(reply), TaskExtractionPrompt()).extract(AGENT_NODE)[0].id
+    assert (
+        inferred.id
+        == ElementExtractor(FakeLLM(reply), TaskExtractionPrompt()).extract(AGENT_NODE)[0].id
+    )
 
 
 def test_task_prompt_asks_for_the_inferred_flag():
@@ -173,7 +208,10 @@ _LONG = "The other agents said: " + "word " * 300
     [
         (_LONG + "Keep to 4-8 sentences.", False),  # long but ends with its instruction
         (_LONG + "and I can't rate a pac", True),  # cut in the middle of a word
-        (_LONG + 'it ends here."', True),  # ends with a closing quote: the instruction after it is missing
+        (
+            _LONG + 'it ends here."',
+            True,
+        ),  # ends with a closing quote: the instruction after it is missing
         ("Find the cheapest train", False),  # short and terse: never taken as cut
         ("", False),
     ],
@@ -187,9 +225,15 @@ def test_looks_cut_off(text, cut):
 def test_cut_off_input_is_told_to_the_llm_and_forces_inferred():
     node = KGNode(
         node_type="AgentCall",
-        node={"id": "a7", "agentName": "finance", "inputContent": "input:finance:" + _LONG + "still hoping"},
+        node={
+            "id": "a7",
+            "agentName": "finance",
+            "inputContent": "input:finance:" + _LONG + "still hoping",
+        },
     )
-    reply = {"tasks": [{"task_text": "Respond to the other agents.", "inferred": False}]}  # the LLM did not notice
+    reply = {
+        "tasks": [{"task_text": "Respond to the other agents.", "inferred": False}]
+    }  # the LLM did not notice
     llm = FakeLLM(reply)
     (task,) = ElementExtractor(llm, TaskExtractionPrompt()).extract(node)
 
@@ -226,7 +270,9 @@ def test_goals_only_apply_to_the_conversation_and_tasks_to_agent_calls():
 
 
 def test_tasks_need_an_input_and_an_id():
-    empty_input = KGNode(node_type="AgentCall", node={"id": "a2", "agentName": "x", "inputContent": " "})
+    empty_input = KGNode(
+        node_type="AgentCall", node={"id": "a2", "agentName": "x", "inputContent": " "}
+    )
     no_id = KGNode(node_type="AgentCall", node={"inputContent": "Do something"})
     llm = FakeLLM({})
     extractor = ElementExtractor(llm, TaskExtractionPrompt())
@@ -238,7 +284,12 @@ def test_tasks_need_an_input_and_an_id():
 def _agent(input_content, output_content="output:x:done", node_id="a9"):
     return KGNode(
         node_type="AgentCall",
-        node={"id": node_id, "agentName": "x", "inputContent": input_content, "outputContent": output_content},
+        node={
+            "id": node_id,
+            "agentName": "x",
+            "inputContent": input_content,
+            "outputContent": output_content,
+        },
     )
 
 
@@ -246,7 +297,9 @@ def test_task_input_is_cleaned_before_the_llm_sees_it():
     prompt = TaskExtractionPrompt()
 
     sre = prompt.render(_agent("input:telemetry:Analyze the anomalies. Establish: (1) error rate."))
-    assert "Analyze the anomalies. Establish: (1) error rate." in sre and "input:telemetry" not in sre
+    assert (
+        "Analyze the anomalies. Establish: (1) error rate." in sre and "input:telemetry" not in sre
+    )
 
     debate = prompt.render(
         _agent("input:finance:ROUND=1;TARGET=Finance;\n\nUser message:\nState only your opening.")
@@ -259,7 +312,11 @@ def test_task_input_is_cleaned_before_the_llm_sees_it():
                 {
                     "messages": [
                         {"type": "HumanMessage", "content": "Plan a trip"},
-                        {"type": "HumanMessage", "content": "Routes: A-B 3h", "name": "itinerary_agent"},
+                        {
+                            "type": "HumanMessage",
+                            "content": "Routes: A-B 3h",
+                            "name": "itinerary_agent",
+                        },
                     ],
                     "next": "schedule_agent",
                 }
@@ -280,7 +337,11 @@ def test_task_input_is_cleaned_before_the_llm_sees_it():
     "input_content, output_content, reason",
     [
         ("input:sre:sre-u1-exec-resume-2", "output:sre:delegate_to_backend", "resume marker"),
-        ("input:sre:sre-u1-exec-resume-2-resume-3-resume-4", "output:sre:long report", "resume marker"),
+        (
+            "input:sre:sre-u1-exec-resume-2-resume-3-resume-4",
+            "output:sre:long report",
+            "resume marker",
+        ),
         ("input:moderator:moderator-u1-exec-resume-2", "output:moderator:x", "resume marker"),
         (" ", "output:x:y", "empty input"),
         ("input:x:", "output:x:y", "empty input"),
@@ -308,11 +369,20 @@ def test_calls_without_an_assignment_are_skipped(input_content, output_content, 
     "input_content, output_content",
     [
         # the entry agent receiving the request, even though it only routes (SRE style)
-        ("input:sre:Edge-gateway shows anomalies. Identify the remediation.", "output:sre:delegate_to_telemetry"),
+        (
+            "input:sre:Edge-gateway shows anomalies. Identify the remediation.",
+            "output:sre:delegate_to_telemetry",
+        ),
         # the final turn of the moderator holds the answer for the user
-        ('{"args": [{"messages": [{"type": "HumanMessage", "content": "Q"}]}]}', '{"next": "FINISH", "final_answer": "The answer"}'),
+        (
+            '{"args": [{"messages": [{"type": "HumanMessage", "content": "Q"}]}]}',
+            '{"next": "FINISH", "final_answer": "The answer"}',
+        ),
         # a specialist whose output was not recorded
-        ('{"args": [{"messages": [{"type": "HumanMessage", "content": "Q"}]}]}', "(no content recorded)"),
+        (
+            '{"args": [{"messages": [{"type": "HumanMessage", "content": "Q"}]}]}',
+            "(no content recorded)",
+        ),
     ],
 )
 def test_calls_with_an_assignment_are_not_skipped(input_content, output_content):
@@ -320,12 +390,21 @@ def test_calls_with_an_assignment_are_not_skipped(input_content, output_content)
 
 
 def test_session_data_conversation_node():
-    data = SessionData(session_id="s1", input_text="q", output_text="r", agent_spans=[AGENT_NODE.node])
+    data = SessionData(
+        session_id="s1", input_text="q", output_text="r", agent_spans=[AGENT_NODE.node]
+    )
     nodes = data.nodes()
     assert [n.node_type for n in nodes] == ["Conversation", "AgentCall"]
-    assert nodes[0].node == {"id": "conversation:s1", "sessionId": "s1", "query": "q", "response": "r"}
+    assert nodes[0].node == {
+        "id": "conversation:s1",
+        "sessionId": "s1",
+        "query": "q",
+        "response": "r",
+    }
     # no session-level text: no Conversation node
-    assert [n.node_type for n in SessionData(session_id="s1", agent_spans=[AGENT_NODE.node]).nodes()] == ["AgentCall"]
+    assert [
+        n.node_type for n in SessionData(session_id="s1", agent_spans=[AGENT_NODE.node]).nodes()
+    ] == ["AgentCall"]
 
 
 def test_pipeline_stores_goals_and_tasks_under_their_keys():
@@ -336,13 +415,18 @@ def test_pipeline_stores_goals_and_tasks_under_their_keys():
         ]
     )
     data = SessionData(
-        session_id="s1", input_text=HUMAN_INPUT, output_text=FINAL_RESPONSE, agent_spans=[AGENT_NODE.node]
+        session_id="s1",
+        input_text=HUMAN_INPUT,
+        output_text=FINAL_RESPONSE,
+        agent_spans=[AGENT_NODE.node],
     )
     result = pipeline.process(data)
 
     conversation, agent = result.nodes
     assert conversation.node_type == "Conversation"
-    assert [g["goal_text"][:10] for g in conversation.symbolic_state_elements["goals"]] == ["A complete"]
+    assert [g["goal_text"][:10] for g in conversation.symbolic_state_elements["goals"]] == [
+        "A complete"
+    ]
     assert set(conversation.llm_usage) == {"goals"}
     assert agent.symbolic_state_elements["tasks"][0]["owned_by"] == "a1"
     assert set(agent.llm_usage) == {"tasks"}
@@ -362,7 +446,10 @@ def test_earlier_tasks_of_the_session_are_offered_for_reuse():
     store.add("tasks", first, AGENT_NODE.node_id)
 
     # next call: the task of the first one is listed, with its criteria
-    other = _agent("input:y:Find round-trip transport to Lisbon, Fri evening to Sun evening, for 2.", node_id="a2")
+    other = _agent(
+        "input:y:Find round-trip transport to Lisbon, Fri evening to Sun evening, for 2.",
+        node_id="a2",
+    )
     extractor.extract(other, store)
     user = llm.calls[1][1]
     assert "TASKS ALREADY EXTRACTED" in user
@@ -395,8 +482,19 @@ def test_the_same_task_of_several_agents_is_listed_once_with_its_first_wording()
     from symbolic_extractor.store import SymbolicSessionStore
 
     store = SymbolicSessionStore("s1")
-    store.add("tasks", Task(id="t1", task_text="Find the cheapest train.", acceptance_criteria=["by 5pm"], owned_by="a"), "a")
-    store.add("tasks", Task(id="t2", task_text="find the  cheapest train", owned_by="b"), "b")  # T2 = T1
+    store.add(
+        "tasks",
+        Task(
+            id="t1",
+            task_text="Find the cheapest train.",
+            acceptance_criteria=["by 5pm"],
+            owned_by="a",
+        ),
+        "a",
+    )
+    store.add(
+        "tasks", Task(id="t2", task_text="find the  cheapest train", owned_by="b"), "b"
+    )  # T2 = T1
     store.add("tasks", Task(id="t3", task_text="Book a hotel.", owned_by="c"), "c")
 
     found = earlier_tasks(store, "d")  # agent D sees T1 once, and the other task
@@ -407,7 +505,12 @@ def test_the_same_task_of_several_agents_is_listed_once_with_its_first_wording()
 def _agent_with_task(node_id, agent):
     return KGNode(
         node_type="AgentCall",
-        node={"id": node_id, "agentName": agent, "inputContent": "input:x:Find the cheapest train.", "outputContent": "output:x:ok"},
+        node={
+            "id": node_id,
+            "agentName": agent,
+            "inputContent": "input:x:Find the cheapest train.",
+            "outputContent": "output:x:ok",
+        },
     )
 
 
@@ -421,10 +524,16 @@ def test_identical_tasks_of_different_agent_calls_are_linked_with_same_as():
             return LLMReply(data={"tasks": [{"task_text": texts[node]}]}, usage=LLMUsage())
 
     nodes = [_agent_with_task(k, k) for k in texts]
-    extractor = SymbolicExtractor(extractors=[ElementExtractor(PerNodeLLM(), TaskExtractionPrompt())])
+    extractor = SymbolicExtractor(
+        extractors=[ElementExtractor(PerNodeLLM(), TaskExtractionPrompt())]
+    )
     result = extractor.process(SessionData(session_id="s1", agent_spans=[n.node for n in nodes]))
 
-    tasks = {n.node_id: n.symbolic_state_elements["tasks"][0] for n in result.nodes if n.node_type == "AgentCall"}
+    tasks = {
+        n.node_id: n.symbolic_state_elements["tasks"][0]
+        for n in result.nodes
+        if n.node_type == "AgentCall"
+    }
     assert tasks["a"]["same_as"] == []
     assert tasks["b"]["same_as"] == [tasks["a"]["id"]]  # B = A: B points to the earlier task
     assert tasks["c"]["same_as"] == []

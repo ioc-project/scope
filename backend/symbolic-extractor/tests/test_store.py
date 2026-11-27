@@ -65,14 +65,19 @@ def test_node_id_and_element_id_are_required():
 
 class _FakeLLM:
     def complete_json(self, system, user):
-        reply = {"claims": [{"claim_text": "c", "claim_force": "assertive", "claim_kind": "factual"}]}
+        reply = {
+            "claims": [{"claim_text": "c", "claim_force": "assertive", "claim_kind": "factual"}]
+        }
         return LLMReply(data=reply, usage=LLMUsage(calls=1))
 
 
 def test_pipeline_fills_the_store():
     data = SessionData(
         session_id="s1",
-        llm_spans=[{"id": "l1", "completion": "X is true."}, {"id": "l2", "completion": "Y is true."}],
+        llm_spans=[
+            {"id": "l1", "completion": "X is true."},
+            {"id": "l2", "completion": "Y is true."},
+        ],
         tool_spans=[{"id": "t1"}],
     )
     pipeline = SymbolicExtractor(extractors=[ElementExtractor(_FakeLLM(), ClaimExtractionPrompt())])
@@ -99,7 +104,9 @@ def test_a_link_is_an_edge_and_a_repeated_link_is_not_new():
         ("supports", "c1", "t1"),
         ("supports", "c1", "t2"),
     ]
-    assert store.related("supports", "c1") == ["t1", "t2"] and store.related_from("supports", "t1") == ["c1"]
+    assert store.related("supports", "c1") == ["t1", "t2"] and store.related_from(
+        "supports", "t1"
+    ) == ["c1"]
 
 
 def test_an_edge_keeps_its_attributes_and_linking_again_updates_them():

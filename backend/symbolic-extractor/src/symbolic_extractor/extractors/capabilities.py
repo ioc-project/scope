@@ -114,7 +114,9 @@ class SystemCapabilityExtractor:
     def applies_to(self, node: KGNode) -> bool:
         return node.node_type in self.node_types
 
-    def extract(self, node: KGNode, store: SymbolicSessionStore | None = None) -> list[AgentCapability]:
+    def extract(
+        self, node: KGNode, store: SymbolicSessionStore | None = None
+    ) -> list[AgentCapability]:
         self.last_usage = LLMUsage()
         if store is None or not node.node_id:
             return []
@@ -138,7 +140,8 @@ class SystemCapabilityExtractor:
         raw_items = reply.data.get("capabilities", [])
         if not isinstance(raw_items, list):
             logger.warning(
-                "LLM reply for the system prompt of %s: 'capabilities' is not a list, ignoring", prompt.agent_id
+                "LLM reply for the system prompt of %s: 'capabilities' is not a list, ignoring",
+                prompt.agent_id,
             )
             return []
         capabilities: list[AgentCapability] = []
@@ -147,11 +150,15 @@ class SystemCapabilityExtractor:
                 item = AgentCapabilityItem.model_validate(raw)
             except ValidationError as exc:
                 logger.warning(
-                    "Dropping invalid capability of %s: %s", prompt.agent_id, exc.errors(include_url=False)
+                    "Dropping invalid capability of %s: %s",
+                    prompt.agent_id,
+                    exc.errors(include_url=False),
                 )
                 continue
             # Deterministic id: re-running on the same session yields the same ids.
-            capability_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{prompt.id}|capability|{item.capability_text}"))
+            capability_id = str(
+                uuid.uuid5(uuid.NAMESPACE_OID, f"{prompt.id}|capability|{item.capability_text}")
+            )
             capabilities.append(
                 AgentCapability(
                     **item.model_dump(),

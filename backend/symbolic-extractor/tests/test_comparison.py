@@ -34,9 +34,7 @@ def test_base_comparator_always_answers_zero():
 
 
 def test_identical_vectors_are_almost_certainly_the_same():
-    comparator = EmbeddingComparator(
-        embedding_set(a=([1, 0], [0, 1]), b=([1, 0], [0, 1]))
-    )
+    comparator = EmbeddingComparator(embedding_set(a=([1, 0], [0, 1]), b=([1, 0], [0, 1])))
     assert comparator.similarity(claim("a"), claim("b")) == pytest.approx(1.0)
     assert comparator.same_probability(claim("a"), claim("b")) > 0.9
 
@@ -48,9 +46,7 @@ def test_orthogonal_vectors_are_almost_certainly_different():
 
 
 def test_symmetric_and_in_unit_interval():
-    comparator = EmbeddingComparator(
-        embedding_set(a=([1, 0.2], [1, 1]), b=([0.9, 0.5], [0.2, 1]))
-    )
+    comparator = EmbeddingComparator(embedding_set(a=([1, 0.2], [1, 1]), b=([0.9, 0.5], [0.2, 1])))
     ab = comparator.same_probability(claim("a"), claim("b"))
     assert ab == pytest.approx(comparator.same_probability(claim("b"), claim("a")))
     assert 0.0 <= ab <= 1.0
@@ -72,9 +68,7 @@ def test_fields_are_combined_with_the_weight():
 
 def test_shared_snippet_alone_does_not_make_different_claims_the_same():
     # same sentence (snippet cos 1) holding two different claims (text cos 0.3)
-    comparator = EmbeddingComparator(
-        embedding_set(a=([1, 0], [1, 0]), b=([0.3, 0.954], [1, 0]))
-    )
+    comparator = EmbeddingComparator(embedding_set(a=([1, 0], [1, 0]), b=([0.3, 0.954], [1, 0])))
     assert comparator.same_probability(claim("a"), claim("b")) < 0.1
 
 
@@ -89,7 +83,9 @@ def test_no_text_vector_gives_zero_probability():
         model="fake",
         elements=[
             ElementEmbedding(element_id="a", element_type="Claim", embeddings={}),
-            ElementEmbedding(element_id="b", element_type="Claim", embeddings={"claim_text": [1, 0]}),
+            ElementEmbedding(
+                element_id="b", element_type="Claim", embeddings={"claim_text": [1, 0]}
+            ),
         ],
     )
     comparator = EmbeddingComparator(embeddings)

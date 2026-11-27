@@ -133,7 +133,10 @@ class SystemTaskExtractor:
 
         raw_items = reply.data.get("tasks", [])
         if not isinstance(raw_items, list):
-            logger.warning("LLM reply for the system prompt of %s: 'tasks' is not a list, ignoring", prompt.agent_id)
+            logger.warning(
+                "LLM reply for the system prompt of %s: 'tasks' is not a list, ignoring",
+                prompt.agent_id,
+            )
             return []
         tasks: list[SystemTask] = []
         for raw in raw_items:
@@ -141,11 +144,15 @@ class SystemTaskExtractor:
                 item = SystemTaskItem.model_validate(raw)
             except ValidationError as exc:
                 logger.warning(
-                    "Dropping invalid system task of %s: %s", prompt.agent_id, exc.errors(include_url=False)
+                    "Dropping invalid system task of %s: %s",
+                    prompt.agent_id,
+                    exc.errors(include_url=False),
                 )
                 continue
             # Deterministic id: re-running on the same session yields the same ids.
-            task_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{prompt.id}|system_task|{item.task_text}"))
+            task_id = str(
+                uuid.uuid5(uuid.NAMESPACE_OID, f"{prompt.id}|system_task|{item.task_text}")
+            )
             tasks.append(
                 SystemTask(
                     **item.model_dump(),

@@ -26,7 +26,16 @@ class OriginLLM:
 
     def __init__(self, *replies):
         self.replies = list(replies) or [
-            {"arguments": [{"name": "expression", "basis": "derived", "from": ["C2", "C3"], "reasoning": "sum"}]}
+            {
+                "arguments": [
+                    {
+                        "name": "expression",
+                        "basis": "derived",
+                        "from": ["C2", "C3"],
+                        "reasoning": "sum",
+                    }
+                ]
+            }
         ]
         self.calls = []
 
@@ -55,7 +64,14 @@ def fact(fid, call, arguments=None, tool="calculate"):
 
 
 def step(call_id, kind, parent, start, agent="planner"):
-    return {"call_id": call_id, "kind": kind, "name": call_id, "agent_id": agent, "parent_id": parent, "start_time": start}
+    return {
+        "call_id": call_id,
+        "kind": kind,
+        "name": call_id,
+        "agent_id": agent,
+        "parent_id": parent,
+        "start_time": start,
+    }
 
 
 #   a1:  l1 (t=1) -> tool t1 (t=2) -> l2 (t=3) -> tool t2 (t=4)         a2: l3 (t=1.5)
@@ -115,7 +131,12 @@ def test_no_candidates_when_the_tool_call_or_its_agent_call_is_unknown():
     assert candidate_claims(store, TRAJECTORY, "nope") == []
     assert candidate_claims(store, TRAJECTORY, "l1") == []  # not a tool call
     assert candidate_claims(store, TRAJECTORY, "a1") == []
-    assert candidate_claims(store, SessionTrajectory(session_id="s1", steps=[step("t1", "tool", "", 2)]), "t1") == []
+    assert (
+        candidate_claims(
+            store, SessionTrajectory(session_id="s1", steps=[step("t1", "tool", "", 2)]), "t1"
+        )
+        == []
+    )
 
 
 def test_only_the_most_recent_candidates_are_kept():
@@ -125,7 +146,10 @@ def test_only_the_most_recent_candidates_are_kept():
     kept = candidate_claims(store, TRAJECTORY, "t1")
     assert len(kept) == MAX_CANDIDATES
     assert kept[-1].id == f"x{MAX_CANDIDATES + 4}" and kept[0].id == "x5"
-    assert ids(candidate_claims(store, TRAJECTORY, "t1", limit=2)) == [f"x{MAX_CANDIDATES + 3}", f"x{MAX_CANDIDATES + 4}"]
+    assert ids(candidate_claims(store, TRAJECTORY, "t1", limit=2)) == [
+        f"x{MAX_CANDIDATES + 3}",
+        f"x{MAX_CANDIDATES + 4}",
+    ]
 
 
 def test_a_tool_call_with_no_claim_before_it_has_no_candidate():
@@ -173,8 +197,18 @@ def test_each_argument_gets_a_verdict_and_what_cannot_be_trusted_is_none():
     }
     origins = {o.argument: o for o in parse_origins(data, f, claims)}
 
-    assert list(origins) == ["a", "b", "c", "d", "e"]  # in the order of the arguments, "d" is not mentioned
-    assert (origins["a"].basis, origins["a"].claim_ids, origins["a"].reasoning) == ("derived", ["c1", "c2"], "sum")
+    assert list(origins) == [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+    ]  # in the order of the arguments, "d" is not mentioned
+    assert (origins["a"].basis, origins["a"].claim_ids, origins["a"].reasoning) == (
+        "derived",
+        ["c1", "c2"],
+        "sum",
+    )
     assert origins["a"].value == 3
     assert (origins["b"].basis, origins["b"].claim_ids) == ("stated", ["c2"])
     for name in "cde":
@@ -185,9 +219,17 @@ def test_a_reply_that_echoes_the_line_of_the_argument_is_still_read():
     f = fact("f1", "t1")  # expression = "3 + 2"
     claims = [claim("c1", "One.", "l1")]
     for name in ('expression = "3 + 2"', '- expression = "3 + 2"', " expression "):
-        (origin,) = parse_origins({"arguments": [{"name": name, "basis": "derived", "from": ["C1"]}]}, f, claims)
-        assert (origin.argument, origin.basis, origin.claim_ids) == ("expression", "derived", ["c1"])
-    (origin,) = parse_origins({"arguments": [{"name": 'other = "x"', "basis": "derived", "from": ["C1"]}]}, f, claims)
+        (origin,) = parse_origins(
+            {"arguments": [{"name": name, "basis": "derived", "from": ["C1"]}]}, f, claims
+        )
+        assert (origin.argument, origin.basis, origin.claim_ids) == (
+            "expression",
+            "derived",
+            ["c1"],
+        )
+    (origin,) = parse_origins(
+        {"arguments": [{"name": 'other = "x"', "basis": "derived", "from": ["C1"]}]}, f, claims
+    )
     assert origin.basis == "none"
 
 
@@ -209,7 +251,12 @@ def test_the_arguments_are_judged_and_one_link_per_claim_is_recorded_with_what_i
     llm = OriginLLM(
         {
             "arguments": [
-                {"name": "expression", "basis": "derived", "from": ["C3", "C4"], "reasoning": "3 and 2 hours"},
+                {
+                    "name": "expression",
+                    "basis": "derived",
+                    "from": ["C3", "C4"],
+                    "reasoning": "3 and 2 hours",
+                },
             ]
         }
     )
@@ -217,7 +264,11 @@ def test_the_arguments_are_judged_and_one_link_per_claim_is_recorded_with_what_i
 
     (evaluation,) = extractor.extract(store, [store.get("f1").element], TRAJECTORY)
 
-    assert (evaluation.tool_call_id, evaluation.fact_id, evaluation.tool_name) == ("t1", "f1", "calculate")
+    assert (evaluation.tool_call_id, evaluation.fact_id, evaluation.tool_name) == (
+        "t1",
+        "f1",
+        "calculate",
+    )
     assert evaluation.candidate_ids == ["d1", "c1", "c2", "c3"]
     assert [(o.argument, o.basis, o.claim_ids) for o in evaluation.origins] == [
         ("expression", "derived", ["c2", "c3"])
@@ -248,13 +299,24 @@ def test_a_claim_that_explains_several_arguments_has_one_link_with_all_of_them()
     ArgumentOriginExtractor(llm).extract(store, [store.get("f3").element], TRAJECTORY)
 
     edges = {e.target_id: e.attributes for e in store.edges() if e.edge_type == SUPPORTED_BY}
-    assert edges == {"c2": {"arguments": {"a": "stated", "b": "derived"}}, "c3": {"arguments": {"b": "derived"}}}
+    assert edges == {
+        "c2": {"arguments": {"a": "stated", "b": "derived"}},
+        "c3": {"arguments": {"b": "derived"}},
+    }
 
 
 def test_an_argument_traced_to_no_claim_gives_no_link():
     store = make_store()
-    llm = OriginLLM({"arguments": [{"name": "expression", "basis": "none", "from": [], "reasoning": "user request"}]})
-    (evaluation,) = ArgumentOriginExtractor(llm).extract(store, [store.get("f1").element], TRAJECTORY)
+    llm = OriginLLM(
+        {
+            "arguments": [
+                {"name": "expression", "basis": "none", "from": [], "reasoning": "user request"}
+            ]
+        }
+    )
+    (evaluation,) = ArgumentOriginExtractor(llm).extract(
+        store, [store.get("f1").element], TRAJECTORY
+    )
     assert evaluation.traced == [] and evaluation.origins[0].reasoning == "user request"
     assert store.related(SUPPORTED_BY, "f1") == []
 
@@ -291,7 +353,9 @@ def test_has_candidates_tells_whether_a_fact_is_ready_to_be_judged():
     extractor = ArgumentOriginExtractor(OriginLLM())
     assert extractor.has_candidates(store, TRAJECTORY, store.get("f1").element)
     assert not extractor.has_candidates(store, TRAJECTORY, fact("f4", "t1", {}))
-    assert not extractor.has_candidates(SymbolicSessionStore("s1"), TRAJECTORY, store.get("f1").element)
+    assert not extractor.has_candidates(
+        SymbolicSessionStore("s1"), TRAJECTORY, store.get("f1").element
+    )
 
 
 def test_an_unusable_reply_is_asked_again_and_the_usage_of_both_requests_counts():
@@ -310,7 +374,9 @@ def test_an_unusable_reply_is_asked_again_and_the_usage_of_both_requests_counts(
 def test_a_reply_that_is_not_json_is_asked_again_too():
     store = make_store()
     llm = OriginLLM(ValueError("not json"), {"arguments": []})
-    (evaluation,) = ArgumentOriginExtractor(llm).extract(store, [store.get("f1").element], TRAJECTORY)
+    (evaluation,) = ArgumentOriginExtractor(llm).extract(
+        store, [store.get("f1").element], TRAJECTORY
+    )
     assert len(llm.calls) == 2 and evaluation.traced == []
 
 
@@ -340,7 +406,9 @@ def pipeline(llm, store):
 
 def test_a_tool_call_node_is_judged_once_when_its_relations_are_extracted():
     store = make_store()
-    llm = OriginLLM({"arguments": [{"name": "expression", "basis": "derived", "from": ["C3", "C4"]}]})
+    llm = OriginLLM(
+        {"arguments": [{"name": "expression", "basis": "derived", "from": ["C3", "C4"]}]}
+    )
     extractor = pipeline(llm, store)
 
     usage = extractor._extract_node_relations(tool_node("t1"), store)

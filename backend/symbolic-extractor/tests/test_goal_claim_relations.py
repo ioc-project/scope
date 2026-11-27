@@ -27,7 +27,9 @@ class JudgeLLM:
         return LLMReply(data=reply, usage=LLMUsage(calls=1, prompt_tokens=10))
 
 
-GOAL = Goal(id="g1", goal_text="Plan the trip.", success_criteria=["A day by day plan", "The total cost"])
+GOAL = Goal(
+    id="g1", goal_text="Plan the trip.", success_criteria=["A day by day plan", "The total cost"]
+)
 
 
 def _claim(claim_id, text, call):
@@ -56,9 +58,15 @@ def test_the_answer_claims_are_judged_together_against_the_goal_and_its_criteria
 
     assert len(llm.prompts) == 1
     assert "Plan the trip." in llm.prompts[0] and "- The total cost" in llm.prompts[0]
-    assert "C1. Day 1 is Lisbon." in llm.prompts[0] and "C2. The total is 900 EUR." in llm.prompts[0]
+    assert (
+        "C1. Day 1 is Lisbon." in llm.prompts[0] and "C2. The total is 900 EUR." in llm.prompts[0]
+    )
     assert "Searching flights." not in llm.prompts[0]  # a claim that does not answer the goal
-    assert evaluation.satisfied and evaluation.claim_ids == ["c2", "c3"] and evaluation.fulfils == ["c2", "c3"]
+    assert (
+        evaluation.satisfied
+        and evaluation.claim_ids == ["c2", "c3"]
+        and evaluation.fulfils == ["c2", "c3"]
+    )
     assert evaluation.reasoning == "plan and cost"
     assert store.related(FULFILS, "c2") == ["g1"] and store.related(FULFILS, "c3") == ["g1"]
     assert store.related(FULFILS, "c1") == []
@@ -67,16 +75,28 @@ def test_the_answer_claims_are_judged_together_against_the_goal_and_its_criteria
 
 def test_only_the_claims_the_reply_names_fulfil_the_goal():
     store = _store()
-    extractor = GoalClaimRelationExtractor(JudgeLLM({"satisfied": True, "fulfils": ["c2"], "reasoning": ""}))
+    extractor = GoalClaimRelationExtractor(
+        JudgeLLM({"satisfied": True, "fulfils": ["c2"], "reasoning": ""})
+    )
     (evaluation,) = extractor.extract(store, [GOAL])
-    assert evaluation.fulfils == ["c3"] and store.related(FULFILS, "c3") == ["g1"] and store.related(FULFILS, "c2") == []
+    assert (
+        evaluation.fulfils == ["c3"]
+        and store.related(FULFILS, "c3") == ["g1"]
+        and store.related(FULFILS, "c2") == []
+    )
 
 
 def test_claims_that_do_not_satisfy_the_goal_are_not_linked():
     store = _store()
-    reply = {"satisfied": False, "fulfils": ["C1"], "reasoning": "no cost"}  # what it lists is ignored
+    reply = {
+        "satisfied": False,
+        "fulfils": ["C1"],
+        "reasoning": "no cost",
+    }  # what it lists is ignored
     (evaluation,) = GoalClaimRelationExtractor(JudgeLLM(reply)).extract(store, [GOAL])
-    assert not evaluation.satisfied and evaluation.fulfils == [] and evaluation.reasoning == "no cost"
+    assert (
+        not evaluation.satisfied and evaluation.fulfils == [] and evaluation.reasoning == "no cost"
+    )
     assert all(store.related(FULFILS, c) == [] for c in ("c1", "c2", "c3"))
 
 
@@ -86,13 +106,21 @@ def test_a_satisfied_goal_becomes_achieved_in_the_store():
     reply = {"satisfied": True, "status": "achieved", "fulfils": ["C1"], "reasoning": ""}
     (evaluation,) = GoalClaimRelationExtractor(JudgeLLM(reply)).extract(store, [GOAL])
     assert (evaluation.previous_status, evaluation.status) == ("set", "achieved")
-    assert store.get("g1").element.status == "achieved" and store.get("g1").node_id == "conversation:s1"
+    assert (
+        store.get("g1").element.status == "achieved"
+        and store.get("g1").node_id == "conversation:s1"
+    )
     assert [s.id for s in store.by_kind("goals")] == ["g1"]
     assert GOAL.status == "set"  # the model given is not modified
 
 
 def test_the_status_of_a_goal_that_is_not_satisfied_is_abandoned_or_set():
-    abandoned = {"satisfied": False, "status": "abandoned", "fulfils": [], "reasoning": "cannot be done"}
+    abandoned = {
+        "satisfied": False,
+        "status": "abandoned",
+        "fulfils": [],
+        "reasoning": "cannot be done",
+    }
     store = _store()
     (evaluation,) = GoalClaimRelationExtractor(JudgeLLM(abandoned)).extract(store, [GOAL])
     assert evaluation.status == "abandoned" and store.get("g1").element.status == "abandoned"
@@ -164,7 +192,9 @@ STEPS = [
 def _extractor(llm, final_agent_call="a1", answers=True):
     extractor = SymbolicExtractor(relation_extractors=[GoalClaimRelationExtractor(llm)])
     extractor.store = _store(answers=())
-    extractor.trajectory = SessionTrajectory(session_id="s1", steps=STEPS, final_agent_call=final_agent_call)
+    extractor.trajectory = SessionTrajectory(
+        session_id="s1", steps=STEPS, final_agent_call=final_agent_call
+    )
     if answers:
         extractor._link_answers(extractor.store, extractor.trajectory)
     return extractor
@@ -174,7 +204,9 @@ def _result(*claim_ids):
     from symbolic_extractor.models import ExtractionResult
 
     node = AnnotatedNode(
-        node_type="LLMCall", node={"id": "l2"}, symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]}
+        node_type="LLMCall",
+        node={"id": "l2"},
+        symbolic_state_elements={"claims": [{"id": c} for c in claim_ids]},
     )
     return ExtractionResult(session_id="s1", nodes=[node])
 
@@ -195,14 +227,18 @@ def test_the_extractor_judges_the_goal_once_the_final_answer_is_extracted():
 
     assert [e.satisfied for e in extractor.goal_evaluations] == [True]
     assert [c["fulfils"] for c in result.nodes[0].symbolic_state_elements["claims"]] == [["g1"], []]
-    assert result.nodes[1].symbolic_state_elements["goals"][0]["status"] == "achieved"  # the goal of the result
+    assert (
+        result.nodes[1].symbolic_state_elements["goals"][0]["status"] == "achieved"
+    )  # the goal of the result
     assert extractor.store.get("g1").element.status == "achieved"
     assert result.llm_usage.calls == 1 and result.llm_usage_by_element["relations"].calls == 1
 
 
 def test_nothing_is_judged_without_the_claims_of_the_final_answer():
     llm = JudgeLLM()
-    extractor = _extractor(llm, final_agent_call=None)  # the KG gave no final agent call: no answers
+    extractor = _extractor(
+        llm, final_agent_call=None
+    )  # the KG gave no final agent call: no answers
     result = _result("c2")
 
     extractor._evaluate_goals(result, extractor.store)
@@ -221,7 +257,9 @@ def test_a_goal_is_not_judged_twice_for_the_same_claims_and_a_failure_is_not_ret
     # a node of a later call still gets the key, the verdict is known
     assert result.nodes[0].symbolic_state_elements["claims"][0]["fulfils"] == []
 
-    failing = JudgeLLM(ValueError("a"), ValueError("b"), {"satisfied": True, "fulfils": ["C1"], "reasoning": ""})
+    failing = JudgeLLM(
+        ValueError("a"), ValueError("b"), {"satisfied": True, "fulfils": ["C1"], "reasoning": ""}
+    )
     extractor = _extractor(failing)
     extractor._evaluate_goals(_result("c2"), extractor.store)  # fails twice: logged, skipped
     extractor._evaluate_goals(_result("c2"), extractor.store)

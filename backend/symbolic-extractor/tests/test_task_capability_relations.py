@@ -44,11 +44,15 @@ class SupportsLLM:
 
 
 def capability(cid, text, agent="itinerary"):
-    return AgentCapability(id=cid, capability_text=text, agent_id=agent, system_prompt_id="p1", read_from="l1")
+    return AgentCapability(
+        id=cid, capability_text=text, agent_id=agent, system_prompt_id="p1", read_from="l1"
+    )
 
 
 def task(tid, call="a1", text="Find a route from A to B."):
-    return Task(id=tid, task_text=text, acceptance_criteria=["Gives the travel time."], owned_by=call)
+    return Task(
+        id=tid, task_text=text, acceptance_criteria=["Gives the travel time."], owned_by=call
+    )
 
 
 def system_task(tid, agent="itinerary", text="Report the travel time of each route."):
@@ -83,7 +87,10 @@ def test_a_task_is_judged_against_the_capabilities_of_its_agent_and_the_relation
     (evaluation,) = extractor.extract(store, [store.get("t1").element])
 
     assert (evaluation.task_id, evaluation.capability_ids) == ("t1", ["c1", "c2"])
-    assert evaluation.supports == ["c2", "c1"]  # C9 is not a capability, the repeated C2 counts once
+    assert evaluation.supports == [
+        "c2",
+        "c1",
+    ]  # C9 is not a capability, the repeated C2 counts once
     assert evaluation.supported and evaluation.reasoning == "both."
     assert store.related_from(SUPPORTS, "t1") == ["c2", "c1"]
     assert store.related(SUPPORTS, "c1") == ["t1"]
@@ -96,9 +103,9 @@ def test_a_task_is_judged_against_the_capabilities_of_its_agent_and_the_relation
 
 def test_no_capability_supporting_the_task_gives_no_link():
     store = store_with(ROUTES, tasks=[task("t1", text="Book a hotel.")])
-    (evaluation,) = CapabilityTaskRelationExtractor(SupportsLLM({"supports": [], "reasoning": "no"})).extract(
-        store, [store.get("t1").element]
-    )
+    (evaluation,) = CapabilityTaskRelationExtractor(
+        SupportsLLM({"supports": [], "reasoning": "no"})
+    ).extract(store, [store.get("t1").element])
     assert evaluation.supports == [] and not evaluation.supported
     assert store.related_from(SUPPORTS, "t1") == []
 
@@ -120,16 +127,24 @@ def test_the_capabilities_of_other_agents_are_not_candidates():
 
 def test_a_system_task_is_judged_against_the_capabilities_with_the_agent_of_the_task():
     moderator = capability("c3", "Decide who speaks next.", agent="moderator")
-    store = store_with(ROUTES, HOTELS, moderator, system_tasks=[system_task("s1"), system_task("s2", "moderator")])
-    llm = SupportsLLM({"supports": ["C1"], "reasoning": "x"}, {"supports": ["C1"], "reasoning": "y"})
+    store = store_with(
+        ROUTES, HOTELS, moderator, system_tasks=[system_task("s1"), system_task("s2", "moderator")]
+    )
+    llm = SupportsLLM(
+        {"supports": ["C1"], "reasoning": "x"}, {"supports": ["C1"], "reasoning": "y"}
+    )
 
-    evaluations = CapabilityTaskRelationExtractor(llm).extract(store, [e.element for e in store.by_kind("system_tasks")])
+    evaluations = CapabilityTaskRelationExtractor(llm).extract(
+        store, [e.element for e in store.by_kind("system_tasks")]
+    )
 
     assert [(e.task_id, e.capability_ids, e.supports) for e in evaluations] == [
         ("s1", ["c1", "c2"], ["c1"]),
         ("s2", ["c3"], ["c3"]),
     ]
-    assert store.related_from(SUPPORTS, "s1") == ["c1"] and store.related_from(SUPPORTS, "s2") == ["c3"]
+    assert store.related_from(SUPPORTS, "s1") == ["c1"] and store.related_from(SUPPORTS, "s2") == [
+        "c3"
+    ]
 
 
 def test_other_elements_and_tasks_missing_from_the_store_are_ignored():
@@ -147,7 +162,10 @@ def test_an_unusable_reply_is_asked_again_and_the_usage_of_both_requests_counts(
     (evaluation,) = extractor.extract(store, [store.get("t1").element])
 
     assert evaluation.supports == ["c1"] and len(llm.calls) == 2
-    assert "Your previous reply was not valid" in llm.calls[1][1] and "Your previous reply" not in llm.calls[0][1]
+    assert (
+        "Your previous reply was not valid" in llm.calls[1][1]
+        and "Your previous reply" not in llm.calls[0][1]
+    )
     assert extractor.last_usage.calls == 2
 
 
@@ -188,7 +206,13 @@ class StubTasks:
         return node.node_type == "AgentCall"
 
     def extract(self, node, store=None):
-        return [Task(id=f"t-{node.node_id}", task_text=f"Find a route ({node.node_id})", owned_by=node.node_id)]
+        return [
+            Task(
+                id=f"t-{node.node_id}",
+                task_text=f"Find a route ({node.node_id})",
+                owned_by=node.node_id,
+            )
+        ]
 
 
 class StubSystemTasks:
@@ -230,7 +254,9 @@ class PipelineLLM:
 
 def otel(system):
     parts = json.dumps([{"type": "text", "content": system}])
-    return f"{parts}\n\n{json.dumps([{'role': 'user', 'parts': [{'type': 'text', 'content': 'q'}]}])}"
+    return (
+        f"{parts}\n\n{json.dumps([{'role': 'user', 'parts': [{'type': 'text', 'content': 'q'}]}])}"
+    )
 
 
 STEPS = [
@@ -249,14 +275,24 @@ def trajectory():
 
 def session():
     def agent(call_id, start):
-        return {"id": call_id, "startTime": start, "inputContent": "input:x:do it", "outputContent": "output:x:done"}
+        return {
+            "id": call_id,
+            "startTime": start,
+            "inputContent": "input:x:do it",
+            "outputContent": "output:x:done",
+        }
 
     return SessionData(
         session_id="s1",
         agent_spans=[agent("a1", 0.5), agent("a2", 1.5), agent("a3", 3.0)],
         llm_spans=[
             {"id": "l1", "startTime": 1.0, "prompt": otel(ROLE), "completion": "a"},
-            {"id": "l2", "startTime": 2.0, "prompt": otel("You are a moderator."), "completion": "b"},
+            {
+                "id": "l2",
+                "startTime": 2.0,
+                "prompt": otel("You are a moderator."),
+                "completion": "b",
+            },
             {"id": "l3", "startTime": 3.5, "prompt": otel(ROLE), "completion": "c"},
         ],
     )
@@ -287,20 +323,34 @@ def test_process_judges_each_task_once_and_a_system_task_once_for_all_the_calls_
     by_id = {n.node_id: n for n in result.nodes}
     (itinerary_cap,) = by_id["l1"].symbolic_state_elements["capabilities"]
     (moderator_cap,) = by_id["l2"].symbolic_state_elements["capabilities"]
-    assert by_id["a1"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [itinerary_cap["id"]]
-    assert by_id["a3"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [itinerary_cap["id"]]
-    assert by_id["a2"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [moderator_cap["id"]]
-    assert by_id["l1"].symbolic_state_elements["system_tasks"][0]["supported_by_capabilities"] == [itinerary_cap["id"]]
+    assert by_id["a1"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [
+        itinerary_cap["id"]
+    ]
+    assert by_id["a3"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [
+        itinerary_cap["id"]
+    ]
+    assert by_id["a2"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [
+        moderator_cap["id"]
+    ]
+    assert by_id["l1"].symbolic_state_elements["system_tasks"][0]["supported_by_capabilities"] == [
+        itinerary_cap["id"]
+    ]
     assert p.store.related(SUPPORTS, itinerary_cap["id"]) == ["st-itinerary", "t-a1", "t-a3"]
     assert result.llm_usage_by_element["relations"].calls == 5
-    assert result.llm_usage.calls == 2 + 5  # the two capability requests and the five supports requests
+    assert (
+        result.llm_usage.calls == 2 + 5
+    )  # the two capability requests and the five supports requests
 
 
 def test_nothing_is_judged_without_the_extractor_or_without_capabilities():
     llm = PipelineLLM()
     result = pipeline(llm, with_relation=False).process(session(), trajectory=trajectory())
     assert llm.supports_requests == []
-    assert all("supported_by_capabilities" not in t for n in result.nodes for t in n.symbolic_state_elements.get("tasks", []))
+    assert all(
+        "supported_by_capabilities" not in t
+        for n in result.nodes
+        for t in n.symbolic_state_elements.get("tasks", [])
+    )
 
     llm = PipelineLLM()
     p = SymbolicExtractor(
@@ -313,7 +363,9 @@ def test_nothing_is_judged_without_the_extractor_or_without_capabilities():
 def test_without_a_trajectory_nothing_is_judged():
     llm = PipelineLLM()
     p = pipeline(llm)
-    p.process(session())  # no trajectory: the agent of a call is unknown, so no capability is read from the prompts
+    p.process(
+        session()
+    )  # no trajectory: the agent of a call is unknown, so no capability is read from the prompts
     assert llm.supports_requests == []
 
 
@@ -331,7 +383,9 @@ def test_a_failing_request_is_skipped_and_not_asked_again():
     assert len(llm.supports_requests) == 4  # a1 failed before the request was recorded
     assert "t-a1" not in {e.task_id for e in p.capability_evaluations}
     by_id = {n.node_id: n for n in result.nodes}
-    assert by_id["a1"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == []  # no link, like any task without one
+    assert (
+        by_id["a1"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == []
+    )  # no link, like any task without one
     assert by_id["a3"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"]
     p._evaluate_capabilities(result, p.store)  # a second pass does not ask again
     assert len(llm.supports_requests) == 4
@@ -346,13 +400,19 @@ def test_live_process_judges_the_task_of_a_call_once_the_capabilities_of_its_age
             nodes[span["id"]] = (span["startTime"], KGNode(node_type=kind, node=span))
     returned, requests_after = {}, {}
     for call_id, (_, node) in sorted(nodes.items(), key=lambda kv: kv[1][0]):
-        returned[call_id] = live.live_process(node, ExtractionRequest(session_id="s1"), trajectory()).nodes[0]
+        returned[call_id] = live.live_process(
+            node, ExtractionRequest(session_id="s1"), trajectory()
+        ).nodes[0]
         requests_after[call_id] = len(llm.supports_requests)
 
     assert requests_after["a1"] == 0  # its agent has no capability yet
-    assert requests_after["l1"] == 2  # the capabilities arrive: the system task and the task of a1 are judged
+    assert (
+        requests_after["l1"] == 2
+    )  # the capabilities arrive: the system task and the task of a1 are judged
     assert requests_after["a2"] == 2 and requests_after["l2"] == 4
-    assert requests_after["a3"] == 5 and requests_after["l3"] == 5  # a3 comes after: judged when its node arrives
+    assert (
+        requests_after["a3"] == 5 and requests_after["l3"] == 5
+    )  # a3 comes after: judged when its node arrives
     # a1 was returned before its capabilities were read: [] when returned, but the link is in the store
     # and live_process put it on the node at the step that recorded it (l1)
     assert returned["a1"].symbolic_state_elements["tasks"][0]["supported_by_capabilities"] == [
@@ -393,7 +453,9 @@ def test_process_returns_every_edge_of_the_store():
 def test_live_process_reports_the_late_link_as_an_edge_of_the_step_that_made_it():
     live = pipeline(PipelineLLM())
     results = replay(live)  # a1, l1, a2, l2, a3, l3
-    supports_in = [[(e.source_id, e.target_id) for e in r.edges if e.edge_type == SUPPORTS] for r in results]
+    supports_in = [
+        [(e.source_id, e.target_id) for e in r.edges if e.edge_type == SUPPORTS] for r in results
+    ]
 
     assert supports_in[0] == []  # a1: its agent has no capability yet
     # l1 reads the capabilities: the system task, and the task of a1 returned one step before
@@ -429,10 +491,14 @@ def test_annotate_brings_the_nodes_returned_earlier_up_to_date_with_the_final_st
     whole = pipeline(PipelineLLM())
     expected = whole.process(session(), trajectory=trajectory())
     keys = ("system_tasks", "capabilities")
-    for node, other in zip(sorted(nodes, key=lambda n: n.node_id), sorted(expected.nodes, key=lambda n: n.node_id)):
+    for node, other in zip(
+        sorted(nodes, key=lambda n: n.node_id), sorted(expected.nodes, key=lambda n: n.node_id)
+    ):
         assert [getattr(node, k) for k in keys] == [getattr(other, k) for k in keys]
         for kind in ("tasks", "system_tasks"):
-            assert [t["supported_by_capabilities"] for t in node.symbolic_state_elements.get(kind, [])] == [
+            assert [
+                t["supported_by_capabilities"] for t in node.symbolic_state_elements.get(kind, [])
+            ] == [
                 t["supported_by_capabilities"] for t in other.symbolic_state_elements.get(kind, [])
             ]
 
@@ -463,7 +529,12 @@ def test_the_nodes_of_a_live_session_equal_the_ones_of_process_without_any_final
 
     def annotations(nodes):
         return {
-            n.node_id: (n.system_tasks, n.capabilities, n.symbolic_state_elements.get("tasks"), n.symbolic_state_elements.get("system_tasks"))
+            n.node_id: (
+                n.system_tasks,
+                n.capabilities,
+                n.symbolic_state_elements.get("tasks"),
+                n.symbolic_state_elements.get("system_tasks"),
+            )
             for n in nodes
         }
 

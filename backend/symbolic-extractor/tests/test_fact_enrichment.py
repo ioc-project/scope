@@ -23,7 +23,10 @@ def _tool(**fields):
 
 def test_the_fact_records_the_tool_and_its_arguments():
     (fact,) = ToolResultFactExtractor().extract(
-        _tool(toolName="calculate", toolArguments=json.dumps({"args": [], "kwargs": {"expression": "3 + 2"}}))
+        _tool(
+            toolName="calculate",
+            toolArguments=json.dumps({"args": [], "kwargs": {"expression": "3 + 2"}}),
+        )
     )
     assert fact.tool_name == "calculate"
     assert fact.tool_arguments == {"expression": "3 + 2"}
@@ -39,8 +42,13 @@ def test_the_tool_name_falls_back_to_the_span_name():
 
 def test_arguments_come_from_the_first_key_that_has_them():
     assert tool_arguments({"inputContent": '{"args": [], "kwargs": {}}'}) == {}
-    assert tool_arguments({"inputParams": '{"args": [], "kwargs": {"file_path": "a"}}'}) == {"file_path": "a"}
-    assert tool_arguments({"toolArguments": '{"args": [3], "kwargs": {"x": 1}}'}) == {"x": 1, "args": [3]}
+    assert tool_arguments({"inputParams": '{"args": [], "kwargs": {"file_path": "a"}}'}) == {
+        "file_path": "a"
+    }
+    assert tool_arguments({"toolArguments": '{"args": [3], "kwargs": {"x": 1}}'}) == {
+        "x": 1,
+        "args": [3],
+    }
     assert tool_arguments({"toolArguments": '{"city": "Luminos"}'}) == {"city": "Luminos"}
     assert tool_arguments({"toolArguments": "not json"}) == {}
     assert tool_arguments({"toolArguments": "[1, 2]"}) == {}
@@ -51,12 +59,22 @@ def _store():
     store = SymbolicSessionStore("s1")
     store.add(
         "claims",
-        Claim(id="c1", claim_text="The agent will calculate the total travel time.", claim_force="committing",
-              generated_by="llmcall:1"),
+        Claim(
+            id="c1",
+            claim_text="The agent will calculate the total travel time.",
+            claim_force="committing",
+            generated_by="llmcall:1",
+        ),
         "llmcall:1",
     )
-    fact = Fact(id="f1", fact_text="5", verbatim_source="5", grounded_in="toolcall:1", tool_name="calculate",
-                tool_arguments={"expression": "3 + 2"})
+    fact = Fact(
+        id="f1",
+        fact_text="5",
+        verbatim_source="5",
+        grounded_in="toolcall:1",
+        tool_name="calculate",
+        tool_arguments={"expression": "3 + 2"},
+    )
     store.add("facts", fact, "toolcall:1")
     return store, fact
 
@@ -95,8 +113,13 @@ class RecordingLLM:
 def test_the_linker_shows_the_model_the_enriched_fact():
     store, fact = _store()
     store.link(ANNOUNCES, "c1", "toolcall:1")
-    claim = Claim(id="c9", claim_text="3 + 2 equals 5.", claim_force="assertive", claim_kind="factual",
-                  generated_by="llmcall:2")
+    claim = Claim(
+        id="c9",
+        claim_text="3 + 2 equals 5.",
+        claim_force="assertive",
+        claim_kind="factual",
+        generated_by="llmcall:2",
+    )
     llm = RecordingLLM()
 
     FactClaimLinker(llm).extract(store, [fact, claim])
@@ -131,7 +154,9 @@ def test_announced_by_is_set_on_the_facts_of_a_node():
     store2, fact2 = _store()  # no relation: the key is there, empty
     extractor.store = store2
     node2 = AnnotatedNode(
-        node_type="ToolCall", node={"id": "toolcall:1"}, symbolic_state_elements={"facts": [fact2.model_dump(mode="json")]}
+        node_type="ToolCall",
+        node={"id": "toolcall:1"},
+        symbolic_state_elements={"facts": [fact2.model_dump(mode="json")]},
     )
     extractor.annotate_announces([node2])
     assert node2.symbolic_state_elements["facts"][0]["announced_by"] == []

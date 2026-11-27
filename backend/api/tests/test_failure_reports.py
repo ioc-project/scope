@@ -77,6 +77,29 @@ def test_the_id_depends_on_session_failure_and_call():
     assert report_id("s1", "IC-2", "c1") == report_id("s1", "IC-2", "c1")
 
 
+def test_a_rule_based_finding_has_a_level_a_rule_and_its_own_node():
+    def props(key, level="risk"):
+        return cg.failure_report_properties(
+            "s1", "CE-1", "low", "why", "c1", level=level, rule="CE-1 gap", key=key
+        )
+
+    first, second = props("claim:1"), props("claim:2")
+
+    assert (first["level"], first["rule"]) == ("risk", "CE-1 gap")
+    assert first["id"] != second["id"]  # two findings, same failure and call
+    assert first["id"] == props("claim:1")["id"]  # idempotent
+    # no key: the id of the LLM-judged report of the same failure and call
+    assert (
+        cg.failure_report_properties("s1", "CE-1", "low", "why", "c1")["id"]
+        != first["id"]
+    )
+
+
+def test_an_unknown_level_is_refused():
+    with pytest.raises(ValueError):
+        cg.failure_report_properties("s1", "CE-1", "low", "why", level="warning")
+
+
 @pytest.mark.parametrize("confidence", ["", "certain", "HIGH", None])
 def test_an_unknown_confidence_is_refused(confidence):
     with pytest.raises(ValueError, match="confidence"):

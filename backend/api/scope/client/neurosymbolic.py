@@ -190,24 +190,11 @@ def get_mas_name(db: Connector, session_id: str) -> str | None:
     return names[0] if names else None
 
 
-def get_symbolic_extraction_input(db: Connector, session_id: str) -> dict[str, Any]:
-    """Everything the symbolic extraction reads about a session, as plain dicts.
-
-    Returns ``{"session": payload, "trajectory": trajectory}``. ``payload`` is the full session (Session node,
-    Agent/LLM/Tool calls with their input and output, and the conversation), ``trajectory`` is
-    ``get_session_trajectory`` (the calls in execution order, each with the AgentCall that owns it) with two keys
-    added: ``handoffs`` (``get_session_handoffs``) and ``final_agent_call`` (``get_final_agent_call``). A failing
-    handoff or final-call query is logged and leaves the key out: the extraction then infers the order of the
-    agent calls from the trajectory alone, and treats the final call as unknown.
-
-    Raises ``NotFoundError`` when the KG has no data for the session.
-    """
+def _trajectory(db: Connector, session_id: str) -> dict[str, Any]:
+    """``get_session_trajectory`` with ``handoffs`` and ``final_agent_call`` added; a failing handoff or
+    final-call query is logged and leaves the key out."""
     from scope.client.dal import get_session_trajectory
-    from scope.providers import SCOPEKGProvider
 
-    payload = SCOPEKGProvider(db=db).fetch(session_id, None)
-    if not payload:
-        raise NotFoundError(f"No data found in the KG for session '{session_id}'")
     trajectory = dict(get_session_trajectory(db, session_id))
     try:
         trajectory["handoffs"] = get_session_handoffs(db, session_id)
@@ -223,4 +210,72 @@ def get_symbolic_extraction_input(db: Connector, session_id: str) -> dict[str, A
             session_id,
             exc_info=True,
         )
-    return {"session": payload, "trajectory": trajectory}
+    return trajectory
+
+
+def get_symbolic_extraction_input(db: Connector, session_id: str) -> dict[str, Any]:
+    """Everything the symbolic extraction reads about a session, as plain dicts.
+
+    Returns ``{"session": payload, "trajectory": trajectory}``. ``payload`` is the full session (Session node,
+    Agent/LLM/Tool calls with their input and output, and the conversation), ``trajectory`` is
+    ``get_session_trajectory`` (the calls in execution order, each with the AgentCall that owns it) with two keys
+    added: ``handoffs`` (``get_session_handoffs``) and ``final_agent_call`` (``get_final_agent_call``). A failing
+    handoff or final-call query is logged and leaves the key out: the extraction then infers the order of the
+    agent calls from the trajectory alone, and treats the final call as unknown.
+
+    Raises ``NotFoundError`` when the KG has no data for the session.
+    """
+    from scope.providers import SCOPEKGProvider
+
+    payload = SCOPEKGProvider(db=db).fetch(session_id, None)
+    if not payload:
+        raise NotFoundError(f"No data found in the KG for session '{session_id}'")
+    return {"session": payload, "trajectory": _trajectory(db, session_id)}
+
+
+def get_symbolic_state(
+    db: Connector, session_id: str, edge_types: Iterable[str]
+) -> dict[str, list[dict[str, Any]]]:
+    """The symbolic state of a session as rows: ``{"nodes": [{"id", "label", "props"}], "edges": [{"source",
+    "type", "target"}]}``. ``edge_types`` are the relationships to return (the ones starting at a node of the
+    session: symbolic state nodes and the calls that have an input). Rows are sorted for a stable output.
+
+    Raises ``DatabaseError`` when the KG cannot be read.
+    """
+    try:
+        nodes = db.execute(*ns.symbolic_nodes_query(session_id)) or []
+        edges = db.execute(*ns.symbolic_edges_query(session_id, list(edge_types))) or []
+    except Exception as exc:
+        raise DatabaseError(
+            f"Could not read the symbolic state of session '{session_id}': {exc}"
+        ) from exc
+    return {
+        "nodes": sorted(
+            (
+                {"id": r["id"], "label": r["label"], "props": dict(r["props"])}
+                for r in nodes
+            ),
+            key=lambda r: (r["label"], r["id"]),
+        ),
+        "edges": sorted(
+            (
+                {"source": r["source"], "type": r["type"], "target": r["target"]}
+                for r in edges
+            ),
+            key=lambda r: (r["source"], r["type"], r["target"]),
+        ),
+    }
+
+
+def get_failure_detection_input(
+    db: Connector, session_id: str, edge_types: Iterable[str]
+) -> dict[str, Any]:
+    """Everything the failure detectors read about a session, as plain dicts: ``get_symbolic_state`` (``nodes``,
+    ``edges``) plus the ``trajectory`` (as in ``get_symbolic_extraction_input``).
+
+    Raises ``NotFoundError`` when the KG holds no symbolic state for the session.
+    """
+    state = get_symbolic_state(db, session_id, edge_types)
+    if not state["nodes"]:
+        raise NotFoundError(f"No symbolic state in the KG for session '{session_id}'")
+    return {**state, "trajectory": _trajectory(db, session_id)}

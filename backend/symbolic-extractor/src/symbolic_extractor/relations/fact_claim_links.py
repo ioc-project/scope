@@ -39,7 +39,8 @@ for calling it, followed by the output. The tool and its arguments say what the 
 the agent's own words: it is context only, never evidence. What the fact states is its output.
 """
 
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT = (
+    """\
 You are given a FACT (the output of a tool call) and a CLAIM made by an agent. Decide whether \
 the claim is derived from the fact: the fact states it, or it follows from the fact with at \
 most trivial reasoning (a rewording, a sum, a comparison, a count), and every part of the \
@@ -49,16 +50,20 @@ Use only the fact. Do not use outside knowledge, and do not judge whether the cl
 general. Answer NO when the fact says nothing about the claim, contradicts it, or does not \
 decide it (it is about the same subject but needs information the fact does not contain).
 
-""" + FACT_CONTEXT_NOTE + """
+"""
+    + FACT_CONTEXT_NOTE
+    + """
 Reply with a single word: YES or NO. Nothing else.
 """
+)
 
 #: What is compared with the fact: a ``"claim"`` (one extracted statement) or a ``"text"`` (a
 #: longer passage, the source a claim is extracted from, with several statements). The
 #: question differs, so each has its own prompts; the pair is labelled CLAIM or TEXT.
 Subject = Literal["claim", "text"]
 
-TEXT_SYSTEM_PROMPT = """\
+TEXT_SYSTEM_PROMPT = (
+    """\
 You are given a FACT (the output of a tool call) and a TEXT written by an agent. The text may \
 contain several statements, most of them about other things than the fact. Decide whether the \
 text contains a statement that is derived from the fact: the fact states it, or it follows \
@@ -71,9 +76,12 @@ statement of the text is derived from the fact: the fact says nothing about them
 them, or does not decide them (they are about the same subject but need information the fact \
 does not contain).
 
-""" + FACT_CONTEXT_NOTE + """
+"""
+    + FACT_CONTEXT_NOTE
+    + """
 Reply with a single word: YES or NO. Nothing else.
 """
+)
 
 
 class FactClaimLink(BaseModel):
@@ -189,7 +197,8 @@ class FactClaimLinker(SemanticRelationExtractor):
 
 # --- Batch: many (fact, claim) pairs in one request -------------------------------------
 
-BATCH_SYSTEM_PROMPT = """\
+BATCH_SYSTEM_PROMPT = (
+    """\
 You are given several numbered PAIRS. Each pair has a FACT (the output of a tool call) and a \
 CLAIM made by an agent. For each pair, decide whether the claim is derived from the fact: the \
 fact states it, or it follows from the fact with at most trivial reasoning (a rewording, a \
@@ -200,12 +209,16 @@ are not evidence for it. Do not use outside knowledge, and do not judge whether 
 true in general. Answer NO when the fact says nothing about the claim, contradicts it, or does \
 not decide it (it is about the same subject but needs information the fact does not contain).
 
-""" + FACT_CONTEXT_NOTE + """
+"""
+    + FACT_CONTEXT_NOTE
+    + """
 Reply with exactly one line per pair, in order, in the form "P1: YES" or "P2: NO", using the \
 number of the pair. Nothing else: no explanation, no other text.
 """
+)
 
-BATCH_TEXT_SYSTEM_PROMPT = """\
+BATCH_TEXT_SYSTEM_PROMPT = (
+    """\
 You are given several numbered PAIRS. Each pair has a FACT (the output of a tool call) and a \
 TEXT written by an agent. A text may contain several statements, most of them about other \
 things than the fact. For each pair, decide whether the text contains a statement that is \
@@ -220,10 +233,13 @@ when no statement of the text is derived from the fact: the fact says nothing ab
 contradicts them, or does not decide them (they are about the same subject but need \
 information the fact does not contain).
 
-""" + FACT_CONTEXT_NOTE + """
+"""
+    + FACT_CONTEXT_NOTE
+    + """
 Reply with exactly one line per pair, in order, in the form "P1: YES" or "P2: NO", using the \
 number of the pair. Nothing else: no explanation, no other text.
 """
+)
 
 #: ``P3: YES``, ``3. no``, ``**P3**: **YES**``... The label, then the answer, with only
 #: punctuation or spaces between them.
@@ -296,7 +312,9 @@ class BatchFactClaimLinker:
         for attempt in range(1, ATTEMPTS + 1):
             if not pending:
                 break
-            reply = self._llm.complete_text(self._system, render_batch_prompt(pending, self._subject))
+            reply = self._llm.complete_text(
+                self._system, render_batch_prompt(pending, self._subject)
+            )
             result.usage = result.usage + reply.usage
             answered = parse_batch_answers(reply.text, len(pending))
             for number, derived in answered.items():
@@ -304,7 +322,10 @@ class BatchFactClaimLinker:
             pending = [p for i, p in enumerate(pending, start=1) if i not in answered]
             if pending:
                 logger.warning(
-                    "Attempt %d/%d: %d of the pairs have no valid answer", attempt, ATTEMPTS, len(pending)
+                    "Attempt %d/%d: %d of the pairs have no valid answer",
+                    attempt,
+                    ATTEMPTS,
+                    len(pending),
                 )
         result.missing = [p.id for p in pending]
         result.answers = {i: result.answers[i] for i in ids if i in result.answers}  # input order
@@ -321,7 +342,9 @@ class BatchFactClaimLinker:
         """
         pairs = [
             FactClaimPair(
-                id=f"{fact.id}|{claim.id}", fact_text=describe_fact(fact, store), claim_text=claim.claim_text
+                id=f"{fact.id}|{claim.id}",
+                fact_text=describe_fact(fact, store),
+                claim_text=claim.claim_text,
             )
             for fact, claim in items
         ]

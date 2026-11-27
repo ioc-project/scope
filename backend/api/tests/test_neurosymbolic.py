@@ -10,8 +10,10 @@ from pydantic import ValidationError
 from scope.client.neurosymbolic import (
     get_final_agent_call,
     get_mas_name,
+    get_failure_detection_input,
     get_session_handoffs,
     get_symbolic_extraction_input,
+    get_symbolic_state,
     write_symbolic_state,
 )
 from scope.core.exceptions import DatabaseError, NotFoundError
@@ -257,3 +259,65 @@ def test_a_session_the_kg_does_not_have_is_not_found(monkeypatch):
     monkeypatch.setattr("scope.providers.SCOPEKGProvider", lambda db: _Provider({}))
     with pytest.raises(NotFoundError):
         get_symbolic_extraction_input(_Db(), "unknown")
+
+
+class _StateDb(_Db):
+    """Answers the two symbolic state queries (and the handoff / final call ones with nothing)."""
+
+    NODES = [
+        {"id": "f1", "label": "Fact", "props": {"factText": "5"}},
+        {"id": "c1", "label": "Claim", "props": {"claimText": "fare 5"}},
+    ]
+    EDGES = [
+        {"source": "f1", "type": "groundedIn", "target": "t1"},
+        {"source": "c1", "type": "generatedBy", "target": "l1"},
+    ]
+
+    def execute(self, query, params=None):
+        if self.fail:
+            raise RuntimeError("neo4j down")
+        self.queries.append((query, params or {}))
+        if query == ns.SYMBOLIC_NODES_QUERY:
+            return list(self.NODES)
+        if query == ns.SYMBOLIC_EDGES_QUERY:
+            return list(self.EDGES)
+        return []
+
+
+def test_the_symbolic_state_is_returned_as_sorted_rows():
+    db = _StateDb()
+    state = get_symbolic_state(db, "s1", ["generatedBy", "groundedIn"])
+
+    assert [n["id"] for n in state["nodes"]] == ["c1", "f1"]  # by label, then id
+    assert state["nodes"][0] == {
+        "id": "c1",
+        "label": "Claim",
+        "props": {"claimText": "fare 5"},
+    }
+    assert [e["type"] for e in state["edges"]] == ["generatedBy", "groundedIn"]
+    nodes_q, edges_q = db.queries
+    assert nodes_q[1] == {"session_id": "s1", "labels": list(ns.SYMBOLIC_LABELS)}
+    assert edges_q[1] == {"session_id": "s1", "types": ["generatedBy", "groundedIn"]}
+
+
+def test_relationship_types_cannot_be_injected():
+    with pytest.raises(ValueError):
+        ns.symbolic_edges_query("s1", ["x) DETACH DELETE (n"])
+
+
+def test_a_failing_read_of_the_symbolic_state_is_a_database_error():
+    with pytest.raises(DatabaseError):
+        get_symbolic_state(_Db(fail=True), "s1", ["generatedBy"])
+
+
+def test_the_detection_input_is_the_state_and_the_trajectory(source):
+    result = get_failure_detection_input(_StateDb(), "s1", ["generatedBy"])
+
+    assert [n["id"] for n in result["nodes"]] == ["c1", "f1"]
+    assert result["trajectory"]["steps"] == TRAJECTORY["steps"]
+    assert result["trajectory"]["handoffs"] == []
+
+
+def test_a_session_without_symbolic_state_is_not_found_for_detection(source):
+    with pytest.raises(NotFoundError):
+        get_failure_detection_input(_Db(rows=[]), "s1", ["generatedBy"])

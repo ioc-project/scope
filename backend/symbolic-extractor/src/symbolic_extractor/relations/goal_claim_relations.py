@@ -103,7 +103,9 @@ def _as_bool(value: object) -> bool | None:
     return None
 
 
-def parse_evaluation(data: dict, claims: Sequence[Claim]) -> tuple[bool, list[Claim], GoalStatus, str]:
+def parse_evaluation(
+    data: dict, claims: Sequence[Claim]
+) -> tuple[bool, list[Claim], GoalStatus, str]:
     """``(satisfied, the claims named in "fulfils", status of the goal, reasoning)`` of a reply.
     Labels that are not claims are ignored (logged), a label given twice counts once. A reply that
     is not satisfied names no claim, whatever it lists. The status is ``achieved`` when satisfied
@@ -117,10 +119,14 @@ def parse_evaluation(data: dict, claims: Sequence[Claim]) -> tuple[bool, list[Cl
     said = str(data.get("status") or "").strip().lower()
     if not satisfied:
         if said not in ("set", "abandoned"):
-            logger.warning("Status %r of a goal that is not satisfied, read as 'set'", data.get("status"))
+            logger.warning(
+                "Status %r of a goal that is not satisfied, read as 'set'", data.get("status")
+            )
         return False, [], "abandoned" if said == "abandoned" else "set", reasoning
     if said != "achieved":
-        logger.warning("Status %r of a goal that is satisfied, read as 'achieved'", data.get("status"))
+        logger.warning(
+            "Status %r of a goal that is satisfied, read as 'achieved'", data.get("status")
+        )
     labels = data.get("fulfils")
     if not isinstance(labels, list):
         raise ValueError(f"no 'fulfils' list in the reply: {str(data)[:200]}")
@@ -172,7 +178,11 @@ class GoalClaimRelationExtractor(SemanticRelationExtractor):
             for claim_id in evaluation.fulfils:
                 store.link(FULFILS, claim_id, element.id)
             if isinstance(stored.element, Goal) and stored.element.status != evaluation.status:
-                store.add("goals", stored.element.model_copy(update={"status": evaluation.status}), stored.node_id)
+                store.add(
+                    "goals",
+                    stored.element.model_copy(update={"status": evaluation.status}),
+                    stored.node_id,
+                )
             evaluations.append(evaluation)
         return evaluations
 
@@ -193,7 +203,9 @@ class GoalClaimRelationExtractor(SemanticRelationExtractor):
         prompt = render_prompt(goal, claims)
         for attempt in (1, 2):
             try:
-                reply = self._llm.complete_json(SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder())
+                reply = self._llm.complete_json(
+                    SYSTEM_PROMPT, prompt if attempt == 1 else prompt + retry_reminder()
+                )
             except ValueError as exc:
                 self.last_usage = self.last_usage + usage_of(exc)
                 if attempt == 2:

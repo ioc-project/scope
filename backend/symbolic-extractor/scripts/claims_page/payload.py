@@ -25,8 +25,13 @@ def build_payload(output: dict[str, Any], trajectory: dict[str, Any] | None) -> 
     graph = SessionGraph(output)
     steps = {s["call_id"]: s for s in (trajectory or {}).get("steps", []) if s.get("call_id")}
     llm_nodes = graph.nodes_of_type("LLMCall")
-    llm_nodes.sort(key=lambda n: (n["node"].get("startTime") is None, n["node"].get("startTime") or 0.0))
-    t0 = min((n["node"]["startTime"] for n in llm_nodes if n["node"].get("startTime") is not None), default=0.0)
+    llm_nodes.sort(
+        key=lambda n: (n["node"].get("startTime") is None, n["node"].get("startTime") or 0.0)
+    )
+    t0 = min(
+        (n["node"]["startTime"] for n in llm_nodes if n["node"].get("startTime") is not None),
+        default=0.0,
+    )
 
     calls = []
     for node in llm_nodes:
@@ -44,7 +49,8 @@ def build_payload(output: dict[str, Any], trajectory: dict[str, Any] | None) -> 
                 "inputs": graph.out("input_claim", raw.get("id")),
                 "input_facts": graph.out("input_fact", raw.get("id")),
                 "claims": [
-                    _claim(graph, c["id"], c) for c in node.get("symbolic_state_elements", {}).get("claims", [])
+                    _claim(graph, c["id"], c)
+                    for c in node.get("symbolic_state_elements", {}).get("claims", [])
                 ],
             }
         )
@@ -80,9 +86,13 @@ def _claim(graph: SessionGraph, claim_id: str, c: dict[str, Any]) -> dict[str, A
         "snippet": c.get("verbatim_source"),
         "routing": bool(ROUTING_RE.match(c.get("verbatim_source") or "")),
         "same": graph.out("same_claim", claim_id),
-        "supported_by": [i for i in graph.out("supported_by", claim_id) if graph.kind_of(i) == "facts"],
+        "supported_by": [
+            i for i in graph.out("supported_by", claim_id) if graph.kind_of(i) == "facts"
+        ],
         # the tool calls (their facts) whose arguments were taken from this claim: ``supported_by`` fact -> claim
-        "argument_source_of": [i for i in graph.into("supported_by", claim_id) if graph.kind_of(i) == "facts"],
+        "argument_source_of": [
+            i for i in graph.into("supported_by", claim_id) if graph.kind_of(i) == "facts"
+        ],
         **_claim_relations(graph, claim_id),
         "answers": graph.out("answers", claim_id),
         "fulfils": graph.out("fulfils", claim_id),
@@ -131,7 +141,10 @@ def _argument_origins(output: dict[str, Any]) -> dict[str, list[dict[str, Any]]]
 
 
 def _facts(
-    graph: SessionGraph, steps: dict[str, Any], t0: float, origins: dict[str, list[dict[str, Any]]] | None = None
+    graph: SessionGraph,
+    steps: dict[str, Any],
+    t0: float,
+    origins: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """The facts of the ToolCall nodes, with the claims they are in the context of (``in_context``), the
     claims they support (``supported_by`` read backwards), the arguments of the call, the claims that
@@ -158,15 +171,27 @@ def _facts(
                 "in_context": graph.out("in_context", fact["id"]),
                 # the claims it backs: ``supported_by`` claim -> fact read backwards (claims only: the fact ->
                 # fact edges are in the two lists below)
-                "supports": [i for i in graph.into("supported_by", fact["id"]) if graph.kind_of(i) == "claims"],
+                "supports": [
+                    i
+                    for i in graph.into("supported_by", fact["id"])
+                    if graph.kind_of(i) == "claims"
+                ],
                 # earlier results the arguments of this call were taken from (``supported_by`` fact -> fact), each
                 # with the arguments it provided; and the later calls whose arguments were taken from this result
                 "argument_facts": [
-                    {"fact": i, "arguments": graph.attributes("supported_by", fact["id"], i).get("arguments") or {}}
+                    {
+                        "fact": i,
+                        "arguments": graph.attributes("supported_by", fact["id"], i).get(
+                            "arguments"
+                        )
+                        or {},
+                    }
                     for i in graph.out("supported_by", fact["id"])
                     if graph.kind_of(i) == "facts"
                 ],
-                "argument_of_facts": [i for i in graph.into("supported_by", fact["id"]) if graph.kind_of(i) == "facts"],
+                "argument_of_facts": [
+                    i for i in graph.into("supported_by", fact["id"]) if graph.kind_of(i) == "facts"
+                ],
             }
     return facts
 
@@ -270,9 +295,13 @@ def _system_tasks(graph: SessionGraph, agents: list[str]) -> list[dict[str, Any]
     others after). The constraints and the capabilities read from the same prompt come with them."""
     prompts = {e.data["agent_id"]: e.data for e in graph.elements("system_prompts")}
     tasks = _by_agent(graph.elements("system_tasks"))
-    constraints = _by_agent(e for e in graph.elements("constraints") if e.data.get("origin") == "system")
+    constraints = _by_agent(
+        e for e in graph.elements("constraints") if e.data.get("origin") == "system"
+    )
     capabilities = _by_agent(graph.elements("capabilities"))
-    names = [a for a in agents if a in prompts or a in tasks or a in constraints or a in capabilities]
+    names = [
+        a for a in agents if a in prompts or a in tasks or a in constraints or a in capabilities
+    ]
     names += [a for a in [*prompts, *tasks, *constraints, *capabilities] if a not in names]
     out = []
     for agent in dict.fromkeys(names):
@@ -292,11 +321,18 @@ def _system_tasks(graph: SessionGraph, agents: list[str]) -> list[dict[str, Any]
                     prompt.get("truncated")
                     or any(
                         e.data.get("truncated")
-                        for e in [*tasks.get(agent, []), *constraints.get(agent, []), *capabilities.get(agent, [])]
+                        for e in [
+                            *tasks.get(agent, []),
+                            *constraints.get(agent, []),
+                            *capabilities.get(agent, []),
+                        ]
                     )
                 ),
                 "constraints": [e.id for e in constraints.get(agent, [])],
-                "capabilities": [{"id": e.id, "text": e.data.get("capability_text", "")} for e in capabilities.get(agent, [])],
+                "capabilities": [
+                    {"id": e.id, "text": e.data.get("capability_text", "")}
+                    for e in capabilities.get(agent, [])
+                ],
                 "tasks": [
                     {
                         "id": e.id,
@@ -328,7 +364,10 @@ def _goals(
     goals: list[dict[str, Any]] = []
     conversation: dict[str, Any] = {}
     for node in graph.nodes_of_type("Conversation"):
-        conversation = {"query": node["node"].get("query"), "response": node["node"].get("response")}
+        conversation = {
+            "query": node["node"].get("query"),
+            "response": node["node"].get("response"),
+        }
         for goal in node.get("symbolic_state_elements", {}).get("goals", []):
             goals.append(
                 {
@@ -345,11 +384,15 @@ def _goals(
         return [], None, conversation
 
     agent_calls = graph.nodes_of_type("AgentCall")
-    agent_calls.sort(key=lambda n: (n["node"].get("startTime") is None, n["node"].get("startTime") or 0.0))
+    agent_calls.sort(
+        key=lambda n: (n["node"].get("startTime") is None, n["node"].get("startTime") or 0.0)
+    )
     first = None
     for node in agent_calls:
         raw = node["node"]
-        first = steps.get(raw.get("id"), {}).get("agent_id") or raw.get("agentName") or raw.get("name")
+        first = (
+            steps.get(raw.get("id"), {}).get("agent_id") or raw.get("agentName") or raw.get("name")
+        )
         if first:
             break
     first = first or (agents[0] if agents else "session")

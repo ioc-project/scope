@@ -155,7 +155,10 @@ def test_elements_become_labelled_nodes_with_ontology_properties_only():
         "claimText": "fare 5", "claimForce": "assertive", "claimKind": "factual",
     }  # fmt: skip
     assert nodes["cap1"].props == {"agentCapabilityText": "price", "source": "system"}
-    assert nodes["f1"].props == {"factText": "5", "factSourceType": "tool_result"}  # tool name and arguments are not ontology
+    assert nodes["f1"].props == {
+        "factText": "5",
+        "factSourceType": "tool_result",
+    }  # tool name and arguments are not ontology
 
 
 def test_a_system_prompt_is_a_node_attached_to_its_agent():
@@ -165,7 +168,9 @@ def test_a_system_prompt_is_a_node_attached_to_its_agent():
     assert prompt.props == {"systemPromptText": "You price things"}
     edges = {(e.type, e.from_id, e.to_id, e.to_label) for e in graph.edges}
     assert ("systemPromptOf", "sp1", "concierge", "Agent") in edges
-    assert "concierge" not in {n.id for n in graph.nodes}  # the Agent node is matched, never written
+    assert "concierge" not in {
+        n.id for n in graph.nodes
+    }  # the Agent node is matched, never written
 
 
 def test_what_comes_from_a_system_prompt_is_attached_to_it_and_marked():
@@ -176,7 +181,9 @@ def test_what_comes_from_a_system_prompt_is_attached_to_it_and_marked():
     assert "source" not in nodes["t1"].props  # a task assigned during the run
     edges = {(e.type, e.from_id, e.to_id) for e in graph.edges}
     assert {("definedIn", x, "sp1") for x in ("st1", "cap1", "k2")} <= edges
-    assert not any(e[0] == "ownedBy" and e[1] == "st1" for e in edges)  # a standing task has no AgentCall
+    assert not any(
+        e[0] == "ownedBy" and e[1] == "st1" for e in edges
+    )  # a standing task has no AgentCall
 
 
 def test_delegation_claims_are_written_as_claims():

@@ -26,11 +26,16 @@ class JsonLLM:
         reply = self.replies[len(self.prompts) - 1]
         if isinstance(reply, Exception):
             raise reply
-        return LLMReply(data=reply, usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=20, cost_usd=0.002))
+        return LLMReply(
+            data=reply,
+            usage=LLMUsage(calls=1, prompt_tokens=100, completion_tokens=20, cost_usd=0.002),
+        )
 
 
 def claim(text, cid):
-    return Claim(id=cid, claim_text=text, claim_force="assertive", claim_kind="factual", verbatim_source=text)
+    return Claim(
+        id=cid, claim_text=text, claim_force="assertive", claim_kind="factual", verbatim_source=text
+    )
 
 
 def session():
@@ -53,7 +58,9 @@ def reply(*entries):
 
 def test_relations_are_parsed_and_recorded_in_the_store():
     store, (e1, e2), (n1, n2) = session()
-    llm = JsonLLM(reply(("N1", "E1", "contributes"), ("N1", "E2", "contributes"), ("N2", "E1", "conflict")))
+    llm = JsonLLM(
+        reply(("N1", "E1", "contributes"), ("N1", "E2", "contributes"), ("N2", "E1", "conflict"))
+    )
     extractor = ClaimRelationExtractor(llm)
 
     relations = extractor.extract(store, [n1, n2])
@@ -83,8 +90,14 @@ def test_the_prompt_lists_the_new_and_the_earlier_claims():
     ClaimRelationExtractor(llm).extract(store, [n1, n2])
 
     new_part, earlier_part = llm.prompts[0].split("=== EARLIER CLAIMS ===")
-    assert "N1. The hotel stay costs $300." in new_part and "N2. The hotel costs $80 a night." in new_part
-    assert "E1. The hotel costs $100 a night." in earlier_part and "E2. The trip lasts 3 nights." in earlier_part
+    assert (
+        "N1. The hotel stay costs $300." in new_part
+        and "N2. The hotel costs $80 a night." in new_part
+    )
+    assert (
+        "E1. The hotel costs $100 a night." in earlier_part
+        and "E2. The trip lasts 3 nights." in earlier_part
+    )
     assert llm.prompts[0] == render_prompt([n1, n2], [e1, e2])
 
 
@@ -106,12 +119,16 @@ def test_the_new_claims_are_related_to_each_other_even_without_input_claims():
 
     assert "=== EARLIER CLAIMS ===\n(none)" in llm.prompts[0]
     assert [(r.claim_id, r.other_id, r.relation) for r in relations] == [("e2", "e1", "conflict")]
-    assert store.related(CONFLICTS_WITH, "e1") == ["e2"] and store.related(CONFLICTS_WITH, "e2") == ["e1"]
+    assert store.related(CONFLICTS_WITH, "e1") == ["e2"] and store.related(
+        CONFLICTS_WITH, "e2"
+    ) == ["e1"]
 
 
 def test_new_claims_are_related_to_input_claims_and_to_each_other_in_one_request():
     store, _, (n1, n2) = session()
-    llm = JsonLLM(reply(("N2", "N1", "contributes"), ("N1", "E1", "contributes"), ("N2", "E1", "conflict")))
+    llm = JsonLLM(
+        reply(("N2", "N1", "contributes"), ("N1", "E1", "contributes"), ("N2", "E1", "conflict"))
+    )
     extractor = ClaimRelationExtractor(llm)
 
     relations = extractor.extract(store, [n1, n2])
@@ -159,7 +176,9 @@ def test_unknown_labels_and_relations_are_ignored():
     )
     data["relations"].append("not an object")
     relations = parse_relations(data, [n1, n2], [e1, e2])
-    assert [(r.claim_id, r.other_id, r.relation) for r in relations] == [("n1", "e2", "derived_from")]
+    assert [(r.claim_id, r.other_id, r.relation) for r in relations] == [
+        ("n1", "e2", "derived_from")
+    ]
 
 
 def test_pairs_of_new_claims_are_deduplicated_and_a_claim_is_not_related_to_itself():
@@ -185,12 +204,19 @@ def test_derived_from_in_both_directions_between_two_new_claims_is_dropped():
 def test_the_other_claim_can_also_be_given_as_earlier():
     _, (e1, e2), (n1, n2) = session()
     data = {"relations": [{"new": "N1", "earlier": "E1", "relation": "same"}]}
-    assert [(r.claim_id, r.other_id) for r in parse_relations(data, [n1, n2], [e1, e2])] == [("n1", "e1")]
+    assert [(r.claim_id, r.other_id) for r in parse_relations(data, [n1, n2], [e1, e2])] == [
+        ("n1", "e1")
+    ]
 
 
 def test_a_pair_given_twice_counts_once_and_contradictory_relations_are_dropped():
     _, (e1, e2), (n1, n2) = session()
-    data = reply(("N1", "E1", "conflict"), ("N1", "E1", "conflict"), ("N2", "E2", "same"), ("N2", "E2", "contributes"))
+    data = reply(
+        ("N1", "E1", "conflict"),
+        ("N1", "E1", "conflict"),
+        ("N2", "E2", "same"),
+        ("N2", "E2", "contributes"),
+    )
     relations = parse_relations(data, [n1, n2], [e1, e2])
     assert [(r.claim_id, r.other_id, r.relation) for r in relations] == [("n1", "e1", "conflict")]
 
@@ -203,7 +229,11 @@ def test_a_reply_without_a_relations_list_is_asked_again_once():
     relations = extractor.extract(store, [n1, n2])
 
     assert [(r.claim_id, r.other_id) for r in relations] == [("n1", "e1")]
-    assert len(llm.prompts) == 2 and "not valid" in llm.prompts[1] and "not valid" not in llm.prompts[0]
+    assert (
+        len(llm.prompts) == 2
+        and "not valid" in llm.prompts[1]
+        and "not valid" not in llm.prompts[0]
+    )
     assert extractor.last_usage.calls == 2
 
 
@@ -227,7 +257,9 @@ def test_the_partners_of_a_symmetric_relation_include_the_claims_of_the_node_in_
 
 def test_a_reply_that_is_not_json_is_asked_again_once():
     store, _, (n1, n2) = session()
-    llm = JsonLLM(ValueError("No JSON object found in the LLM reply"), reply(("N1", "E1", "contributes")))
+    llm = JsonLLM(
+        ValueError("No JSON object found in the LLM reply"), reply(("N1", "E1", "contributes"))
+    )
     extractor = ClaimRelationExtractor(llm)
 
     relations = extractor.extract(store, [n1, n2])

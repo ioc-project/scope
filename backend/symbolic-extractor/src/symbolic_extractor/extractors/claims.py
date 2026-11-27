@@ -105,7 +105,9 @@ def _text_parts(output: str) -> list[str]:
         for message in messages
         if isinstance(message, dict)
         for part in message.get("parts") or []
-        if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("content"), str)
+        if isinstance(part, dict)
+        and part.get("type") == "text"
+        and isinstance(part.get("content"), str)
     ]
 
 
@@ -190,10 +192,7 @@ def _tool_calls_section(calls: list[ToolCallRequest]) -> str:
     """The prompt section listing the tool calls the LLM requested ('' when there are none)."""
     if not calls:
         return ""
-    lines = [
-        f"- id {c.id}: {c.name}({json.dumps(c.arguments, ensure_ascii=False)})"
-        for c in calls
-    ]
+    lines = [f"- id {c.id}: {c.name}({json.dumps(c.arguments, ensure_ascii=False)})" for c in calls]
     return (
         "\n=== TOOL CALLS REQUESTED BY THE LLM (context only: no claims from here, never a verbatim_source) ===\n"
         + _clip("\n".join(lines))

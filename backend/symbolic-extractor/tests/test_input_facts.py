@@ -18,20 +18,35 @@ def llm_input(*texts, tool_responses=()):
 
 
 def llm(call_id, owner, start, input_text, duration_ms=100.0):
-    return {"call_id": call_id, "kind": "llm", "parent_id": owner, "start_time": start,
-            "duration_ms": duration_ms, "input_text": input_text}
+    return {
+        "call_id": call_id,
+        "kind": "llm",
+        "parent_id": owner,
+        "start_time": start,
+        "duration_ms": duration_ms,
+        "input_text": input_text,
+    }
 
 
 def tool(call_id, owner, start, duration_ms=100.0):
-    return {"call_id": call_id, "kind": "tool", "parent_id": owner, "start_time": start,
-            "duration_ms": duration_ms}
+    return {
+        "call_id": call_id,
+        "kind": "tool",
+        "parent_id": owner,
+        "start_time": start,
+        "duration_ms": duration_ms,
+    }
 
 
 def facts(**items):
     """items: fact_id=(tool_call_id, text)."""
     store = SymbolicSessionStore("s")
     for fid, (tool_id, text) in items.items():
-        store.add("facts", Fact(id=fid, fact_text=text, verbatim_source=text, grounded_in=tool_id), tool_id)
+        store.add(
+            "facts",
+            Fact(id=fid, fact_text=text, verbatim_source=text, grounded_in=tool_id),
+            tool_id,
+        )
     return store
 
 
@@ -80,7 +95,9 @@ def test_several_facts_keep_tool_order_and_whitespace_is_normalised():
     steps = [
         tool("t2", "a1", 2.0),
         tool("t1", "a1", 1.0),
-        llm("l1", "a1", 3.0, llm_input("q", tool_responses=["A  line\n\nB line", "Other   result"])),
+        llm(
+            "l1", "a1", 3.0, llm_input("q", tool_responses=["A  line\n\nB line", "Other   result"])
+        ),
     ]
     store = facts(f2=("t2", "Other result"), f1=("t1", "A line B line"))
     assert track_input_facts(steps, store) == {"l1": ["f1", "f2"]}
@@ -104,8 +121,12 @@ def test_pipeline_sets_input_facts_on_llm_calls():
         tool_spans=[{"id": "t1", "startTime": 2.0, "outputContent": json.dumps(response)}],
         llm_spans=[
             {"id": "l1", "startTime": 1.0, "completion": "x", "prompt": llm_input("q")},
-            {"id": "l2", "startTime": 3.0, "completion": "y",
-             "prompt": llm_input("q", tool_responses=[response])},
+            {
+                "id": "l2",
+                "startTime": 3.0,
+                "completion": "y",
+                "prompt": llm_input("q", tool_responses=[response]),
+            },
         ],
     )
     trajectory = SessionTrajectory(

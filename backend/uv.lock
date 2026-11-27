@@ -17,6 +17,7 @@ members = [
     "dem",
     "embedding-worker",
     "eval-worker",
+    "failure-detection",
     "grouping-worker",
     "hierarchical-grouping-worker",
     "ingestion-worker",
@@ -1279,6 +1280,32 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/be/d7be8670151d16d88f15bb121c5b66cdb5ea6a0c2a362d0dcf30276ade53/fastuuid-0.14.0-cp313-cp313-win32.whl", hash = "sha256:a0809f8cc5731c066c909047f9a314d5f536c871a7a22e815cc4967c110ac9ad", size = 154559, upload-time = "2025-10-19T22:36:36.011Z" },
     { url = "https://files.pythonhosted.org/packages/22/1d/5573ef3624ceb7abf4a46073d3554e37191c868abc3aecd5289a72f9810a/fastuuid-0.14.0-cp313-cp313-win_amd64.whl", hash = "sha256:0df14e92e7ad3276327631c9e7cec09e32572ce82089c55cb1bb8df71cf394ed", size = 156539, upload-time = "2025-10-19T22:33:35.898Z" },
 ]
+
+[[package]]
+name = "failure-detection"
+version = "1.2.0"
+source = { editable = "failure-detection" }
+dependencies = [
+    { name = "ioc-scope-ontology", extra = ["models"] },
+    { name = "pydantic" },
+    { name = "symbolic-extractor" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ioc-scope-ontology", extras = ["models"], editable = "../ontology" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.10" },
+    { name = "symbolic-extractor", editable = "symbolic-extractor" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "filelock"

@@ -48,6 +48,7 @@ members = [
     "workers/eval-worker",
     "symbolic-extractor",
     "workers/symbolic-extractor-worker",
+    "failure-detection",
     "worker-base",
     "stateful-evals",
 ]

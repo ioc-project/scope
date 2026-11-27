@@ -5,7 +5,7 @@ name: Test Python Package
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, neurosymbolic-layer ]
     paths:
       - 'ontology/src/**'
       - 'ontology/tests/**'
@@ -14,7 +14,7 @@ on:
       - 'ontology/uv.lock'
       - '.github/workflows/test-ontology.yml'
   push:
-    branches: [ main ]
+    branches: [ main, neurosymbolic-layer ]
   workflow_dispatch:
 
 concurrency:

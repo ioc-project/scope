@@ -46,7 +46,7 @@ process (`worker_base.runner`), so the interpreter and the libraries they have i
 
 | Image | Workers | CLI |
 |---|---|---|
-| `ingestion-worker` | norm, embedding | `ingestion-worker-cli` |
+| `ingestion-worker` | norm, embedding, symbolic-extractor | `ingestion-worker-cli` |
 | `semantic-analysis-worker` | grouping, hierarchical-grouping, analysis, intelligence | `semantic-analysis-worker-cli` |
 | `eval-worker` | mce, stateful-eval | `eval-worker-cli` |
 

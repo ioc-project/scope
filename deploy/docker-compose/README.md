@@ -11,7 +11,7 @@ Runs the whole SCOPE stack on one machine, with the same components as the
 | `clickhouse`, `clickhouse-setup` | `clickhouse.yaml`, `clickhouse-init-job.yaml` |
 | `session-end-trigger` | `session-end-trigger.yaml` |
 | `rabbitmq`, `neo4j` | `rabbitmq.yaml`, `neo4j` subchart |
-| `ingestion` (norm, embedding), `semantic-analysis` (grouping, hierarchical-grouping, analysis, intelligence), `eval` (mce, stateful-eval), `cognitive-failure`, `cognition-protocols` (see below) | `worker-*.yaml` |
+| `ingestion` (norm, embedding, symbolic-extractor), `semantic-analysis` (grouping, hierarchical-grouping, analysis, intelligence), `eval` (mce, stateful-eval), `failure-detection`, `cognition-protocols` (see below) | `worker-*.yaml` |
 
 Kubernetes-only concerns (ingress, HPA, cert-manager, ExternalSecrets, resource limits) have no
 equivalent here.
@@ -61,12 +61,14 @@ publishes it to the `norm` worker (in the `ingestion` service) and the pipeline 
 
 - `.env`: image tag, LLM settings, credentials, published ports and UI feature flags (see
   `.env.template`).
-- `config/mce_config.yaml`, `config/stateful_eval_config.yaml`, `config/cognitive_failure_config.yaml`: the
-  worker configs, mirroring `workers.mce.config`, `workers.stateful-eval.config` and
-  `workers.cognitive-failure.config` of the chart's `values.yaml`.
-- The `cognitive-failure` worker makes a judge-model call for each session. To turn it off, run
-  `docker compose stop cognitive-failure` and set `EMBEDDING_OUTPUT_QUEUE` in `.env` without its queue (see
-  `.env.template`).
+- `config/mce_config.yaml`, `config/stateful_eval_config.yaml`: the worker configs, mirroring
+  `workers.mce.config` and `workers.stateful-eval.config` of the chart's `values.yaml`.
+- Cognitive failures are detected in two steps: norm feeds the `symbolic-extractor` worker (in the `ingestion`
+  service), which reads the session from the knowledge graph, extracts its symbolic state (claims, facts, goals,
+  tasks, constraints) with an LLM and writes it back, and feeds the `failure-detection` service, which runs
+  deterministic rules over that state and writes the `CognitiveFailureReport`s (no model call). To turn them off,
+  run `docker compose stop failure-detection`, set `INGESTION_WORKERS=norm,embedding` and set `NORM_OUTPUT_QUEUE` in
+  `.env` without `new_session_to_symbolic_extractor` (see `.env.template`).
 - Queue names and worker tuning (inflight messages, grouping distances, trigger intervals) are set
   in `docker-compose.yml` with the chart's default values. The `ingestion`, `semantic-analysis` and `eval`
   services each run several workers in one process, so a worker's settings carry its prefix

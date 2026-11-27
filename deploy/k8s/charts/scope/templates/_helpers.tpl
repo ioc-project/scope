@@ -84,28 +84,35 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%s-stateful-eval-config" (include "scope.fullname" .) -}}
 {{- end }}
 
-{{- define "scope.cognitiveFailureConfigMapName" -}}
-{{- printf "%s-cognitive-failure-config" (include "scope.fullname" .) -}}
-{{- end }}
-
 {{/*
-Output queues of the embedding worker: the configured ones, plus the input queues of the optional
-branch workers (cognitive-failure, cognition-protocols) that are deployed, so that enabling one is enough to feed it.
+Output queues of a worker: the configured ones, plus the input queues of the branch workers that are deployed, so that
+enabling one is enough to feed it. Takes root, worker (its values) and branches (names of the workers).
 */}}
-{{- define "scope.embeddingOutputQueues" -}}
+{{- define "scope.workerOutputQueues" -}}
+{{- $root := .root -}}
 {{- $queues := list -}}
-{{- if kindIs "slice" .Values.workers.embedding.outputQueue -}}
-{{- $queues = .Values.workers.embedding.outputQueue -}}
-{{- else if .Values.workers.embedding.outputQueue -}}
-{{- $queues = splitList "," (toString .Values.workers.embedding.outputQueue) -}}
+{{- if kindIs "slice" .worker.outputQueue -}}
+{{- $queues = .worker.outputQueue -}}
+{{- else if .worker.outputQueue -}}
+{{- $queues = splitList "," (toString .worker.outputQueue) -}}
 {{- end -}}
-{{- range $branch := list "cognitive-failure" "cognition-protocols" -}}
-{{- $branchWorker := index $.Values.workers $branch -}}
-{{- if and $.Values.workers.enabled $branchWorker.enabled -}}
+{{- range $branch := .branches -}}
+{{- $branchWorker := index $root.Values.workers $branch -}}
+{{- if and $root.Values.workers.enabled $branchWorker.enabled -}}
 {{- $queues = append $queues $branchWorker.inputQueue -}}
 {{- end -}}
 {{- end -}}
 {{- join "," (uniq $queues) -}}
+{{- end }}
+
+{{/* Output queues of the embedding worker: the optional branch workers fed from it. */}}
+{{- define "scope.embeddingOutputQueues" -}}
+{{- include "scope.workerOutputQueues" (dict "root" . "worker" .Values.workers.embedding "branches" (list "cognition-protocols")) -}}
+{{- end }}
+
+{{/* Output queues of the norm worker: the symbolic extractor is fed from it. */}}
+{{- define "scope.normOutputQueues" -}}
+{{- include "scope.workerOutputQueues" (dict "root" . "worker" .Values.workers.norm "branches" (list "symbolic-extractor")) -}}
 {{- end }}
 
 {{- /*

@@ -16,7 +16,7 @@ SCOPE ships as one image per component, published under
 |---|---|
 | API | `scope-api` |
 | Dashboard | `scope-ui` |
-| Workers (Docker Compose) | `scope-ingestion-worker` (norm, embedding), `scope-semantic-analysis-worker` (grouping, hierarchical grouping, analysis, intelligence), `scope-eval-worker` (MCE, stateful evaluation), `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` |
+| Workers (Docker Compose) | `scope-ingestion-worker` (norm, embedding, symbolic extractor), `scope-semantic-analysis-worker` (grouping, hierarchical grouping, analysis, intelligence), `scope-eval-worker` (MCE, stateful evaluation), `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` |
 | Workers (Kubernetes) | `scope-norm-worker`, `scope-embedding-worker`, `scope-mce-worker`, `scope-grouping-worker`, `scope-hierarchical-grouping-worker`, `scope-analysis-worker`, `scope-intelligence-worker`, `scope-stateful-eval-worker`, `scope-cognitive-failure-worker`, `scope-cognition-protocols-worker` |
 
 The deployment also needs four pieces of infrastructure: an OTel collector, a span

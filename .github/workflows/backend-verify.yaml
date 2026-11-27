@@ -32,6 +32,8 @@ jobs:
           - stateful-eval-worker
           - cognitive-failure-worker
           - cognition-protocols-worker
+          - symbolic-extractor-worker
+          - failure-detection-worker
           - ingestion-worker
           - semantic-analysis-worker
           - eval-worker

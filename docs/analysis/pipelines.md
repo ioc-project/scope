@@ -28,7 +28,8 @@ jobs. Nothing else in the pipeline needs to know it exists.
 | [stateful-eval](workers/stateful-eval-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding |
 | [hierarchical-grouping](workers/hierarchical-grouping-worker.md) | Periodic | :material-check: | :material-check: | |
 | [intelligence](workers/intelligence-worker.md) | Periodic | :material-check: | :material-check: | |
-| [cognitive-failure](workers/cognitive-failure-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding. It makes a judge-model call for each session, and can be turned off in both deployments |
+| symbolic-extractor | Ingestion | :material-check: | :material-check: | Fed by norm. It makes an LLM call for each session, and can be turned off in both deployments |
+| failure-detection | Ingestion | :material-check: | :material-check: | Fed by the symbolic extractor. Deterministic rules, no model call. Replaces the judge-model `cognitive-failure` worker |
 | [cognition-protocols](workers/cognition-protocols-worker.md) | Ingestion | :material-check: | :material-check: | Fed by embedding. |
 | [anomaly-detection](workers/anomaly-detection-worker.md), [consistency](workers/consistency-worker.md), [normal-behaviour](workers/normal-behaviour-worker.md) | Ingestion | :material-minus: | :material-minus: | Images built, but their analyses run inside the analysis worker |
 
@@ -49,22 +50,28 @@ span datastore ── session-end trigger
                  new_session_to_norm
                         │
                         ▼
-                      norm ─────────────────────────┐
-                        │                           │
-             new_session_to_mce             new_session_to_emb
-                        │                           │
-                        ▼                           ▼
-                       mce                      embedding
-                    (metrics)                       │
-        ┌─────────────────────┬─────────────────────┴───────────┬────────────────────────┐
-        │                     │                                 │                        │
-new_session_to_       new_session_to_                 new_session_to_          new_session_to_
-   grouping            stateful_eval                  cognitive_failure        cognition_protocols
-        │                     │                                 │                        │
-        ▼                     ▼                                 ▼                        ▼
-    grouping            stateful-eval                   cognitive-failure        cognition-protocols
-        │              (trajectory metrics)             (cognitive failure       (protocols used and
-new_session_to_                                              reports)             their metrics)
+                      norm ───────────────────────────────────────────────┐
+                        │                           │                      │
+             new_session_to_mce             new_session_to_emb    new_session_to_symbolic_extractor
+                        │                           │                      │
+                        ▼                           ▼                      ▼
+                       mce                      embedding          symbolic-extractor
+                    (metrics)                       │            (symbolic state of the session)
+                                                    │                      │
+                                                    │           new_session_to_failure_detection
+                                                    │                      │
+                                                    │                      ▼
+                                                    │              failure-detection
+                                                    │           (cognitive failure reports)
+        ┌─────────────────────┬─────────────────────┴───────────┐
+        │                     │                                 │
+new_session_to_       new_session_to_                 new_session_to_
+   grouping            stateful_eval                  cognition_protocols
+        │                     │                                 │
+        ▼                     ▼                                 ▼
+    grouping            stateful-eval                   cognition-protocols
+        │              (trajectory metrics)             (protocols used and
+new_session_to_                                              their metrics)
    analysis
         │
         ▼
@@ -74,24 +81,29 @@ new_session_to_                                              reports)           
 
 | Worker | Input queue | Output queue(s) | What it adds to the knowledge graph |
 |---|---|---|---|
-| [norm](../ingestion/normalization/norm-worker.md) | `new_session_to_norm` | `new_session_to_mce`, `new_session_to_emb` | The normalised session: MAS, execution and trajectory |
+| [norm](../ingestion/normalization/norm-worker.md) | `new_session_to_norm` | `new_session_to_mce`, `new_session_to_emb`, `new_session_to_symbolic_extractor` | The normalised session: MAS, execution and trajectory |
 | [mce](workers/mce-worker.md) | `new_session_to_mce` | none | The configured metrics, as `MetricResult` nodes |
-| [embedding](workers/embedding-worker.md) | `new_session_to_emb` | `new_session_to_grouping`, `new_session_to_stateful_eval`, `new_session_to_cognitive_failure`, `new_session_to_cognition_protocols` | An embedding for each state |
+| [embedding](workers/embedding-worker.md) | `new_session_to_emb` | `new_session_to_grouping`, `new_session_to_stateful_eval`, `new_session_to_cognition_protocols` | An embedding for each state |
 | [grouping](workers/grouping-worker.md) | `new_session_to_grouping` | `new_session_to_analysis` | The session's membership of a semantic group |
 | [analysis](workers/analysis-worker.md) | `new_session_to_analysis` | none | The consistency, anomaly and normal behaviour reports of the group |
 | [stateful-eval](workers/stateful-eval-worker.md) | `new_session_to_stateful_eval` | none | Trajectory metrics (opt-in, see the worker) |
-| [cognitive-failure](workers/cognitive-failure-worker.md) | `new_session_to_cognitive_failure` | none | A `CognitiveFailureReport` for each cognitive failure detected in the session |
+| symbolic-extractor | `new_session_to_symbolic_extractor` | `new_session_to_failure_detection` | The symbolic state of the session: claims, facts, goals, tasks, constraints, capabilities and system prompts, linked to the calls |
+| failure-detection | `new_session_to_failure_detection` | none | A `CognitiveFailureReport` for each cognitive failure (`detection`) or open risk (`risk`) the rules find in the symbolic state |
 | [cognition-protocols](workers/cognition-protocols-worker.md) | `new_session_to_cognition_protocols` | none | Which Cognition protocols the session's agents had and used, and the metrics of the protocols used |
 
-Four things to know when reading the diagram:
+Five things to know when reading the diagram:
 
 - **MCE is not upstream of grouping.** The MCE worker runs in parallel with embedding and has no output queue.
   Grouping works from the embeddings, so it is fed by the embedding worker alone.
-- **Four workers hang off embedding.** Grouping, stateful evaluation, cognitive failure detection and Cognition
-  protocol detection all read the session once it has its embeddings, and run in parallel with one another. None
-  of the last three has an output queue. The last two make judge-model calls, and each can be turned off: remove
-  its queue from the embedding worker's output queues, and stop the worker (in the Helm chart,
-  `workers.cognitive-failure.enabled` and `workers.cognition-protocols.enabled`).
+- **Three workers hang off embedding.** Grouping, stateful evaluation and Cognition protocol detection all read the
+  session once it has its embeddings, and run in parallel with one another. The last one makes judge-model calls and
+  can be turned off: remove its queue from the embedding worker's output queues, and stop the worker (in the Helm
+  chart, `workers.cognition-protocols.enabled`).
+- **Cognitive failure detection is its own branch of norm.** The symbolic extractor needs the normalised session
+  only, not its embeddings, so norm feeds it directly, and it feeds failure detection. The extractor makes LLM
+  calls for each session and can be turned off together with failure detection: remove its queue from the norm
+  worker's output queues, and stop both workers (in the Helm chart, `workers.symbolic-extractor.enabled` and
+  `workers.failure-detection.enabled`).
 - **Analysis needs a group.** `analysis` is a bundle of three independent analyses, run together for each
   semantic group. A session only reaches it if grouping could assign the session to a group. The
   [hierarchical grouping](#periodic-operations) worker also sends groups there when it rearranges them.

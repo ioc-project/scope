@@ -67,13 +67,14 @@ You need:
 
 !!! note "Keeping the cost down"
     Besides the judge metrics of the metrics computation engine (MCE), which the analysis needs, every session goes through two more workers that
-    call your model for each session: the stateful evaluation and the cognitive-failure detection. To skip them
+    call your model for each session: the stateful evaluation and the cognitive-failure detection (the symbolic extractor, which runs in the `ingestion` service). To skip them
     for this walkthrough, stop them before loading the sessions. The stateful evaluation runs next to the MCE in the
     `eval` service: restart it with only the MCE.
 
     ```bash
     cd deploy/docker-compose
-    docker compose stop cognitive-failure cognition-protocols
+    docker compose stop failure-detection cognition-protocols
+    INGESTION_WORKERS=norm,embedding docker compose up -d ingestion
     EVAL_WORKERS=mce docker compose up -d eval
     ```
 
@@ -319,7 +320,8 @@ For the routes session it reads, for example, *"The score is 0.00 because the ou
 
 ```bash
 cd deploy/docker-compose
-docker compose start cognitive-failure cognition-protocols   # if you stopped them
+docker compose start failure-detection cognition-protocols   # if you stopped them
+docker compose up -d ingestion                                # with the symbolic extractor again
 docker compose up -d eval                                     # with the stateful evaluation again
 docker compose down -v                                        # to delete the data as well
 ```

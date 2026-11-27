@@ -1,29 +1,27 @@
-{{- $worker := index .Values.workers "cognitive-failure" -}}
+{{- $worker := index .Values.workers "failure-detection" -}}
 {{- if and .Values.workers.enabled $worker.enabled }}
-{{- $workerOverrides := default dict $worker.secretOverrides }}
-{{- $llmSecretName := include "scope.secretName" . }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "scope.workerDeploymentName" (dict "root" . "name" "cognitive-failure") }}
+  name: {{ include "scope.workerDeploymentName" (dict "root" . "name" "failure-detection") }}
   labels:
     {{- include "scope.labels" . | nindent 4 }}
     app.kubernetes.io/component: worker
-    app.kubernetes.io/worker-name: cognitive-failure
+    app.kubernetes.io/worker-name: failure-detection
 spec:
   replicas: {{ default 1 $worker.replicaCount }}
   selector:
     matchLabels:
       {{- include "scope.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: worker
-      app.kubernetes.io/worker-name: cognitive-failure
+      app.kubernetes.io/worker-name: failure-detection
   template:
     metadata:
       labels:
         {{- include "scope.labels" . | nindent 8 }}
         app.kubernetes.io/component: worker
-        app.kubernetes.io/worker-name: cognitive-failure
+        app.kubernetes.io/worker-name: failure-detection
     spec:
       {{- $globalValues := get .Values "global" | default dict }}
       {{- $globalPullSecrets := get $globalValues "imagePullSecrets" | default (list) }}
@@ -38,7 +36,7 @@ spec:
         {{- $waitInitContainers | nindent 8 }}
       {{- end }}
       containers:
-        - name: cognitive-failure
+        - name: failure-detection
           image: "{{ $worker.image.repository }}:{{ $worker.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ $worker.image.pullPolicy }}
           envFrom:
@@ -51,44 +49,20 @@ spec:
           env:
             {{- include "scope.rabbitmqWorkerEnv" . | nindent 12 }}
             {{- include "scope.neo4jWorkerEnv" . | nindent 12 }}
-            - name: COGNITIVE_FAILURE_INPUT_QUEUE
+            - name: FAILURE_DETECTION_INPUT_QUEUE
               value: {{ $worker.inputQueue | quote }}
-            - name: COGNITIVE_FAILURE_OUTPUT_QUEUE
+            - name: FAILURE_DETECTION_OUTPUT_QUEUE
               value: {{ include "scope.listOrStringEnvValue" $worker.outputQueue | quote }}
             {{ if $worker.feedbackQueue }}
-            - name: COGNITIVE_FAILURE_FEEDBACK_QUEUE
+            - name: FAILURE_DETECTION_FEEDBACK_QUEUE
               value: {{ $worker.feedbackQueue | quote }}
             {{ end }}
-            {{- $cognitiveFailureLlmModelKey := default .Values.secrets.llm.llmModelNameKey (get $workerOverrides "llmModelNameKey") }}
-            - name: LLM_MODEL_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $llmSecretName }}
-                  key: {{ $cognitiveFailureLlmModelKey }}
-            - name: COGNITIVE_FAILURE_CONFIG_PATH
-              value: {{ $worker.configPath | quote }}
+            {{- with $worker.failures }}
+            - name: FAILURE_DETECTION_FAILURES
+              value: {{ join "," . | quote }}
+            {{- end }}
             - name: MAX_INFLIGHT_MESSAGES
               value: {{ $worker.maxInflightMessages | quote }}
-            {{- if $workerOverrides.aiGatewayApiKey }}
-            - name: OPENAI_API_KEY
-              value: {{ $workerOverrides.aiGatewayApiKey | quote }}
-            {{- else }}
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $llmSecretName }}
-                  key: {{ .Values.secrets.llm.llmGatewayApiKeyKey }}
-            {{- end }}
-            {{- if $workerOverrides.aiGatewayBaseUrl }}
-            - name: LLM_BASE_MODEL_URL_MCE
-              value: {{ $workerOverrides.aiGatewayBaseUrl | quote }}
-            {{- else }}
-            - name: LLM_BASE_MODEL_URL_MCE
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $llmSecretName }}
-                  key: {{ .Values.secrets.llm.llmGatewayBaseUrlKey }}
-            {{- end }}
           {{- with $worker.extraEnv }}
             {{- range $envName, $envValue := . }}
             - name: {{ $envName }}
@@ -97,18 +71,12 @@ spec:
           {{- end }}
           resources:
             {{- toYaml $worker.resources | nindent 12 }}
+          {{- with $worker.volumeMounts }}
           volumeMounts:
-            - name: cognitive-failure-config
-              mountPath: {{ $worker.configPath }}
-              subPath: cognitive_failure_config.yaml
-            {{- with $worker.volumeMounts }}
             {{- toYaml . | nindent 12 }}
-            {{- end }}
+          {{- end }}
+      {{- with $worker.volumes }}
       volumes:
-        - name: cognitive-failure-config
-          configMap:
-            name: {{ include "scope.cognitiveFailureConfigMapName" . }}
-        {{- with $worker.volumes }}
         {{- toYaml . | nindent 8 }}
-        {{- end }}
+      {{- end }}
 {{- end }}

@@ -25,6 +25,8 @@ group "backend" {
     "stateful-eval-worker",
     "cognitive-failure-worker",
     "cognition-protocols-worker",
+    "symbolic-extractor-worker",
+    "failure-detection-worker",
     "ingestion-worker",
     "semantic-analysis-worker",
     "eval-worker",
@@ -163,6 +165,20 @@ target "cognitive-failure-worker" {
   context    = "backend"
   contexts   = { ontology = "ontology" }
   dockerfile = "workers/cognitive-failure-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64", "linux/arm64"]
+}
+target "symbolic-extractor-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  contexts   = { ontology = "ontology" }
+  dockerfile = "workers/symbolic-extractor-worker/deploy/docker/Dockerfile"
+  platforms  = ["linux/amd64", "linux/arm64"]
+}
+target "failure-detection-worker" {
+  inherits   = ["docker-metadata-action"]
+  context    = "backend"
+  contexts   = { ontology = "ontology" }
+  dockerfile = "workers/failure-detection-worker/deploy/docker/Dockerfile"
   platforms  = ["linux/amd64", "linux/arm64"]
 }
 target "cognition-protocols-worker" {

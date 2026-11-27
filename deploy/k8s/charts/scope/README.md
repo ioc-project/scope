@@ -103,20 +103,26 @@ Important for local/simple installs:
   1) provide an explicit existing auth secret that matches the running Neo4j DB password, or
   2) reset the local Neo4j data/secret before reinstalling.
 
-### 6. Cognitive Failure Worker
+### 6. Cognitive Failure Detection
 
-The `cognitive-failure` worker detects cognitive failures of the challenges taxonomy in each session. It is
-**enabled by default**, and makes a judge-model call (an agent that reads the trace) for every session. It uses
-the same LLM secret as the other workers, so the model must support tool calling. To skip that cost, turn it off:
+Two workers detect the cognitive failures of the challenges taxonomy, both **enabled by default**:
+`symbolic-extractor` reads a normalised session from the knowledge graph, extracts its symbolic state (claims, facts,
+goals, tasks, constraints, capabilities) with an LLM and writes it back, and `failure-detection` runs deterministic
+rules over that state and writes a `CognitiveFailureReport` per finding (`level` `detection` or `risk`, and the
+`rule`). The extractor makes LLM and embedding calls for every session, so it uses the LLM secret and the embedding
+model of the other workers; the detection makes no model call. To skip the cost, turn both off:
 
 ```bash
 helm upgrade -i -n scope scope charts/scope \
-  --set workers.cognitive-failure.enabled=false
+  --set workers.symbolic-extractor.enabled=false \
+  --set workers.failure-detection.enabled=false
 ```
 
-While it is enabled, its input queue, `new_session_to_cognitive_failure`, is added to the embedding worker's
-output queues. The failures to look for are listed in `workers.cognitive-failure.config.failures`; only the ones listed
-run, and each one makes the judge prompt longer.
+While enabled, the extractor's input queue, `new_session_to_symbolic_extractor`, is added to the norm worker's output
+queues, and the detection's, `new_session_to_failure_detection`, to the extractor's. `workers.failure-detection.failures`
+lists the failure codes to report (empty: all) and `workers.symbolic-extractor.sameClaims` turns the embedding
+comparison of claims on or off. They replace the `cognitive-failure` worker (a judge model reading the trace), which
+the chart no longer deploys.
 
 ### 7. Cognition Protocols Worker
 

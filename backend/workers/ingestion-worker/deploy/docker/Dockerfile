@@ -30,6 +30,8 @@ COPY pyproject.toml uv.lock /app/
 COPY workers/ingestion-worker /app/workers/ingestion-worker
 COPY workers/norm-worker /app/workers/norm-worker
 COPY workers/embedding-worker /app/workers/embedding-worker
+COPY workers/symbolic-extractor-worker /app/workers/symbolic-extractor-worker
+COPY symbolic-extractor /app/symbolic-extractor
 COPY worker-base /app/worker-base
 COPY norm /app/norm
 COPY dem /app/dem

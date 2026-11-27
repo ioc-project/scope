@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Cognitive failure detection is now norm -> symbolic-extractor -> failure-detection in the default deployments.**
+  `symbolic-extractor-worker` extracts the symbolic state of a session (claims, facts, goals, tasks, constraints,
+  capabilities) from the knowledge graph with an LLM and writes it back; `failure-detection-worker` runs deterministic
+  rules over it and writes one `CognitiveFailureReport` per finding, with its `level` (`detection` or `risk`) and
+  `rule`. The Docker Compose stack and the Helm chart deploy both (`symbolic-extractor` and `failure-detection`
+  services / `workers.symbolic-extractor` and `workers.failure-detection` values), and norm feeds the extractor.
+  They replace the judge-model `cognitive-failure` worker, which is no longer deployed (its package and image are
+  kept).
+
 ## [1.2.0] - 2026-11-25
 
 ### Added

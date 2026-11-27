@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "failure-detection"
+version = "1.2.0"
+authors = [
+    { name = "IoC project", email = "oss-github@cisco.com" }
+]
+license = "Apache-2.0"
+description = "Deterministic cognitive-failure detectors over the neurosymbolic graph (claims, facts, goals, tasks, constraints). No knowledge-graph access: see the failure-detection-worker."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  # The ontology's generated models (pydantic only): the relations and labels are checked against them.
+  "ioc-scope-ontology[models]>=1.2.0",
+  # build_transitions and SessionTrajectory: the trajectory is read the way the extractor reads it.
+  "symbolic-extractor",
+  "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "ruff>=0.12.10",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/failure_detection"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]  # long docstrings and comments; the formatter wraps code
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--tb=short -q"
+
+[tool.uv.sources]
+ioc-scope-ontology = { workspace = true }
+symbolic-extractor = { workspace = true }
